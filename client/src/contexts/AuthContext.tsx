@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 interface User {
   id: string;
   teamName: string;
   ticker: string;
-  role: 'player' | 'admin';
+  role: "player" | "admin";
 }
 
 interface AuthContextType {
@@ -23,12 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('complex_user');
+    const stored = localStorage.getItem("complex_user");
     if (stored) {
       try {
         setUser(JSON.parse(stored));
       } catch {
-        localStorage.removeItem('complex_user');
+        localStorage.removeItem("complex_user");
       }
     }
     setIsLoading(false);
@@ -36,12 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('complex_user', JSON.stringify(userData));
+    localStorage.setItem("complex_user", JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('complex_user');
+    localStorage.removeItem("complex_user");
   };
 
   return (
@@ -54,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
