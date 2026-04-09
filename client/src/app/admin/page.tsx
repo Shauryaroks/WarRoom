@@ -1,32 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminPage() {
-  const { user, isLoading, login } = useAuth();
-  const router = useRouter();
+  const { login } = useAuth();
   const [activeTab, setActiveTab] = useState('teams');
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/register');
-    } else if (!isLoading && user && user.role !== 'admin') {
-      router.replace('/game');
-    }
-  }, [user, isLoading, router]);
-
-  if (isLoading || !user || user.role !== 'admin') {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-[#FFB000] tracking-widest uppercase text-sm animate-pulse">
-          Loading...
-        </div>
-      </div>
-    );
-  }
+  // Auth check commented out for now
 
   const mockTeams = [
     { name: 'BARBIE INC', ticker: '$BARB', status: 'ACTIVE', liquidity: '$124.5M', mktCap: '$540.0M', lastDirective: 'EXPAND_MARKET_SHARE_EMEA...' },

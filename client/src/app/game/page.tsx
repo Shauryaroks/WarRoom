@@ -1,33 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function GamePage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/register');
-    }
-  }, [user, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-[#FFB000] tracking-widest uppercase text-sm animate-pulse">
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
+  // Auth check commented out for now
+  
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e5e2e1] font-mono">
       {/* Header Bar */}
@@ -83,7 +62,7 @@ export default function GamePage() {
         <aside className="bg-[#201f1f] flex flex-col h-full w-80 border-r border-[#353534]">
           <div className="p-3 border-b border-[#353534] bg-[#131313]">
             <div className="text-[10px] font-bold text-[#FFB000] uppercase">OPERATIONS</div>
-            <div className="text-[9px] text-zinc-500">MARKET_PULSE: {user.ticker}</div>
+            <div className="text-[9px] text-zinc-500">MARKET_PULSE: {user?.ticker || '$XXX'}</div>
           </div>
 
           {/* Candlestick Chart Placeholder */}
@@ -117,7 +96,7 @@ export default function GamePage() {
                 </thead>
                 <tbody className="text-[10px]">
                   <tr className="border-b border-[#353534]/5 hover:bg-[#353534]/20">
-                    <td className="p-2 text-white font-bold">{user.ticker}</td>
+                    <td className="p-2 text-white font-bold">{user?.ticker || '$XXX'}</td>
                     <td className="p-2 text-zinc-300">142.09</td>
                     <td className="p-2 text-[#00c853]">+2.41%</td>
                     <td className="p-2 text-zinc-500">12.4M</td>
@@ -250,7 +229,7 @@ export default function GamePage() {
       <footer className="fixed bottom-0 left-0 w-full z-50 flex items-center justify-between px-4 bg-black h-6 border-t border-[#353534]">
         <div className="flex gap-4 overflow-hidden items-center flex-1">
           <div className="flex items-center gap-6 whitespace-nowrap text-[9px] animate-[ticker_40s_linear_infinite]" style={{ animation: 'ticker 40s linear infinite' }}>
-            <span className="text-[#FFB000] font-bold">{user.ticker} <span className="text-[#00c853]">▲+2.41%</span> <span className="text-zinc-600">[VOL: 12.4M]</span></span>
+            <span className="text-[#FFB000] font-bold">{user?.ticker || '$XXX'} <span className="text-[#00c853]">▲+2.41%</span> <span className="text-zinc-600">[VOL: 12.4M]</span></span>
             <span className="text-[#FFB000] font-bold">$TECH <span className="text-[#ff3333]">▼-1.24%</span> <span className="text-zinc-600">[VOL: 890K]</span></span>
             <span className="text-[#FFB000] font-bold">$SOLA <span className="text-[#00c853]">▲+0.08%</span> <span className="text-zinc-600">[VOL: 2.1M]</span></span>
           </div>
