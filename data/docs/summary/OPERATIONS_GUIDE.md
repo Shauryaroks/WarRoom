@@ -5,21 +5,24 @@
 ### 11.1.1. Manual Approval Dashboard
 
 **Pending Registrations Queue**:
-Admin reviews Team Name and Ticker for appropriateness. Assigns a pre-made **Portfolio Profile** (SWOT + Starting Financials) from a curated pool (e.g., `PORT_TECH_01`). 
+Admin reviews Team Name and Ticker for appropriateness. Assigns a pre-made **Portfolio Profile** (SWOT + Starting Financials) from a curated pool (e.g., `PORT_TECH_01`).
 System tracks distribution counts to ensure no single portfolio type dominates.
 
 ### 11.1.2. Game Control Center
 
 **Elimination Trigger Button**:
+
 - Big Red Button labeled **"INITIATE MARKET PURGE"**.
 - **Two-Step Confirmation**: Modal warning → Type "PURGE" to confirm.
 - **Pre-Purge Checklist**: Requires minimum 30 minutes since last purge, >10 teams remain, and 0 pending directives/trades. Can be force-overridden.
 
 **Emergency Pause/Resume**:
+
 - Halts all trading and directive submissions (`503 Service Unavailable`).
 - Freezes cooldown timers exactly.
 
 **Manual News Injection**:
+
 - Inject global or targeted headlines to steer narrative (e.g., "Regulatory investigation").
 - Admin selects urgency, impact type, and affected sectors.
 

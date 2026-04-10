@@ -10,12 +10,12 @@
 graph TD
     Client[React Frontend] -->|REST /api/v1| API[FastAPI Backend]
     Client <-->|WebSocket /ws| WS[WS Manager]
-    
+
     API -->|Read/Write| DB[(PostgreSQL)]
     API -->|Publish Job| Redis[(Redis Pub/Sub & Queue)]
-    
+
     WS <--> Redis
-    
+
     Redis -->|Consume Job| Worker[Celery Worker Pool]
     Worker -->|Prompt| LLM[OpenRouter / Claude 3.5]
     LLM -->|JSON Response| Worker
@@ -30,12 +30,14 @@ graph TD
 **Framework**: FastAPI 0.110+ with Python 3.11.
 
 **Key Dependencies**:
+
 - `asyncpg`: Async PostgreSQL driver.
 - `redis-py`: For queue and caching.
 - `pydantic`: Input validation and serialization.
 - `websockets`: Native ASGI WebSocket support.
 
 **Concurrency Model**:
+
 - ASGI server: Uvicorn with `--workers 4` (CPU-bound) + `--loop uvloop`.
 - Database: Async SQLAlchemy with connection pooling (20 connections).
 - LLM calls: Offloaded to Celery workers (I/O bound, non-blocking).
@@ -45,6 +47,7 @@ graph TD
 **Implementation**: Native FastAPI WebSocket + Redis Pub/Sub for horizontal scaling (if multiple API instances).
 
 **Connection Types**:
+
 1. **Public Market Feed**: Single broadcast channel (`channel:market`) pushing to all connected clients.
 2. **Private Team Channels**: Individual channels (`channel:team:{team_id}`) for personal updates.
 
@@ -55,6 +58,7 @@ graph TD
 **Queue**: Redis-backed Celery with `celery[redis]` broker.
 
 **Worker Configuration**:
+
 - **Pool**: `prefork` (4 processes per worker node).
 - **Concurrency**: 10 tasks per worker (matches OpenRouter rate limits).
 - **Retry Policy**: Exponential backoff (2^attempt seconds), max 3 retries.
@@ -72,12 +76,12 @@ sequenceDiagram
     participant API as Trade Route
     participant DB as Postgres (SERIALIZABLE)
     participant Redis as Pub/Sub
-    
+
     FE->>API: POST /orders
     API->>DB: 1. Validate (Read-only)
     DB-->>API: ValidationResult
     API->>DB: 2. Reserve (Insert PENDING order)
-    
+
     rect rgb(200, 220, 240)
         Note right of API: 3. Settlement (Atomic)
         API->>DB: Lock Seller & Buyer Rows
@@ -86,13 +90,14 @@ sequenceDiagram
         API->>DB: Insert into Fills & Ledger
         API->>DB: Commit Transaction
     end
-    
+
     API->>DB: 4. Post-Trade Bankruptcy Check
     API->>Redis: 5. Notify Market (Price Update)
     Redis-->>FE: WebSocket confirmation
 ```
 
 **ACID Guarantees**:
+
 - **Atomicity**: Single `SERIALIZABLE` transaction per order; all-or-nothing updates.
 - **Consistency**: Foreign key constraints, check constraints, trigger-based balance verification.
 - **Isolation**: `SERIALIZABLE` level prevents phantom reads and write skew.
@@ -103,6 +108,7 @@ sequenceDiagram
 ### 8.4.1. Terminal Aesthetic
 
 **Design Language**:
+
 - **Color Palette**: Dark theme (#0a0a0a background), Amber (#ffb000) for gains, Red (#ff3333) for losses, Green (#00c853) for positive vibes.
 - **Typography**: Monospace primary (JetBrains Mono or IBM Plex Mono), Sans-serif secondary (Inter) for readability.
 - **Layout**: Grid-based, no scrolling containers (except The Wire), fixed panes like a trading terminal.
@@ -135,6 +141,7 @@ sequenceDiagram
 
 **Deployment Target**: Single robust VPS (e.g., AWS t3.xlarge or Hetzner CPX31 - 4 vCPU, 8GB RAM).
 **Containerization**: `docker-compose` managing:
+
 1. `api` (FastAPI)
 2. `worker` (Celery)
 3. `redis`
@@ -142,6 +149,7 @@ sequenceDiagram
 5. `frontend` (Nginx serving static React build)
 
 **CI/CD**:
+
 - GitHub Actions triggers on `main` merge.
 - Linting (Ruff/MyPy) & Test suite runs.
 - Builds Docker images and pushes to registry.

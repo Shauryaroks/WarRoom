@@ -18,11 +18,11 @@ sequenceDiagram
     API->>DB: Set status = COOLDOWN
     API->>Redis: Publish job `process_directive`
     API-->>FE: HTTP 202 Accepted (Cooldown starts)
-    
+
     Redis->>Worker: Consume job
     Worker->>LLM: Generate Prompt + Context
     LLM-->>Worker: Return JSON (Scores & Impact)
-    
+
     Worker->>DB: Update Financials & Cache News
     Worker->>Redis: Publish `market_news`
     Redis->>WS: Distribute event
@@ -37,12 +37,14 @@ sequenceDiagram
 **Fallback Model**: `anthropic/claude-3-haiku` (if Sonnet latency > 10s or rate limited).
 
 **Parameters**:
+
 - **Temperature**: 0.4 (controlled creativity; coherent but not robotic).
 - **Max Tokens**: 800 (sufficient for JSON output + narrative feedback).
 - **Top P**: 0.9.
 - **System Prompt**: Fixed, never exposed to players.
 
 **Cost Controls**:
+
 - Input: ~1,500 tokens average (SWOT + News + Directive).
 - Output: ~300 tokens average.
 - Cost per submission: ~$0.006 (Claude Sonnet).
@@ -51,6 +53,7 @@ sequenceDiagram
 ## 5.3. Input Context Schema
 
 The LLM receives a structured context block (XML-delimited to prevent injection). It contains:
+
 1. Team Metadata (`<META>`)
 2. Current Financials (`<FINANCIAL_STATE>`)
 3. Static SWOT Profile (`<SWOT_PROFILE>`)
@@ -60,6 +63,7 @@ The LLM receives a structured context block (XML-delimited to prevent injection)
 ## 5.4. Output Schema (Structured JSON)
 
 The LLM must return valid JSON matching this schema:
+
 - `extraction`: Parsed numeric values (pricing_magnitude, marketing_spend, confidence).
 - `vibe_scores`: Qualitative assessments (consistency, macro_sensitivity, aggression, innovation).
 - `financial_impact`: Calculated delta changes applied to the database.
@@ -89,21 +93,23 @@ The LLM must return valid JSON matching this schema:
 **Overview**: The Market Wire is the **central nervous system** of the simulation—every strategic action becomes public information, creating the reflexive market dynamics.
 
 **News Lifecycle States**:
+
 ```mermaid
 stateDiagram-v2
     [*] --> CREATED
     CREATED --> BROADCAST: WebSocket push
     BROADCAST --> ACTIVE_WINDOW: 20 min
-    
+
     ACTIVE_WINDOW --> LLM_CONTEXT: Included in top 20
     ACTIVE_WINDOW --> SATURATION_CHECK: Compare Fingerprints
-    
+
     ACTIVE_WINDOW --> DECAY: 40 min
     DECAY --> ARCHIVED: After 60 min total
     ARCHIVED --> [*]
 ```
 
 **News Taxonomy**:
+
 1. `GLOBAL` (Admin injection, e.g., "Fed hikes rates")
 2. `TEAM_ACTION` (LLM generation from directives)
 3. `SYSTEM` (Automatic game events, e.g., Purges)
@@ -136,7 +142,7 @@ The Strategic Score is the **sole elimination metric**, calculated only during M
 
 **Formula**:
 $$SS_i = 0.5 \times \frac{MC_i}{\max(MC)} + 0.5 \times \frac{L_i}{\max(L)}$$
-*(Where $MC_i$ = Market Cap, $L_i$ = Liquidity. Normalization uses max among active teams).*
+_(Where $MC_i$ = Market Cap, $L_i$ = Liquidity. Normalization uses max among active teams)._
 
 **Black Box Rules**:
 | Data | Visible to Team | Visible to Others | Visible Post-Elimination |

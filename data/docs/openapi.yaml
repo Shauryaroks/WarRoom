@@ -5,7 +5,7 @@ info:
   description: |
     High-intensity synchronous multiplayer business simulation platform.
     All timestamps are ISO 8601 UTC. Financial values are decimal with 2 precision.
-    
+
 servers:
   - url: /api/v1
     description: Production API
@@ -15,17 +15,16 @@ security:
   - BearerAuth: []
 
 paths:
-
   # ============================================================================
   # AUTHENTICATION & REGISTRATION
   # ============================================================================
-  
+
   /auth/register:
     post:
       tags: [Authentication]
       summary: Submit team registration for admin approval
       description: Creates pending team. Admin must approve before game access.
-      security: []  # Public endpoint
+      security: [] # Public endpoint
       requestBody:
         required: true
         content:
@@ -44,7 +43,7 @@ paths:
                   type: string
                   minLength: 3
                   maxLength: 4
-                  pattern: '^[A-Z]{3,4}$'
+                  pattern: "^[A-Z]{3,4}$"
                   description: "3-4 uppercase letters, will be prefixed with $"
                   example: "BRBE"
                 email:
@@ -57,7 +56,7 @@ paths:
                   format: password
                   example: "secure123"
       responses:
-        '202':
+        "202":
           description: Registration submitted for approval
           content:
             application/json:
@@ -70,16 +69,16 @@ paths:
                   registration_id:
                     type: string
                     format: uuid
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
           description: Ticker or team name already exists
 
   /auth/login:
     post:
       tags: [Authentication]
       summary: Authenticate and receive API key
-      security: []  # Public endpoint
+      security: [] # Public endpoint
       requestBody:
         required: true
         content:
@@ -95,7 +94,7 @@ paths:
                   type: string
                   format: password
       responses:
-        '200':
+        "200":
           description: Authentication successful
           content:
             application/json:
@@ -117,13 +116,13 @@ paths:
                     type: string
                     description: WebSocket connection URL
                     example: "/ws/team/{api_key}"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   # ============================================================================
   # GAME STATE (Global Event Status)
   # ============================================================================
-  
+
   /game/state:
     get:
       tags: [Game State]
@@ -132,7 +131,7 @@ paths:
         Returns global game state including session timing, next purge, and system status.
         Used by HeaderBar (session elapsed, next purge) and all clients for sync.
       responses:
-        '200':
+        "200":
           description: Current game state
           content:
             application/json:
@@ -174,7 +173,7 @@ paths:
   # ============================================================================
   # TEAM MANAGEMENT (Self and Others)
   # ============================================================================
-  
+
   /teams/me:
     get:
       tags: [Teams]
@@ -183,12 +182,12 @@ paths:
         Primary endpoint for LeftSidebar, SecondaryStatusBar, and DirectiveEditor.
         Returns everything needed to render the terminal interface.
       responses:
-        '200':
+        "200":
           description: Complete team dossier
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TeamDossier'
+                $ref: "#/components/schemas/TeamDossier"
 
   /teams/me/holdings:
     get:
@@ -196,7 +195,7 @@ paths:
       summary: Get stock portfolio with real-time PnL
       description: Used by LeftSidebar portfolio tab and trading interface.
       responses:
-        '200':
+        "200":
           description: Current stock holdings
           content:
             application/json:
@@ -206,7 +205,7 @@ paths:
                   holdings:
                     type: array
                     items:
-                      $ref: '#/components/schemas/StockHolding'
+                      $ref: "#/components/schemas/StockHolding"
                   total_portfolio_value:
                     type: number
                     format: decimal
@@ -234,7 +233,7 @@ paths:
             type: integer
             default: 0
       responses:
-        '200':
+        "200":
           description: List of directives with LLM feedback
           content:
             application/json:
@@ -244,7 +243,7 @@ paths:
                   directives:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DirectiveWithFeedback'
+                      $ref: "#/components/schemas/DirectiveWithFeedback"
                   total_count:
                     type: integer
 
@@ -268,7 +267,7 @@ paths:
             type: string
           description: Text search on name or ticker
       responses:
-        '200':
+        "200":
           description: List of teams
           content:
             application/json:
@@ -278,7 +277,7 @@ paths:
                   teams:
                     type: array
                     items:
-                      $ref: '#/components/schemas/TeamSummary'
+                      $ref: "#/components/schemas/TeamSummary"
                   pending_count:
                     type: integer
                     description: Number of teams awaiting approval (admin only)
@@ -313,7 +312,7 @@ paths:
                   format: decimal
                   default: 1000000
       responses:
-        '200':
+        "200":
           description: Team approved
           content:
             application/json:
@@ -329,8 +328,8 @@ paths:
                   message:
                     type: string
                     example: "Team approved and activated"
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /teams/{teamId}/reject:
     post:
@@ -354,7 +353,7 @@ paths:
                   maxLength: 500
                   description: Rejection reason emailed to team
       responses:
-        '200':
+        "200":
           description: Team rejected
 
   /teams/{teamId}/bankrupt:
@@ -386,13 +385,13 @@ paths:
                   type: string
                   description: Broadcast to all players
       responses:
-        '200':
+        "200":
           description: Team force-bankrupted
 
   # ============================================================================
   # DIRECTIVE SUBMISSION
   # ============================================================================
-  
+
   /directives:
     post:
       tags: [Directives]
@@ -419,7 +418,7 @@ paths:
                   maximum: 1
                   description: Optional self-assessment
       responses:
-        '202':
+        "202":
           description: Directive accepted, processing async
           content:
             application/json:
@@ -440,7 +439,7 @@ paths:
                   message:
                     type: string
                     example: "Directive received. The Board is reviewing."
-        '429':
+        "429":
           description: Cooldown active or rate limit hit
           content:
             application/json:
@@ -459,7 +458,7 @@ paths:
   # ============================================================================
   # TRADING ENDPOINTS
   # ============================================================================
-  
+
   /orders:
     post:
       tags: [Trading]
@@ -492,7 +491,7 @@ paths:
                   default: MARKET
                   description: "Limit orders not implemented in v1"
       responses:
-        '200':
+        "200":
           description: Order executed successfully
           content:
             application/json:
@@ -521,8 +520,8 @@ paths:
                   updated_holdings:
                     type: array
                     items:
-                      $ref: '#/components/schemas/StockHolding'
-        '400':
+                      $ref: "#/components/schemas/StockHolding"
+        "400":
           description: Validation failed
           content:
             application/json:
@@ -531,7 +530,15 @@ paths:
                 properties:
                   error:
                     type: string
-                    enum: [INSUFFICIENT_CASH, INSUFFICIENT_SHARES, OWNERSHIP_LIMIT_EXCEEDED, FLOAT_EXHAUSTED, TREASURY_CAP_EXCEEDED, TARGET_NOT_TRADABLE]
+                    enum:
+                      [
+                        INSUFFICIENT_CASH,
+                        INSUFFICIENT_SHARES,
+                        OWNERSHIP_LIMIT_EXCEEDED,
+                        FLOAT_EXHAUSTED,
+                        TREASURY_CAP_EXCEEDED,
+                        TARGET_NOT_TRADABLE,
+                      ]
                   detail:
                     type: string
 
@@ -552,7 +559,7 @@ paths:
             type: integer
             default: 20
       responses:
-        '200':
+        "200":
           description: List of orders
           content:
             application/json:
@@ -562,7 +569,7 @@ paths:
                   orders:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Order'
+                      $ref: "#/components/schemas/Order"
 
   /orders/{orderId}:
     delete:
@@ -577,15 +584,15 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Order cancelled
-        '400':
+        "400":
           description: Cannot cancel (already filled or failed)
 
   # ============================================================================
   # MARKET DATA
   # ============================================================================
-  
+
   /market/tickers:
     get:
       tags: [Market Data]
@@ -594,7 +601,7 @@ paths:
         Used by Footer ticker, LeftSidebar market view, and trading dropdown.
         Returns real-time prices for all active teams.
       responses:
-        '200':
+        "200":
           description: Current market snapshot
           content:
             application/json:
@@ -607,7 +614,7 @@ paths:
                   tickers:
                     type: array
                     items:
-                      $ref: '#/components/schemas/TickerSnapshot'
+                      $ref: "#/components/schemas/TickerSnapshot"
 
   /market/history/{ticker}:
     get:
@@ -640,7 +647,7 @@ paths:
             enum: [1m, 5m, 15m, 1h]
           default: 5m
       responses:
-        '200':
+        "200":
           description: Price history
           content:
             application/json:
@@ -678,7 +685,7 @@ paths:
         Used by RightSidebar heatmap. Groups teams by sector (derived from portfolio)
         and shows aggregate performance.
       responses:
-        '200':
+        "200":
           description: Sector performance metrics
           content:
             application/json:
@@ -706,7 +713,7 @@ paths:
   # ============================================================================
   # NEWS & MARKET WIRE
   # ============================================================================
-  
+
   /news:
     get:
       tags: [News]
@@ -733,7 +740,7 @@ paths:
             type: string
             enum: [GLOBAL, TEAM_ACTION, SYSTEM, ADMIN_INJECTED]
       responses:
-        '200':
+        "200":
           description: News items
           content:
             application/json:
@@ -743,14 +750,14 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/NewsItem'
+                      $ref: "#/components/schemas/NewsItem"
                   has_more:
                     type: boolean
 
   # ============================================================================
   # ADMIN CONTROLS (Game Orchestration)
   # ============================================================================
-  
+
   /admin/metrics:
     get:
       tags: [Admin - Dashboard]
@@ -760,7 +767,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: System health and game metrics
           content:
             application/json:
@@ -797,7 +804,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: LLM statistics
           content:
             application/json:
@@ -834,7 +841,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Market statistics
           content:
             application/json:
@@ -856,7 +863,8 @@ paths:
                       properties:
                         type:
                           type: string
-                          enum: [PRICE_DIVERGENCE, RAPID_TRADING, COLLUSION_PATTERN]
+                          enum:
+                            [PRICE_DIVERGENCE, RAPID_TRADING, COLLUSION_PATTERN]
                         ticker:
                           type: string
                         description:
@@ -886,9 +894,9 @@ paths:
                     type: string
                   description: "Override default 10 news items"
       responses:
-        '200':
+        "200":
           description: Game started
-        '409':
+        "409":
           description: Game already started or finished
 
   /game/pause:
@@ -901,7 +909,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Game paused
           content:
             application/json:
@@ -924,7 +932,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Game resumed
 
   /game/end:
@@ -937,7 +945,7 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Game ended
 
   /game/purge:
@@ -959,14 +967,14 @@ paths:
               properties:
                 confirmation:
                   type: string
-                  pattern: '^PURGE$'
+                  pattern: "^PURGE$"
                   description: "Must be exact string 'PURGE' for safety"
                 force:
                   type: boolean
                   default: false
                   description: "Skip safety checks (pending LLM queue, etc.)"
       responses:
-        '202':
+        "202":
           description: Purge initiated (async processing)
           content:
             application/json:
@@ -979,7 +987,7 @@ paths:
                   status:
                     type: string
                     enum: [PROCESSING]
-        '200':
+        "200":
           description: Purge completed
           content:
             application/json:
@@ -1043,7 +1051,7 @@ paths:
                   format: date-time
                   description: "Future scheduling (null = immediate)"
       responses:
-        '200':
+        "200":
           description: News injected
           content:
             application/json:
@@ -1072,20 +1080,19 @@ components:
       description: Admin JWT token (separate from team API keys)
 
   schemas:
-  
     TeamDossier:
       type: object
       properties:
         profile:
-          $ref: '#/components/schemas/TeamProfile'
+          $ref: "#/components/schemas/TeamProfile"
         financials:
-          $ref: '#/components/schemas/TeamFinancials'
+          $ref: "#/components/schemas/TeamFinancials"
         portfolio:
-          $ref: '#/components/schemas/Portfolio'
+          $ref: "#/components/schemas/Portfolio"
         last_directive:
-          $ref: '#/components/schemas/DirectiveSummary'
+          $ref: "#/components/schemas/DirectiveSummary"
         cooldown_status:
-          $ref: '#/components/schemas/CooldownStatus'
+          $ref: "#/components/schemas/CooldownStatus"
 
     TeamProfile:
       type: object
@@ -1139,7 +1146,7 @@ components:
         holdings:
           type: array
           items:
-            $ref: '#/components/schemas/StockHolding'
+            $ref: "#/components/schemas/StockHolding"
         total_portfolio_value:
           type: number
           format: decimal
@@ -1189,7 +1196,7 @@ components:
 
     DirectiveWithFeedback:
       allOf:
-        - $ref: '#/components/schemas/DirectiveSummary'
+        - $ref: "#/components/schemas/DirectiveSummary"
         - type: object
           properties:
             raw_markdown:

@@ -12,11 +12,11 @@ erDiagram
     teams ||--o{ cash_ledger : has
     teams ||--o{ price_history : has
     teams ||--o{ market_news : generates
-    
+
     orders ||--o{ order_fills : has
     directives ||--o| market_news : produces
     order_fills ||--|| transactions : maps_to
-    
+
     teams {
         UUID id PK
         VARCHAR name
@@ -25,7 +25,7 @@ erDiagram
         DECIMAL cash
         DECIMAL stock_price
     }
-    
+
     directives {
         UUID id PK
         UUID team_id FK
@@ -34,7 +34,7 @@ erDiagram
         JSONB financial_impact
         VARCHAR status
     }
-    
+
     stock_holdings {
         UUID id PK
         UUID owner_team_id FK
@@ -42,7 +42,7 @@ erDiagram
         INTEGER shares_owned
         DECIMAL total_cost_basis
     }
-    
+
     orders {
         UUID id PK
         UUID buyer_team_id FK
@@ -57,6 +57,7 @@ erDiagram
 ## 10.2 PostgreSQL Schema Definitions
 
 **Table: `teams`**
+
 ```sql
 CREATE TABLE teams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,6 +104,7 @@ CREATE INDEX idx_teams_bankrupt ON teams(status, bankrupt_since) WHERE status = 
 ```
 
 **Table: `directives`**
+
 ```sql
 CREATE TABLE directives (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -131,6 +133,7 @@ CREATE INDEX idx_directives_created_at ON directives(created_at DESC);
 ```
 
 **Table: `orders`**
+
 ```sql
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -173,6 +176,7 @@ CREATE INDEX idx_orders_pending ON orders(status, created_at) WHERE status IN ('
 ```
 
 **Table: `order_fills`**
+
 ```sql
 CREATE TABLE order_fills (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -195,6 +199,7 @@ CREATE INDEX idx_fills_counterparty ON order_fills(counterparty_order_id);
 ```
 
 **Table: `stock_holdings`**
+
 ```sql
 CREATE TABLE stock_holdings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -221,6 +226,7 @@ CREATE INDEX idx_holdings_target ON stock_holdings(target_team_id);
 ```
 
 **Table: `cash_ledger`**
+
 ```sql
 CREATE TABLE cash_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -258,6 +264,7 @@ CREATE INDEX idx_ledger_reference ON cash_ledger(reference_type, reference_id);
 ```
 
 **Table: `transactions`**
+
 ```sql
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -292,6 +299,7 @@ CREATE INDEX idx_transactions_seller ON transactions(seller_team_id, executed_at
 ```
 
 **Table: `price_history`**
+
 ```sql
 CREATE TABLE price_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -323,6 +331,7 @@ CREATE INDEX idx_price_history_time ON price_history(calculated_at DESC);
 ```
 
 **Table: `market_news`**
+
 ```sql
 CREATE TABLE market_news (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -355,6 +364,7 @@ CREATE INDEX idx_news_fingerprint ON market_news(strategy_fingerprint, created_a
 ```
 
 **Table: `game_state`**
+
 ```sql
 CREATE TABLE game_state (
     id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), -- Singleton constraint

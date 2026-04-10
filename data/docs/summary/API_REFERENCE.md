@@ -1427,6 +1427,7 @@ All messages follow this envelope structure:
 ### 9.2.1 Connection Lifecycle
 
 **Client → Server: Connection Initiation**
+
 ```json
 {
   "type": "sync_request",
@@ -1437,6 +1438,7 @@ All messages follow this envelope structure:
 ```
 
 **Server → Client: Welcome (First Message)**
+
 ```json
 {
   "type": "connection_established",
@@ -1447,8 +1449,12 @@ All messages follow this envelope structure:
     "game_status": "ACTIVE",
     "server_time": "2026-04-10T01:15:00Z",
     "burst_sync": {
-      "news": [ /* last 20 NewsItem objects */ ],
-      "prices": [ /* all TickerSnapshot objects */ ]
+      "news": [
+        /* last 20 NewsItem objects */
+      ],
+      "prices": [
+        /* all TickerSnapshot objects */
+      ]
     }
   }
 }
@@ -1457,6 +1463,7 @@ All messages follow this envelope structure:
 ### 9.2.2 Public Market Feed (`/ws/market`)
 
 **Message: News Broadcast**
+
 ```json
 {
   "type": "news",
@@ -1479,6 +1486,7 @@ All messages follow this envelope structure:
 ```
 
 **Message: Price Update**
+
 ```json
 {
   "type": "price_update",
@@ -1500,6 +1508,7 @@ All messages follow this envelope structure:
 ### 9.2.3 Private Team Feed (`/ws/team/{api_key}`)
 
 **Message: Trade Confirmation**
+
 ```json
 {
   "type": "trade_confirmation",

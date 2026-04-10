@@ -69,17 +69,17 @@ stateDiagram-v2
     UNREGISTERED --> PENDING_APPROVAL: Submission
     PENDING_APPROVAL --> REJECTED: Admin Reject
     PENDING_APPROVAL --> ACTIVE: Admin Approve & Assign Portfolio
-    
+
     state ACTIVE {
         [*] --> READY
         READY --> COOLDOWN: Submit Directive
         COOLDOWN --> READY: 10 min expires
     }
-    
+
     ACTIVE --> BANKRUPT: Cash < 0
     BANKRUPT --> ELIMINATED
     ACTIVE --> ELIMINATED: Purge (Bottom 50%)
-    
+
     ELIMINATED --> SPECTATOR_MODE
     SPECTATOR_MODE --> IRL_AUDIENCE
 ```
@@ -216,38 +216,42 @@ Evaluate their directive in light of these inherent capabilities and constraints
 
 **Criteria**: Cash ≥ $0, not in cooldown, not eliminated.
 **Permissions**:
+
 - Submit directives.
 - Trade stocks.
 - View full dashboard.
-**UI Indicators**: Green status light, "ACTIVE" badge.
+  **UI Indicators**: Green status light, "ACTIVE" badge.
 
 ### 3.3.2. Cooldown (Submission Processing)
 
 **Criteria**: `cooldown_until > now()`.
 **Permissions**:
+
 - Trade only.
 - View read-only directive editor (with countdown overlay).
-**UI Indicators**: Yellow status light, countdown timer MM:SS format, "BOARD REVIEWING" banner.
+  **UI Indicators**: Yellow status light, countdown timer MM:SS format, "BOARD REVIEWING" banner.
 
 ### 3.3.3. Bankrupt
 
 **Criteria**: Cash < $0 (negative balance).
 **Transition**: Automatic upon cash balance calculation post-directive or post-trade.
 **Immediate Effects**:
+
 - Trading suspended (cannot buy; forced to sell holdings at market price to cover debt if possible).
 - If debt remains after liquidating holdings: Status → ELIMINATED.
 - Stock price frozen at last value (then zeroed upon official elimination).
-**UI Indicators**: Red status light, "BANKRUPT" warning, urgent sale prompts.
+  **UI Indicators**: Red status light, "BANKRUPT" warning, urgent sale prompts.
 
 ### 3.3.4. Eliminated
 
 **Criteria**: Bankrupt OR purged (bottom 50% of Strategic Score).
 **Transition**: Manual (admin purge) or Automatic (bankruptcy resolution).
 **Immediate Effects**:
+
 - All stock holdings liquidated at $0 (total loss for holders of this team's equity).
 - Team's stock delisted (removed from ticker).
 - Team moved to Spectator Mode.
-**UI Indicators**: Gray status, "ELIMINATED" overlay, read-only historical view access only.
+  **UI Indicators**: Gray status, "ELIMINATED" overlay, read-only historical view access only.
 
 # 4. Core Game Mechanics
 
@@ -260,19 +264,22 @@ Evaluate their directive in light of these inherent capabilities and constraints
 **Submission Rate**: One per team per 10-minute cooldown window. Simultaneous submissions are queued; if a team submits while in cooldown, the API returns HTTP 429 with `retry_after` seconds.
 
 **Content Constraints**:
+
 - **Prohibited**: Base64-encoded data, code blocks longer than 5 lines (to prevent prompt injection via fake "system instructions"), null bytes.
 - **Required Elements**: While not enforced by regex, the LLM penalizes directives lacking explicit quantitative asks (e.g., "cut prices by 15%" scores higher than "become cheaper").
 
 **Validation Pipeline**:
+
 1. **Sanitization**: Strip HTML tags, normalize whitespace.
 2. **Length Check**: Hard cut at 2,000 chars; truncate with `[...]` warning if exceeded.
 3. **Injection Scan**: Regex detection of patterns like `ignore previous`, `system prompt`, `</user>`, `<instruction>`. Flags are logged but submission proceeds (penalty applied by LLM parser, not blocked).
 
 ### 4.1.2. Submission Protocol
 
-**Endpoint**: `POST /directive/submit`  
+**Endpoint**: `POST /directive/submit`
 
 **Server-Side Process**:
+
 1. **Auth Check**: Validate API key and team status (must be ACTIVE, not COOLDOWN).
 2. **Lock**: Set `status = COOLDOWN`, `cooldown_until = now() + 10 minutes`.
 3. **Queue**: Publish to Redis queue `directive_processing` with priority timestamp.
@@ -285,6 +292,7 @@ Evaluate their directive in light of these inherent capabilities and constraints
 The LLM returns an `extraction_confidence` score (0.0-1.0) representing semantic clarity.
 
 **Penalty Matrix**:
+
 - **Confidence ≥ 0.8**: Full financial impact applied.
 - **Confidence 0.6-0.79**: Financial impact × 0.8 (20% execution penalty). Board Feedback: _"Your directive contained ambiguity; we executed conservatively."_
 - **Confidence 0.4-0.59**: Financial impact × 0.5. Board Feedback: _"Strategy unclear. Partial execution only."_
@@ -300,6 +308,7 @@ The LLM returns an `extraction_confidence` score (0.0-1.0) representing semantic
 $$D_i = \frac{e^{\beta \cdot M_i} \cdot (P_{avg}/P_i)^{\eta}}{\sum_{j=1}^{n} e^{\beta \cdot M_j} \cdot (P_{avg}/P_j)^{\eta}} \times TAM$$
 
 Where:
+
 - $D_i$ = Demand allocated to team $i$ (revenue before costs).
 - $M_i$ = Marketing spend (extracted from directive, $0 to max liquidity).
 - $P_i$ = Price level (relative index, default 1.0, modified by directive).
@@ -328,6 +337,7 @@ $$\text{Cash}_{new} = \text{Cash}_{old} + \Pi_i + \text{Stock\_Trading\_PnL} + \
 $$L_i = C_i + 0.5 \times \sum_{k \in \text{Holdings}} (S_k \times P_k)$$
 
 Where:
+
 - $C_i$ = Cash on hand.
 - $S_k$ = Shares owned of team $k$.
 - $P_k$ = Current market price of team $k$.
@@ -338,6 +348,7 @@ Where:
 **Condition**: $\text{Cash} < 0$ at any point after a transaction settles.
 
 **Automatic Protocol**:
+
 1. **Margin Call**: System attempts to liquidate all external stock holdings at current market price to cover deficit.
 2. **Debt Resolution**: If post-liquidation Cash ≥ 0, status returns to ACTIVE (survived by fire sale).
 3. **Bankruptcy Declaration**: If deficit persists, status → BANKRUPT → ELIMINATED.
@@ -350,6 +361,7 @@ Where:
 **Market Type**: Continuous double auction (simplified to instant market orders only). No limit orders, no order book depth visualization.
 
 **Transaction Types**:
+
 - **Buy**: Purchase shares of any active team. Cannot buy own shares.
 - **Sell**: Liquidate holdings of any team (including own treasury stock via dilution).
 
@@ -370,23 +382,25 @@ Stock prices emerge from the interaction of **fundamental value** (profitability
 $$P_{final} = \max(0.01, P_{base}) \times M_{sentiment}$$
 
 Where:
+
 - $P_{base} = (\Pi \times 10 + C \times 0.1) \times V_{mult}$
 - $V_{mult} = 0.5 + (0.5 \times C_{score} \times M_{score})$
 - $M_{sentiment}$ = Market sentiment multiplier from trading activity
 
 **Price Impact Visualization**
 
-| Scenario | NetFlow | Sentiment Mult | Price Impact |
-|----------|---------|----------------|--------------|
-| Heavy buying | +0.5 (50% of float bought) | ~1.10 | +10% premium |
-| Extreme buying | +1.0 (100% of float) | ~1.18 | +18% premium (capped) |
-| Balanced | 0 | 1.0 | No impact |
-| Heavy selling | -0.5 | ~0.90 | -10% discount |
-| Panic sell (bankruptcy) | -2.0 | ~0.80 | -20% hard floor |
+| Scenario                | NetFlow                    | Sentiment Mult | Price Impact          |
+| ----------------------- | -------------------------- | -------------- | --------------------- |
+| Heavy buying            | +0.5 (50% of float bought) | ~1.10          | +10% premium          |
+| Extreme buying          | +1.0 (100% of float)       | ~1.18          | +18% premium (capped) |
+| Balanced                | 0                          | 1.0            | No impact             |
+| Heavy selling           | -0.5                       | ~0.90          | -10% discount         |
+| Panic sell (bankruptcy) | -2.0                       | ~0.80          | -20% hard floor       |
 
 ### 4.3.4. Ownership Limits & Dilution Rules
 
 **Public Float Dynamics**:
+
 - Initial: 10% (100,000 shares) floating.
 - Treasury: 90% (900,000 shares) held by company.
 
@@ -399,17 +413,20 @@ Where:
 | Final Stage | 30% (hard cap) | 40% (hard cap) |
 
 **Mechanics**:
+
 - Selling treasury stock injects cash into the team but dilutes existing shareholders.
 - Teams cannot buy back treasury stock (irreversible dilution).
 - Maximum single sale: 5% of total shares per transaction.
 
 **Anti-Cornering Safeguards**:
+
 - No team may own > 25% of another single team's outstanding shares.
 
 ### 4.3.5. Delisting Events (Elimination → Stock = $0)
 
 **Trigger**: Team status changes to ELIMINATED.
 **Process**:
+
 1. Trading halted for that ticker immediately.
 2. All outstanding shares of that ticker held by other teams are marked worthless (value $0).
 3. Cash from sales does not return (sunk cost).
@@ -431,6 +448,7 @@ $$SS_i = 0.5 \times \frac{\text{MarketCap}_i}{\text{MaxMarketCap}} + 0.5 \times 
 ### 4.4.2. Manual Admin Trigger Protocol
 
 **Execution Steps**:
+
 1. **Freeze**: Set all Active teams to `PENDING_PURGE`.
 2. **Calculate**: Compute $SS_i$ for all $i$.
 3. **Sort**: Descending by $SS_i$.
@@ -442,6 +460,7 @@ $$SS_i = 0.5 \times \frac{\text{MarketCap}_i}{\text{MaxMarketCap}} + 0.5 \times 
 ### 4.4.3. Bottom-Half Culling Logic
 
 **Tie-Breaking**: If $SS_i = SS_j$ at the cut line:
+
 1. Higher Liquidity wins.
 2. If still tied, higher Cash wins.
 3. If still tied, earlier registration timestamp wins.
@@ -454,18 +473,19 @@ $$SS_i = 0.5 \times \frac{\text{MarketCap}_i}{\text{MaxMarketCap}} + 0.5 \times 
 stateDiagram-v2
     [*] --> ACTIVE_OR_COOLDOWN
     ACTIVE_OR_COOLDOWN --> BANKRUPT: Cash < 0 detected\n(WS Alert & 60s Grace)
-    
+
     state BANKRUPT {
         [*] --> LIQUIDATION_ATTEMPT
         LIQUIDATION_ATTEMPT --> CHECK_CASH
     }
-    
+
     CHECK_CASH --> ACTIVE: Cash >= 0\n(Survived via fire sale)
     CHECK_CASH --> ELIMINATED: Cash < 0 after 60s\n(Reason: BANKRUPTCY)
 ```
 
 **Automatic Resolution Protocol**:
 Bankruptcy checks execute at these checkpoints:
+
 1. **Post-Trade Settlement**
 2. **Post-Directive Processing**
 3. **Periodic Sweep** (every 10 seconds)

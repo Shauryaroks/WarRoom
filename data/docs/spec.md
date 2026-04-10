@@ -503,8 +503,6 @@ Where:
 - Does seller hold ≥ 50 shares of $BRBE in portfolio?
 - If selling own stock (treasury), check dilution cap (see 4.3.4).
 
-
-
 ### 4.3.3 Price Discovery & Volatility (Market Sentiment Multiplier)
 
 **Overview**
@@ -516,6 +514,7 @@ Stock prices emerge from the interaction of **fundamental value** (profitability
 $$P_{final} = \max(0.01, P_{base}) \times M_{sentiment}$$
 
 Where:
+
 - $P_{base}$ = Fundamental value from operations
 - $M_{sentiment}$ = Market sentiment multiplier from trading activity
 - $V_{mult}$ = Vibe multiplier from LLM evaluation (embedded in $P_{base}$)
@@ -565,12 +564,12 @@ class PricingService:
     MIN_PRICE = Decimal('0.01')
     MAX_VIBE_MULT = Decimal('1.5')
     MIN_VIBE_MULT = Decimal('0.5')
-    
+
     # Sentiment impact caps
     MAX_SENTIMENT_IMPACT = Decimal('1.20')  # +20% premium
     MIN_SENTIMENT_IMPACT = Decimal('0.80')  # -20% discount
     SENTIMENT_SENSITIVITY = Decimal('5.0')  # Tanh steepness
-    
+
     async def calculate_vibe_multiplier(self, team_id: UUID) -> VibeMultiplier:
         """
         Calculate vibe multiplier from most recent directive scores.
@@ -583,7 +582,7 @@ class PricingService:
             vibe_scores__exists=True,
             order_by='-completed_at'
         )
-        
+
         if not recent:
             return VibeMultiplier(
                 value=Decimal('1.0'),
@@ -592,22 +591,22 @@ class PricingService:
                 aggression=Decimal('0.5'),
                 innovation=Decimal('0.5')
             )
-        
+
         vs = recent.vibe_scores
-        
+
         # Weighted combination: 60% consistency, 40% macro sensitivity
         consistency = Decimal(str(vs.get('consistency', 0.5)))
         macro_sensitivity = Decimal(str(vs.get('macro_sensitivity', 0.5)))
         aggression = Decimal(str(vs.get('aggression', 0.5)))
         innovation = Decimal(str(vs.get('innovation', 0.5)))
-        
+
         # Formula: 0.5 + (0.5 * consistency * macro_sensitivity)
         product = consistency * macro_sensitivity
         vibe_value = Decimal('0.5') + (Decimal('0.5') * product)
-        
+
         # Clamp to valid range
         vibe_value = max(self.MIN_VIBE_MULT, min(self.MAX_VIBE_MULT, vibe_value))
-        
+
         return VibeMultiplier(
             value=vibe_value,
             consistency=consistency,
@@ -615,62 +614,62 @@ class PricingService:
             aggression=aggression,
             innovation=innovation
         )
-    
+
     async def calculate_base_price(self, team_id: UUID) -> Decimal:
         """
         Fundamental value from operations and cash.
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         # Get most recent operational profit
         recent_profit = await self._get_recent_operating_profit(team_id)
-        
+
         # Get vibe multiplier
         vibe = await self.calculate_vibe_multiplier(team_id)
-        
+
         # Formula: (profit * 10 + cash * 0.1) * vibe_mult
         profit_component = recent_profit * self.PROFIT_COEFFICIENT
         cash_component = team.cash * self.CASH_COEFFICIENT
-        
+
         base = (profit_component + cash_component) * vibe.value
-        
+
         return max(self.MIN_PRICE, base)
-    
+
     async def _get_recent_operating_profit(self, team_id: UUID) -> Decimal:
         """Sum of net profit from recent directives (last 30 min window)."""
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=30)
-        
+
         directives = await self.db.directives.find(
             team_id=team_id,
             status='COMPLETED',
             completed_at__gte=cutoff
         )
-        
+
         total_profit = sum(
             Decimal(str(d.financial_impact.get('net_profit_delta', 0)))
             for d in directives
         )
-        
+
         return total_profit
-    
+
     async def calculate_sentiment_multiplier(self, team_id: UUID) -> Decimal:
         """
         Market sentiment from trading activity (NetFlow).
         Uses tanh to cap extreme manipulation.
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         # Calculate NetFlow from recent trades (last 15 minutes)
         window_start = datetime.now(timezone.utc) - timedelta(minutes=15)
-        
+
         trades = await self.db.transactions.find(
             target_team_id=team_id,
             executed_at__gte=window_start
         )
-        
+
         buy_volume = sum(t.shares for t in trades if t.buyer_team_id is not None)
         sell_volume = sum(t.shares for t in trades if t.seller_team_id is not None)
-        
+
         # Include treasury sales as sell pressure
         treasury_sales = await self.db.transactions.find(
             target_team_id=team_id,
@@ -678,53 +677,53 @@ class PricingService:
             executed_at__gte=window_start
         )
         sell_volume += sum(t.shares for t in treasury_sales)
-        
+
         # NetFlow calculation
         if team.public_float == 0:
             net_flow = 0
         else:
             net_flow = (buy_volume - sell_volume) / team.public_float
-        
+
         # Clamp to [-1, 1] range theoretically, but tanh handles it
         net_flow = max(-1.0, min(1.0, net_flow))
-        
+
         # Tanh transformation: smooth cap on extreme values
         # tanh(5 * x) gives ~0.99 at x=1, ~-0.99 at x=-1
         sentiment_factor = math.tanh(float(self.SENTIMENT_SENSITIVITY) * net_flow)
-        
+
         # Map to price impact: 0.80 to 1.20 range
         # sentiment_factor is in [-0.999, 0.999]
         # We want: -1 -> 0.80, 0 -> 1.0, +1 -> 1.20
         impact = Decimal('1.0') + (Decimal(str(sentiment_factor)) * Decimal('0.20'))
-        
+
         # Ensure within bounds
         impact = max(self.MIN_SENTIMENT_IMPACT, min(self.MAX_SENTIMENT_IMPACT, impact))
-        
+
         return Decimal(str(impact))
-    
+
     async def calculate_final_price(self, team_id: UUID) -> PriceCalculationResult:
         """
         Complete price calculation with full audit trail.
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         # Phase 1: Base price (fundamentals + vibe)
         base_price = await self.calculate_base_price(team_id)
         vibe_mult = await self.calculate_vibe_multiplier(team_id)
-        
+
         # Phase 2: Sentiment multiplier (trading activity)
         sentiment_mult = await self.calculate_sentiment_multiplier(team_id)
-        
+
         # Final price
         final_price = base_price * sentiment_mult
-        
+
         # Ensure minimum price
         final_price = max(self.MIN_PRICE, final_price)
-        
+
         # Calculate components for transparency (admin only)
         profit_component = await self._get_recent_operating_profit(team_id)
         cash_component = team.cash
-        
+
         result = PriceCalculationResult(
             team_id=team_id,
             ticker=team.ticker,
@@ -738,12 +737,12 @@ class PricingService:
             macro_sensitivity_score=vibe_mult.macro_sensitivity,
             calculated_at=datetime.now(timezone.utc)
         )
-        
+
         # Persist to history
         await self._record_price_history(result)
-        
+
         return result
-    
+
     async def _record_price_history(self, result: PriceCalculationResult):
         """Store calculation for charts and audit."""
         await self.db.price_history.insert({
@@ -758,7 +757,7 @@ class PricingService:
             'cash_component': result.cash_component,
             'calculated_at': result.calculated_at
         })
-    
+
     async def update_team_price(self, team_id: UUID) -> Decimal:
         """
         Atomic price update with WebSocket broadcast.
@@ -766,26 +765,26 @@ class PricingService:
         async with self.db.transaction():
             # Lock team row
             team = await self.db.teams.find_one(id=team_id, for_update=True)
-            
+
             if team.status == 'ELIMINATED':
                 return Decimal('0.00')
-            
+
             # Calculate new price
             calc = await self.calculate_final_price(team_id)
-            
+
             # Update team
             await self.db.teams.update(
                 id=team_id,
                 stock_price=calc.final_price
             )
-            
+
             # Broadcast if significant change (>1% or forced)
             old_price = team.stock_price
             if old_price > 0:
                 change_pct = ((calc.final_price - old_price) / old_price) * 100
             else:
                 change_pct = 0
-            
+
             if abs(change_pct) > 1 or self._is_forced_update(team_id):
                 await self.ws.broadcast_to_market({
                     'type': 'price_update',
@@ -799,16 +798,16 @@ class PricingService:
                         'sentiment_multiplier': float(calc.sentiment_multiplier)
                     }
                 })
-            
+
             return calc.final_price
-    
+
     async def recalculate_async(self, team_id: UUID):
         """
         Queue price recalculation (called after trades/directives).
         """
         from app.worker import recalculate_price_task
         recalculate_price_task.delay(str(team_id))
-    
+
     def _is_forced_update(self, team_id: UUID) -> bool:
         """Check if this team has pending forced update flag."""
         # Implementation for admin-forced recalculations
@@ -831,12 +830,12 @@ class PriceCalculationResult:
 
 **Price Update Triggers**
 
-| Trigger | Frequency | Example |
-|---------|-----------|---------|
-| **Post-Trade** | Immediate | After any order fill affecting the ticker |
-| **Post-Directive** | Async (LLM callback) | After LLM processing updates financials |
-| **Periodic** | Every 30 seconds | Catch drift from market inactivity |
-| **Admin Force** | On-demand | Manual recalculation for dispute resolution |
+| Trigger            | Frequency            | Example                                     |
+| ------------------ | -------------------- | ------------------------------------------- |
+| **Post-Trade**     | Immediate            | After any order fill affecting the ticker   |
+| **Post-Directive** | Async (LLM callback) | After LLM processing updates financials     |
+| **Periodic**       | Every 30 seconds     | Catch drift from market inactivity          |
+| **Admin Force**    | On-demand            | Manual recalculation for dispute resolution |
 
 ```python
 # Celery tasks for async processing
@@ -852,21 +851,21 @@ def periodic_price_sweep():
     """Recalculate all active team prices every 30 seconds."""
     service = get_pricing_service()
     teams = service.db.teams.find(status__in=['ACTIVE', 'COOLDOWN'])
-    
+
     for team in teams:
         recalculate_price_task.delay(str(team.id))
 ```
 
 **Price Impact Visualization**
 
-| Scenario | NetFlow | Sentiment Mult | Price Impact |
-|----------|---------|----------------|--------------|
-| Heavy buying | +0.5 (50% of float bought) | ~1.10 | +10% premium |
-| Extreme buying | +1.0 (100% of float) | ~1.18 | +18% premium (capped) |
-| Balanced | 0 | 1.0 | No impact |
-| Heavy selling | -0.5 | ~0.90 | -10% discount |
-| Extreme selling | -1.0 | ~0.82 | -18% discount (capped) |
-| Panic sell (bankruptcy) | -2.0 | ~0.80 | -20% hard floor |
+| Scenario                | NetFlow                    | Sentiment Mult | Price Impact           |
+| ----------------------- | -------------------------- | -------------- | ---------------------- |
+| Heavy buying            | +0.5 (50% of float bought) | ~1.10          | +10% premium           |
+| Extreme buying          | +1.0 (100% of float)       | ~1.18          | +18% premium (capped)  |
+| Balanced                | 0                          | 1.0            | No impact              |
+| Heavy selling           | -0.5                       | ~0.90          | -10% discount          |
+| Extreme selling         | -1.0                       | ~0.82          | -18% discount (capped) |
+| Panic sell (bankruptcy) | -2.0                       | ~0.80          | -20% hard floor        |
 
 **Key Properties**
 
@@ -971,7 +970,7 @@ Bankruptcy operates as a **parallel elimination track** independent of Market Pu
 **Bankruptcy State Machine**
 
 ```
-[ACTIVE/COOLDOWN] 
+[ACTIVE/COOLDOWN]
        │
        ▼ (Cash < 0 detected)
    [BANKRUPT] ────► WebSocket Alert: "Bankruptcy Proceedings"
@@ -988,6 +987,7 @@ Bankruptcy operates as a **parallel elimination track** independent of Market Pu
 **Trigger Conditions**
 
 Bankruptcy checks execute at these checkpoints:
+
 1. **Post-Trade Settlement** — Immediately after `execute_market_order()` completes
 2. **Post-Directive Processing** — After LLM financial impact applied to `teams.cash`
 3. **Periodic Sweep** — Celery beat task every 10 seconds (catch missed edge cases)
@@ -1013,43 +1013,43 @@ class LiquidationResult:
 class BankruptcyService:
     GRACE_PERIOD_SECONDS = 60
     LIQUIDATION_BATCH_SIZE = 5  # Process top 5 holdings per tick
-    
+
     def __init__(self, db, ws_manager, price_service):
         self.db = db
         self.ws = ws_manager
         self.price_service = price_service
-    
+
     async def check_and_trigger(self, team_id: UUID, context: str) -> Optional[BankruptcyState]:
         """
         Primary entry point. Called after any cash-modifying operation.
         Context: 'post_trade', 'post_directive', 'periodic_sweep'
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         if team.cash >= 0:
             return None  # No bankruptcy
-        
+
         if team.status == 'BANKRUPT':
             return await self.get_bankruptcy_state(team_id)  # Already in progress
-        
+
         if team.status != 'ACTIVE' and team.status != 'COOLDOWN':
             return None  # Can't bankrupt if already eliminated/pending
-        
+
         # Enter bankruptcy state
         await self._enter_bankruptcy(team, context)
         return await self.get_bankruptcy_state(team_id)
-    
+
     async def _enter_bankruptcy(self, team: Team, trigger_context: str):
         """Transition team to BANKRUPT status and begin grace period."""
         now = datetime.now(timezone.utc)
-        
+
         await self.db.teams.update(
             id=team.id,
             status='BANKRUPT',
             bankrupt_since=now,
             bankrupt_resolved=False
         )
-        
+
         # Immediate WebSocket alert to team
         await self.ws.send_to_team(team.id, {
             'type': 'bankruptcy_alert',
@@ -1064,7 +1064,7 @@ class BankruptcyService:
                 'trigger_context': trigger_context
             }
         })
-        
+
         # Public announcement to all players (dramatic effect)
         await self.ws.broadcast_to_market({
             'type': 'system_event',
@@ -1076,55 +1076,55 @@ class BankruptcyService:
                 'grace_period_seconds': self.GRACE_PERIOD_SECONDS
             }
         })
-        
+
         # Schedule automatic resolution
         await self._schedule_resolution(team.id)
-    
+
     async def _schedule_resolution(self, team_id: UUID):
         """Queue Celery task for 60-second resolution."""
         from app.worker import resolve_bankruptcy_task
-        
+
         resolve_bankruptcy_task.apply_async(
             args=[str(team_id)],
             countdown=self.GRACE_PERIOD_SECONDS,
             task_id=f'bankruptcy_resolution_{team_id}'
         )
-    
+
     async def attempt_liquidation(self, team_id: UUID) -> LiquidationResult:
         """
         Fire-sale all external holdings at current market price.
         Called immediately on bankruptcy entry and at resolution time.
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         # Get all non-zero holdings sorted by value (highest first)
         holdings = await self.db.stock_holdings.find(
             owner_team_id=team_id,
             shares_owned__gt=0,
             for_update=True  # Lock rows
         ).sort('-shares_owned')  # Largest positions first
-        
+
         liquidated = []
         total_proceeds = Decimal('0')
-        
+
         async with self.db.transaction(isolation_level='SERIALIZABLE'):
             for holding in holdings:
                 if team.cash >= 0:
                     break  # Resolved early
-                
+
                 target = await self.db.teams.find_one(
                     id=holding.target_team_id,
                     for_update=True
                 )
-                
+
                 # Skip if target also bankrupt/eliminated (worthless)
                 if target.status in ['BANKRUPT', 'ELIMINATED']:
                     continue
-                
+
                 # Force sell at market price (may be depressed)
                 execution_price = target.stock_price
                 proceeds = holding.shares_owned * execution_price
-                
+
                 # Execute liquidation trade
                 await self._execute_liquidation_trade(
                     seller_id=team_id,
@@ -1133,23 +1133,23 @@ class BankruptcyService:
                     price=execution_price,
                     proceeds=proceeds
                 )
-                
+
                 liquidated.append({
                     'ticker': target.ticker,
                     'shares': holding.shares_owned,
                     'price': float(execution_price),
                     'proceeds': float(proceeds)
                 })
-                
+
                 total_proceeds += proceeds
-                
+
                 # Refresh team cash
                 team = await self.db.teams.find_one(id=team_id)
-        
+
         shortfall = None
         if team.cash < 0:
             shortfall = abs(team.cash)
-        
+
         return LiquidationResult(
             success=team.cash >= 0,
             final_cash=team.cash,
@@ -1157,30 +1157,30 @@ class BankruptcyService:
             total_proceeds=total_proceeds,
             shortfall=shortfall
         )
-    
-    async def _execute_liquidation_trade(self, seller_id: UUID, target_id: UUID, 
+
+    async def _execute_liquidation_trade(self, seller_id: UUID, target_id: UUID,
                                          shares: int, price: Decimal, proceeds: Decimal):
         """Atomic liquidation trade with special classification."""
-        
+
         # Update seller cash
         await self.db.teams.update(
             id=seller_id,
             cash=self.db.teams.cash + proceeds
         )
-        
+
         # Remove holding
         await self.db.stock_holdings.delete(
             owner_team_id=seller_id,
             target_team_id=target_id
         )
-        
+
         # Increase public float (shares back to market)
         target = await self.db.teams.find_one(id=target_id)
         await self.db.teams.update(
             id=target_id,
             public_float=target.public_float + shares
         )
-        
+
         # Record as special transaction type
         await self.db.transactions.insert({
             'buyer_team_id': None,  # To market/float
@@ -1192,7 +1192,7 @@ class BankruptcyService:
             'transaction_type': 'BANKRUPTCY_LIQUIDATION',
             'executed_at': datetime.now(timezone.utc)
         })
-        
+
         # Cash ledger entry
         await self.db.cash_ledger.insert({
             'team_id': seller_id,
@@ -1203,22 +1203,22 @@ class BankruptcyService:
             'reference_id': None,
             'description': f'Fire-sale liquidation: {shares} shares of {target.ticker}'
         })
-        
+
         # Trigger price recalculation (large sell may depress price)
         await self.price_service.recalculate_async(target_id)
-    
+
     async def resolve_bankruptcy(self, team_id: UUID) -> ResolutionOutcome:
         """
         Final resolution after grace period. Celery task entry point.
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         if team.status != 'BANKRUPT':
             return ResolutionOutcome(already_resolved=True)
-        
+
         # Final liquidation attempt
         liquidation = await self.attempt_liquidation(team_id)
-        
+
         if liquidation.success:
             # Survived by fire sale
             await self._resolve_survival(team, liquidation)
@@ -1227,17 +1227,17 @@ class BankruptcyService:
             # Eliminated
             await self._resolve_elimination(team, liquidation)
             return ResolutionOutcome(eliminated=True, liquidation=liquidation)
-    
+
     async def _resolve_survival(self, team: Team, liquidation: LiquidationResult):
         """Restore to ACTIVE status after successful liquidation."""
-        
+
         await self.db.teams.update(
             id=team.id,
             status='ACTIVE',
             bankrupt_resolved=True,
             bankrupt_since=None
         )
-        
+
         await self.ws.send_to_team(team.id, {
             'type': 'bankruptcy_resolved',
             'timestamp': datetime.now(timezone.utc).isoformat(),
@@ -1250,7 +1250,7 @@ class BankruptcyService:
                 'message': 'Survived bankruptcy via fire-sale liquidation'
             }
         })
-        
+
         await self.ws.broadcast_to_market({
             'type': 'system_event',
             'timestamp': datetime.now(timezone.utc).isoformat(),
@@ -1260,12 +1260,12 @@ class BankruptcyService:
                 'ticker': team.ticker
             }
         })
-    
+
     async def _resolve_elimination(self, team: Team, liquidation: LiquidationResult):
         """Final elimination with zeroing of held stocks."""
-        
+
         now = datetime.now(timezone.utc)
-        
+
         # Mark eliminated
         await self.db.teams.update(
             id=team.id,
@@ -1274,10 +1274,10 @@ class BankruptcyService:
             elimination_reason='BANKRUPTCY',
             stock_price=Decimal('0.00')
         )
-        
+
         # Zero out all holdings of this team's stock (Section 4.4.5)
         await self._zero_investor_holdings(team.id)
-        
+
         # Record elimination
         await self.db.elimination_history.insert({
             'team_id': team.id,
@@ -1290,7 +1290,7 @@ class BankruptcyService:
             'final_liquidity': float(liquidation.final_cash),  # No holdings
             'eliminated_at': now
         })
-        
+
         # Notifications
         await self.ws.send_to_team(team.id, {
             'type': 'bankruptcy_resolved',
@@ -1306,7 +1306,7 @@ class BankruptcyService:
                 'transition_to': 'SPECTATOR_MODE'
             }
         })
-        
+
         await self.ws.broadcast_to_market({
             'type': 'system_event',
             'timestamp': now.isoformat(),
@@ -1318,10 +1318,10 @@ class BankruptcyService:
                 'ghost_period_minutes': 5  # Ticker stays visible briefly
             }
         })
-        
+
         # Schedule ghost period removal
         await self._schedule_ticker_removal(team.id, delay_seconds=300)
-    
+
     async def _zero_investor_holdings(self, eliminated_team_id: UUID):
         """
         Section 4.4.5: Investor Protection (Zeroing Held Stocks).
@@ -1331,10 +1331,10 @@ class BankruptcyService:
             target_team_id=eliminated_team_id,
             shares_owned__gt=0
         )
-        
+
         for holding in holdings:
             investor = await self.db.teams.find_one(id=holding.owner_team_id)
-            
+
             # Record loss in ledger (no cash change, but value destroyed)
             await self.db.cash_ledger.insert({
                 'team_id': investor.id,
@@ -1345,10 +1345,10 @@ class BankruptcyService:
                 'reference_id': eliminated_team_id,
                 'description': f'Investment wipeout: {holding.shares_owned} shares of {eliminated_team_id} (bankruptcy)'
             })
-            
+
             # Delete holding
             await self.db.stock_holdings.delete(id=holding.id)
-            
+
             # Notify investor
             await self.ws.send_to_team(investor.id, {
                 'type': 'portfolio_update',
@@ -1360,36 +1360,36 @@ class BankruptcyService:
                     'value_lost': float(holding.shares_owned * 0)  # Zeroed
                 }
             })
-    
-    async def force_bankruptcy(self, team_id: UUID, admin_id: UUID, 
+
+    async def force_bankruptcy(self, team_id: UUID, admin_id: UUID,
                                reason: str, public_message: str) -> None:
         """
         Admin override for immediate bankruptcy (cheating/disqualification).
         Skips grace period, immediate elimination.
         """
         team = await self.db.teams.find_one(id=team_id)
-        
+
         if team.status in ['ELIMINATED', 'BANKRUPT']:
             raise ValueError(f'Team already {team.status}')
-        
+
         # Immediate liquidation (no grace)
         liquidation = await self.attempt_liquidation(team_id)
-        
+
         # Force to eliminated regardless of liquidation result
         await self._resolve_elimination(team, liquidation)
-        
+
         # Override reason
         await self.db.teams.update(
             id=team_id,
             elimination_reason='DISQUALIFIED'
         )
-        
+
         await self.db.elimination_history.update(
             team_id=team_id,
             reason='DISQUALIFIED',
             admin_override_by=admin_id
         )
-        
+
         await self.ws.broadcast_to_market({
             'type': 'system_event',
             'timestamp': datetime.now(timezone.utc).isoformat(),
@@ -1407,7 +1407,7 @@ def resolve_bankruptcy_task(self, team_id: str):
     """Celery beat task for bankruptcy resolution."""
     import asyncio
     from app.main import get_bankruptcy_service
-    
+
     service = get_bankruptcy_service()
     asyncio.run(service.resolve_bankruptcy(UUID(team_id)))
 ```
@@ -1418,16 +1418,16 @@ def resolve_bankruptcy_task(self, team_id: str):
 # In trade execution (Section 8.3.4)
 async def execute_market_order(order_id: UUID):
     # ... execution logic ...
-    
+
     # Post-trade bankruptcy check for both parties
     bankruptcy_service = get_bankruptcy_service()
-    
+
     if execution.buyer_team_id:
         await bankruptcy_service.check_and_trigger(
-            execution.buyer_team_id, 
+            execution.buyer_team_id,
             context='post_trade'
         )
-    
+
     if execution.seller_team_id:
         await bankruptcy_service.check_and_trigger(
             execution.seller_team_id,
@@ -1437,10 +1437,10 @@ async def execute_market_order(order_id: UUID):
 # In directive processing (Section 5.4)
 async def process_directive_directive(team_id: UUID, directive: Directive):
     # ... LLM processing ...
-    
+
     # Apply financial impact
     await apply_financial_impact(team_id, directive.financial_impact)
-    
+
     # Post-directive bankruptcy check
     await bankruptcy_service.check_and_trigger(
         team_id,
@@ -1452,13 +1452,13 @@ async def process_directive_directive(team_id: UUID, directive: Directive):
 async def bankruptcy_sweep():
     """Catch any edge cases missed by event-driven checks."""
     service = get_bankruptcy_service()
-    
+
     # Find teams with negative cash but not yet marked BANKRUPT
     at_risk = await db.teams.find(
         cash__lt=0,
         status__in=['ACTIVE', 'COOLDOWN']
     )
-    
+
     for team in at_risk:
         await service.check_and_trigger(team.id, context='periodic_sweep')
 ```
@@ -1657,7 +1657,6 @@ If LLM math doesn't balance (e.g., Cash Delta ≠ Treasury Proceeds - Spend), au
 
 # 6. News & Market Wire System
 
-
 ### 6.1 News Architecture & Lifecycle
 
 **Overview**
@@ -1666,12 +1665,12 @@ The Market Wire is the **central nervous system** of the simulation—every stra
 
 **News Taxonomy**
 
-| Type | Source | Frequency | Example |
-|------|--------|-----------|---------|
-| `GLOBAL` | Admin injection | 1-2 per hour | "Fed hikes rates 0.25%" |
-| `TEAM_ACTION` | LLM generation from directives | Continuous | "Barbie Inc slashes prices 15%" |
-| `SYSTEM` | Automatic game events | As needed | "Market Purge commencing" |
-| `ADMIN_INJECTED` | Manual narrative steering | As needed | "Regulatory investigation launched" |
+| Type             | Source                         | Frequency    | Example                             |
+| ---------------- | ------------------------------ | ------------ | ----------------------------------- |
+| `GLOBAL`         | Admin injection                | 1-2 per hour | "Fed hikes rates 0.25%"             |
+| `TEAM_ACTION`    | LLM generation from directives | Continuous   | "Barbie Inc slashes prices 15%"     |
+| `SYSTEM`         | Automatic game events          | As needed    | "Market Purge commencing"           |
+| `ADMIN_INJECTED` | Manual narrative steering      | As needed    | "Regulatory investigation launched" |
 
 **News Lifecycle States**
 
@@ -1719,7 +1718,7 @@ class NewsService:
     SATURATION_THRESHOLD = 5      # Similar items before penalty
     ACTIVE_WINDOW_MINUTES = 20    # Full relevance period
     TOTAL_LIFETIME_MINUTES = 60   # Before archival
-    
+
     # Sector classification mapping
     SECTOR_MAP = {
         'PORT_TECH_01': 'TECH',
@@ -1728,29 +1727,29 @@ class NewsService:
         'PORT_CONGLOM_01': 'FIN',
         # ... etc
     }
-    
+
     async def create_from_directive(self, directive: Directive) -> NewsItem:
         """
         Generate news from LLM directive output (Section 6.1).
         Called after directive processing completes.
         """
         team = await self.db.teams.find_one(id=directive.team_id)
-        
+
         # Generate headline via LLM (or use pre-generated from directive)
         headline = directive.public_headline or await self._generate_headline(directive)
-        
+
         # Calculate sentiment from financial impact
         sentiment = self._calculate_sentiment(directive.financial_impact)
-        
+
         # Determine affected sectors/tickers
         affected = await self._determine_affected(directive, team)
-        
+
         # Generate strategy fingerprint for saturation detection
         fingerprint = self._fingerprint_strategy(directive)
-        
+
         # Check saturation (Section 6.3)
         similar_count = await self._count_similar_recent(fingerprint)
-        
+
         # Create news item
         news = await self.db.market_news.insert({
             'headline': headline,
@@ -1765,20 +1764,20 @@ class NewsService:
             'relevance_decay': 1.0,  # Fresh
             'created_at': datetime.now(timezone.utc)
         })
-        
+
         # Apply saturation penalty if threshold exceeded (Section 6.3)
         if similar_count >= self.SATURATION_THRESHOLD:
             await self._apply_saturation_penalty(directive.team_id, similar_count)
-        
+
         # Broadcast to all clients
         await self._broadcast(news)
-        
+
         # Update LLM context windows (async)
         await self._update_context_windows()
-        
+
         return news
-    
-    async def inject_global_news(self, admin_id: UUID, headline: str, 
+
+    async def inject_global_news(self, admin_id: UUID, headline: str,
                                   impact_type: str, affected_sectors: List[str],
                                   scheduled_for: Optional[datetime] = None) -> NewsItem:
         """
@@ -1786,17 +1785,17 @@ class NewsService:
         """
         if scheduled_for and scheduled_for > datetime.now(timezone.utc):
             # Queue for later
-            await self._schedule_news(admin_id, headline, impact_type, 
+            await self._schedule_news(admin_id, headline, impact_type,
                                       affected_sectors, scheduled_for)
             return None  # Not created yet
-        
+
         sentiment_map = {
             'macro_bullish': 0.6,
             'macro_bearish': -0.6,
             'sector_specific': 0.0,
             'neutral': 0.0
         }
-        
+
         news = await self.db.market_news.insert({
             'headline': headline,
             'content': None,
@@ -1811,11 +1810,11 @@ class NewsService:
             'created_at': datetime.now(timezone.utc),
             'injected_by': admin_id
         })
-        
+
         await self._broadcast(news)
         return news
-    
-    async def create_system_event(self, event_type: str, message: str, 
+
+    async def create_system_event(self, event_type: str, message: str,
                                    affected_tickers: Optional[List[str]] = None) -> NewsItem:
         """
         Automatic system events (purge, bankruptcy, etc.).
@@ -1833,14 +1832,14 @@ class NewsService:
             'relevance_decay': 1.0,
             'created_at': datetime.now(timezone.utc)
         })
-        
+
         await self._broadcast(news, priority=True)  # System events skip queue
         return news
-    
+
     def _calculate_sentiment(self, financial_impact: Dict) -> float:
         """Derive sentiment from financial impact magnitude and direction."""
         net_impact = financial_impact.get('net_profit_delta', 0)
-        
+
         if net_impact > 100000:
             return 0.5  # Bullish
         elif net_impact > 0:
@@ -1850,12 +1849,12 @@ class NewsService:
         elif net_impact < 0:
             return -0.2  # Slightly bearish
         return 0.0
-    
+
     async def _determine_affected(self, directive: Directive, team: Team) -> Dict:
         """Determine which sectors/tickers are affected by this news."""
         # Primary: The acting team
         tickers = [team.ticker]
-        
+
         # Secondary: Competitors in same sector
         team_sector = self.SECTOR_MAP.get(team.portfolio_id, 'TECH')
         same_sector = await self.db.teams.find(
@@ -1863,38 +1862,38 @@ class NewsService:
             status__in=['ACTIVE', 'COOLDOWN']
         )
         tickers.extend([t.ticker for t in same_sector if t.id != team.id])
-        
+
         return {
             'sectors': [team_sector],
             'tickers': list(set(tickers))  # Deduplicate
         }
-    
+
     def _fingerprint_strategy(self, directive: Directive) -> str:
         """
         Create hash of strategy type for saturation detection.
         Groups similar strategies (e.g., all price cuts).
         """
         extraction = directive.extraction or {}
-        
+
         # Key strategy elements
         strategy_key = f"{extraction.get('pricing_strategy', 'none')}_" \
                       f"{extraction.get('marketing_spend', 0) > 0}_" \
                       f"{extraction.get('rd_spend', 0) > 0}_" \
                       f"{extraction.get('treasury_action', {}).get('action', 'none')}"
-        
+
         return hashlib.md5(strategy_key.encode()).hexdigest()[:12]
-    
+
     async def _count_similar_recent(self, fingerprint: str) -> int:
         """Count similar strategies in last 15 minutes."""
         cutoff = datetime.now(timezone.utc) - timedelta(
             minutes=self.SATURATION_WINDOW_MINUTES
         )
-        
+
         return await self.db.market_news.count(
             strategy_fingerprint=fingerprint,
             created_at__gte=cutoff
         )
-    
+
     async def _apply_saturation_penalty(self, team_id: UUID, similar_count: int):
         """
         Section 6.3: Saturation Avoidance.
@@ -1910,7 +1909,7 @@ class NewsService:
                 'penalty_expires_at': datetime.now(timezone.utc) + timedelta(minutes=30)
             }
         )
-        
+
         # Notify team of reduced impact
         await self.ws.send_to_team(team_id, {
             'type': 'system_notification',
@@ -1920,7 +1919,7 @@ class NewsService:
                           f'Innovation required for full impact.'
             }
         })
-    
+
     async def get_context_for_llm(self, team_id: UUID) -> List[Dict]:
         """
         Build LLM context window (Section 5.3, 6.2).
@@ -1928,66 +1927,66 @@ class NewsService:
         """
         # Get recent news (last 60 min to ensure 20 items available)
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=60)
-        
+
         items = await self.db.market_news.find(
             created_at__gte=cutoff
         ).sort('-created_at').limit(self.CONTEXT_WINDOW_SIZE)
-        
+
         # Format for LLM XML context
         formatted = []
         for item in items:
             age_minutes = (datetime.now(timezone.utc) - item.created_at).seconds / 60
             decay = max(0.0, 1.0 - (age_minutes / self.ACTIVE_WINDOW_MINUTES))
-            
+
             formatted.append({
                 'timestamp': f"T-{int(age_minutes)}",
                 'headline': item.headline,
                 'source': item.source_type,
                 'relevance': round(decay, 2)
             })
-        
+
         return formatted
-    
-    async def get_wire_feed(self, limit: int = 20, 
+
+    async def get_wire_feed(self, limit: int = 20,
                            before_id: Optional[UUID] = None,
                            source_type: Optional[str] = None) -> List[NewsItem]:
         """
         Get Market Wire feed for frontend (Section 9.1 /api/news).
         """
         query = {}
-        
+
         if before_id:
             before_item = await self.db.market_news.find_one(id=before_id)
             if before_item:
                 query['created_at__lt'] = before_item.created_at
-        
+
         if source_type:
             query['source_type'] = source_type
-        
+
         # Only show non-archived news (last 60 minutes)
         archive_cutoff = datetime.now(timezone.utc) - timedelta(
             minutes=self.TOTAL_LIFETIME_MINUTES
         )
         query['created_at__gte'] = archive_cutoff
-        
+
         items = await self.db.market_news.find(**query).sort(
             '-created_at'
         ).limit(limit)
-        
+
         # Calculate current decay for each
         now = datetime.now(timezone.utc)
         result = []
         for item in items:
             age = (now - item.created_at).seconds / 60
             decay = max(0.0, 1.0 - (age / self.ACTIVE_WINDOW_MINUTES))
-            
+
             result.append(NewsItem(
                 id=item.id,
                 headline=item.headline,
                 content=item.content,
                 source_type=item.source_type,
                 source_team_id=item.source_team_id,
-                source_ticker=(await self.db.teams.find_one(id=item.source_team_id)).ticker 
+                source_ticker=(await self.db.teams.find_one(id=item.source_team_id)).ticker
                               if item.source_team_id else None,
                 sentiment_score=item.sentiment_score,
                 affected_sectors=item.affected_sectors,
@@ -1997,9 +1996,9 @@ class NewsService:
                 relevance_decay=round(decay, 2),
                 created_at=item.created_at
             ))
-        
+
         return result
-    
+
     async def _broadcast(self, news: NewsItem, priority: bool = False):
         """WebSocket broadcast to all connected clients."""
         message = {
@@ -2017,17 +2016,17 @@ class NewsService:
                 }
             }
         }
-        
+
         if priority:
             await self.ws.broadcast_priority(message)
         else:
             await self.ws.broadcast_to_market(message)
-    
+
     async def _update_context_windows(self):
         """Trigger async refresh of LLM context caches."""
         # Invalidate Redis caches so next directive fetch gets fresh context
         await self.redis.delete('llm:context:*')
-    
+
     async def archive_old_news(self):
         """
         Periodic cleanup task (Celery beat every 10 minutes).
@@ -2036,28 +2035,28 @@ class NewsService:
         cutoff = datetime.now(timezone.utc) - timedelta(
             minutes=self.TOTAL_LIFETIME_MINUTES
         )
-        
+
         # Archive to long-term storage if needed for post-game analysis
         old_items = await self.db.market_news.find(created_at__lt=cutoff)
-        
+
         # Insert to archive table (optional)
         # await self.db.market_news_archive.insert_many(old_items)
-        
+
         # Delete from hot table
         await self.db.market_news.delete_many(created_at__lt=cutoff)
-        
+
         return len(old_items)
 ```
 
 **News Relevance Decay Function**
 
-| Age | Relevance Decay | LLM Weight |
-|-----|-----------------|------------|
-| 0-5 min | 1.00 | Full |
-| 5-10 min | 0.75 | High |
-| 10-20 min | 0.50 | Medium |
-| 20-40 min | 0.25 | Low |
-| 40-60 min | 0.00 | Ignored (archived) |
+| Age       | Relevance Decay | LLM Weight         |
+| --------- | --------------- | ------------------ |
+| 0-5 min   | 1.00            | Full               |
+| 5-10 min  | 0.75            | High               |
+| 10-20 min | 0.50            | Medium             |
+| 20-40 min | 0.25            | Low                |
+| 40-60 min | 0.00            | Ignored (archived) |
 
 **Saturation Detection Example**
 
@@ -2068,7 +2067,7 @@ T-0:  Team A submits price cut → Fingerprint: "decrease_True_False_none"
 T-3:  Team B submits price cut → Same fingerprint
        Similar count: 1 → Full impact
 
-T-8:  Team C submits price cut → Same fingerprint  
+T-8:  Team C submits price cut → Same fingerprint
        Similar count: 2 → Full impact
 
 T-12: Team D submits price cut → Same fingerprint
@@ -2234,7 +2233,7 @@ class StrategicScoreService:
     MARKET_CAP_WEIGHT = Decimal('0.5')
     LIQUIDITY_WEIGHT = Decimal('0.5')
     SHARES_OUTSTANDING = 1_000_000  # Constant per spec
-    
+
     async def calculate_all_scores(self, purge_round: int) -> List[StrategicScore]:
         """
         Calculate strategic scores for all active teams during purge.
@@ -2244,45 +2243,45 @@ class StrategicScoreService:
         active_teams = await self.db.teams.find(
             status__in=['ACTIVE', 'COOLDOWN', 'BANKRUPT']
         )
-        
+
         if len(active_teams) < 2:
             raise ValueError("Cannot purge with fewer than 2 teams")
-        
+
         # Calculate raw metrics for all teams
         team_metrics = []
         for team in active_teams:
             mc = self._calculate_market_cap(team)
             liq = await self._calculate_liquidity(team)
-            
+
             team_metrics.append({
                 'team': team,
                 'market_cap': mc,
                 'liquidity': liq
             })
-        
+
         # Find maximums for normalization
         max_mc = max(m['market_cap'] for m in team_metrics)
         max_liq = max(m['liquidity'] for m in team_metrics)
-        
+
         # Prevent division by zero (shouldn't happen with active teams)
         max_mc = max(max_mc, Decimal('0.01'))
         max_liq = max(max_liq, Decimal('0.01'))
-        
+
         # Calculate normalized scores with tie-breaking
         scored_teams = []
         for tm in team_metrics:
             team = tm['team']
             mc = tm['market_cap']
             liq = tm['liquidity']
-            
+
             # Normalized components
             mc_norm = mc / max_mc  # 0.0 to ~1.0
             liq_norm = liq / max_liq  # 0.0 to ~1.0
-            
+
             # Weighted sum
-            raw_score = (self.MARKET_CAP_WEIGHT * mc_norm + 
+            raw_score = (self.MARKET_CAP_WEIGHT * mc_norm +
                         self.LIQUIDITY_WEIGHT * liq_norm)
-            
+
             scored_teams.append({
                 'team': team,
                 'market_cap': mc,
@@ -2295,11 +2294,11 @@ class StrategicScoreService:
                 'cash_abs': team.cash,  # Higher = better
                 'created_at': team.created_at  # Earlier = better
             })
-        
+
         # Sort with tie-breaking (Section 4.4.3)
         # Primary: raw_score DESC
         # Tie 1: liquidity DESC
-        # Tie 2: cash DESC  
+        # Tie 2: cash DESC
         # Tie 3: created_at ASC (earlier registration wins)
         scored_teams.sort(
             key=lambda x: (
@@ -2309,19 +2308,19 @@ class StrategicScoreService:
                 x['created_at']             # ASC (earlier = smaller timestamp)
             )
         )
-        
+
         # Assign ranks and create result objects
         results = []
         for rank, st in enumerate(scored_teams, start=1):
             team = st['team']
-            
+
             # Determine if tie-breaker was used
             tie_breaker = False
             if rank > 1:
                 prev = results[-1]
                 if st['raw_score'] == prev.raw_score:
                     tie_breaker = True
-            
+
             score = StrategicScore(
                 team_id=team.id,
                 ticker=team.ticker,
@@ -2329,7 +2328,7 @@ class StrategicScoreService:
                 market_cap_component=st['market_cap_norm'] * self.MARKET_CAP_WEIGHT,
                 liquidity_component=st['liquidity_norm'] * self.LIQUIDITY_WEIGHT,
                 market_cap_rank=sorted(
-                    scored_teams, 
+                    scored_teams,
                     key=lambda x: -x['market_cap']
                 ).index(st) + 1,
                 liquidity_rank=sorted(
@@ -2341,39 +2340,39 @@ class StrategicScoreService:
                 calculated_at=datetime.now(timezone.utc)
             )
             results.append(score)
-            
+
             # Persist to history (for post-game analytics)
             await self._record_score(team, score, purge_round)
-        
+
         return results
-    
+
     def _calculate_market_cap(self, team: Team) -> Decimal:
         """Market Cap = Stock Price × Total Shares Outstanding."""
         return team.stock_price * self.SHARES_OUTSTANDING
-    
+
     async def _calculate_liquidity(self, team: Team) -> Decimal:
         """
         Liquidity = Cash + (Portfolio Value × 0.5)
         The 0.5 haircut represents margin requirement for quick liquidation.
         """
         cash = team.cash
-        
+
         # Get portfolio value
         holdings = await self.db.stock_holdings.find(
             owner_team_id=team.id
         )
-        
+
         portfolio_value = Decimal('0')
         for holding in holdings:
             target = await self.db.teams.find_one(id=holding.target_team_id)
             if target.status != 'ELIMINATED':
                 portfolio_value += holding.shares_owned * target.stock_price
-        
+
         # Apply 50% haircut (Section 1.5 Glossary)
         liquid_portfolio = portfolio_value * Decimal('0.5')
-        
+
         return cash + liquid_portfolio
-    
+
     async def _record_score(self, team: Team, score: StrategicScore, purge_round: int):
         """Persist score calculation for audit and post-game analysis."""
         await self.db.strategic_scores.insert({
@@ -2387,7 +2386,7 @@ class StrategicScoreService:
             'final_rank': score.final_rank,
             'calculated_at': score.calculated_at
         })
-    
+
     async def execute_purge(self, admin_id: UUID, force: bool = False) -> PurgeResult:
         """
         Full purge execution with safety checks.
@@ -2396,33 +2395,33 @@ class StrategicScoreService:
         # Pre-purge checklist (Section 4.4.2)
         if not force:
             await self._safety_checks()
-        
+
         # Get current game state
         game = await self.db.game_state.find_one(id=1)
         current_round = game.current_round + 1
-        
+
         # Calculate all scores
         scores = await self.calculate_all_scores(current_round)
-        
+
         # Determine cutoff (bottom 50%, rounded down)
         total_active = len(scores)
         eliminate_count = total_active // 2  # Floor division
-        
+
         if total_active <= 3 and not force:
             raise ValueError("Cannot purge to fewer than 3 teams without force flag")
-        
+
         survivors = scores[:total_active - eliminate_count]
         eliminated = scores[total_active - eliminate_count:]
-        
+
         # Execute eliminations
         elimination_details = []
         for score in eliminated:
             detail = await self._eliminate_team(score, current_round, 'PURGE_BOTTOM_HALF')
             elimination_details.append(detail)
-        
+
         # Update survivors' treasury caps (Section 4.3.4)
         new_treasury_limit = await self._update_treasury_caps(survivors, current_round)
-        
+
         # Update game state
         await self.db.game_state.update(
             id=1,
@@ -2430,10 +2429,10 @@ class StrategicScoreService:
             last_purge_at=datetime.now(timezone.utc),
             teams_remaining=len(survivors)
         )
-        
+
         # Broadcast results
         await self._broadcast_purge_complete(survivors, eliminated, new_treasury_limit)
-        
+
         return PurgeResult(
             purge_id=uuid4(),
             round=current_round,
@@ -2442,7 +2441,7 @@ class StrategicScoreService:
             new_treasury_limit=new_treasury_limit,
             top_performer=survivors[0].ticker if survivors else None
         )
-    
+
     async def _safety_checks(self):
         """Pre-purge validation (Section 4.4.2)."""
         # Check 1: Minimum 30 min since last purge
@@ -2451,30 +2450,30 @@ class StrategicScoreService:
             elapsed = datetime.now(timezone.utc) - game.last_purge_at
             if elapsed < timedelta(minutes=30):
                 raise ValueError(f"Only {elapsed.seconds//60} min since last purge (min 30)")
-        
+
         # Check 2: Minimum 10 teams remain
         active_count = await self.db.teams.count(
             status__in=['ACTIVE', 'COOLDOWN', 'BANKRUPT']
         )
         if active_count <= 6 and not force:  # Section 4.4.2: skip to final if <=6
             raise ValueError("6 or fewer teams remain - should transition to Final Presentation")
-        
+
         # Check 3: LLM queue empty
         pending_directives = await self.db.directives.count(status='PROCESSING')
         if pending_directives > 0:
             raise ValueError(f"{pending_directives} directives still processing")
-        
+
         # Check 4: No active trades (orders in PENDING status)
         pending_orders = await self.db.orders.count(status='PENDING')
         if pending_orders > 0:
             raise ValueError(f"{pending_orders} orders still pending")
-    
+
     async def _eliminate_team(self, score: StrategicScore, round: int, reason: str) -> EliminationDetail:
         """Execute single team elimination."""
         team = await self.db.teams.find_one(id=score.team_id)
-        
+
         now = datetime.now(timezone.utc)
-        
+
         # Update team status
         await self.db.teams.update(
             id=team.id,
@@ -2484,10 +2483,10 @@ class StrategicScoreService:
             rank_at_elimination=score.final_rank,
             stock_price=Decimal('0.00')
         )
-        
+
         # Zero out investors' holdings (Section 4.4.5)
         await self._zero_investor_holdings(team.id)
-        
+
         # Record elimination
         await self.db.elimination_history.insert({
             'team_id': team.id,
@@ -2503,13 +2502,13 @@ class StrategicScoreService:
             'final_liquidity': await self._calculate_liquidity(team),
             'eliminated_at': now
         })
-        
+
         return EliminationDetail(
             ticker=team.ticker,
             rank=score.final_rank,
             score=float(score.raw_score)
         )
-    
+
     async def _update_treasury_caps(self, survivors: List[StrategicScore], round: int) -> Decimal:
         """
         Update dilution caps for surviving teams (Section 4.3.4).
@@ -2517,16 +2516,16 @@ class StrategicScoreService:
         # Cap progression: 10% → 20% → 30% → 30% (hard cap)
         cap_map = {1: Decimal('20.00'), 2: Decimal('30.00'), 3: Decimal('30.00')}
         new_cap = cap_map.get(round, Decimal('30.00'))
-        
+
         for score in survivors:
             await self.db.teams.update(
                 id=score.team_id,
                 max_treasury_sale_pct=new_cap
                 # treasury_sold_this_stage resets implicitly (new stage)
             )
-        
+
         return new_cap
-    
+
     async def _broadcast_purge_complete(self, survivors, eliminated, new_treasury_limit):
         """WebSocket broadcast of purge results."""
         await self.ws.broadcast_to_market({
@@ -2561,13 +2560,13 @@ class EliminationDetail:
 
 **Visibility Rules (Black Box Enforcement)**
 
-| Data | Visible to Team | Visible to Others | Visible Post-Elimination |
-|------|-----------------|-------------------|--------------------------|
-| Market Cap | ✅ Real-time | ✅ Real-time | ✅ Final |
-| Liquidity | ✅ Real-time | ❌ Hidden | ✅ Final |
-| Strategic Score | ❌ Never | ❌ Never | ✅ If eliminated |
-| Rank | ❌ Never | ❌ Never | ✅ Final rank revealed |
-| Component Breakdown | ❌ Never | ❌ Never | ✅ Post-game |
+| Data                | Visible to Team | Visible to Others | Visible Post-Elimination |
+| ------------------- | --------------- | ----------------- | ------------------------ |
+| Market Cap          | ✅ Real-time    | ✅ Real-time      | ✅ Final                 |
+| Liquidity           | ✅ Real-time    | ❌ Hidden         | ✅ Final                 |
+| Strategic Score     | ❌ Never        | ❌ Never          | ✅ If eliminated         |
+| Rank                | ❌ Never        | ❌ Never          | ✅ Final rank revealed   |
+| Component Breakdown | ❌ Never        | ❌ Never          | ✅ Post-game             |
 
 ```python
 # API response filtering (Section 7.2)
@@ -2580,18 +2579,17 @@ def filter_team_dossier(team: Team, viewer_is_team: bool) -> dict:
         'stock_price': float(team.stock_price),
         'market_cap': float(team.stock_price * 1_000_000),
     }
-    
+
     if viewer_is_team:
         base['liquidity'] = calculate_liquidity(team)  # Own liquidity visible
         base['cash'] = float(team.cash)
     else:
         # Others see only price-derived metrics
         base['liquidity'] = None
-    
+
     # Strategic score NEVER included in API responses
     return base
 ```
-
 
 ## 7.2. Black Box Scoring Philosophy
 
