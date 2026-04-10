@@ -12,15 +12,22 @@ export interface Team {
   liquidity: string;
   mktCap: string;
   lastDirective: string;
+  cooldownRemaining?: string | null;
 }
 
 interface TeamTableProps {
   teams: Team[];
   filter: string;
   onFilterChange: (filter: string) => void;
+  onForceBankrupt?: (team: Team) => void;
 }
 
-export function TeamTable({ teams, filter, onFilterChange }: TeamTableProps) {
+export function TeamTable({
+  teams,
+  filter,
+  onFilterChange,
+  onForceBankrupt,
+}: TeamTableProps) {
   const filters = [
     "ALL",
     "ACTIVE",
@@ -30,27 +37,44 @@ export function TeamTable({ teams, filter, onFilterChange }: TeamTableProps) {
     "PENDING_APPROVAL",
   ];
 
-  const getStatusBadge = (status: TeamStatus) => {
+  const getStatusBadge = (
+    status: TeamStatus,
+    cooldownRemaining?: string | null,
+  ) => {
+    if (status === "COOLDOWN" && cooldownRemaining) {
+      return "text-[#FFB000] border border-[#FFB000]/30 bg-[#FFB000]/10 font-bold";
+    }
     const styles: Record<TeamStatus, string> = {
       ACTIVE: "text-[#00c853] border border-[#00c853]/30 bg-[#00c853]/10",
       PENDING: "text-zinc-400 border border-white/10 bg-white/5",
       COOLDOWN: "text-[#FFB000] border border-[#FFB000]/30 bg-[#FFB000]/10",
-      ELIMINATED: "text-[#ff3333] border border-[#ff3333]/30 bg-[#ff3333]/10",
-      BANKRUPT: "text-[#ff3333] border border-[#ff3333]/30 bg-[#ff3333]/10",
+      ELIMINATED: "text-zinc-500 border border-zinc-700/50 bg-zinc-800/30",
+      BANKRUPT:
+        "text-[#ff3333] border border-[#ff3333]/50 bg-[#ff3333]/20 animate-pulse",
     };
     return styles[status];
+  };
+
+  const getStatusText = (
+    status: TeamStatus,
+    cooldownRemaining?: string | null,
+  ) => {
+    if (status === "COOLDOWN" && cooldownRemaining) {
+      return `COOLDOWN (${cooldownRemaining})`;
+    }
+    return status;
   };
 
   return (
     <div className="flex-1 flex flex-col bg-[#0a0a0a] overflow-hidden">
       <div className="p-4 bg-[#0f0f0f] border-b border-white/10">
         <div className="flex items-center justify-between">
-          <div className="flex gap-4">
+          <div className="flex gap-4 overflow-x-auto">
             {filters.map((f) => (
               <button
                 key={f}
                 onClick={() => onFilterChange(f.toLowerCase())}
-                className={`text-[11px] py-1 cursor-pointer ${
+                className={`text-[11px] py-1 cursor-pointer whitespace-nowrap ${
                   filter === f.toLowerCase()
                     ? "text-[#FFB000] font-bold border-b-2 border-[#FFB000]"
                     : "text-zinc-600 hover:text-zinc-400"
@@ -92,7 +116,7 @@ export function TeamTable({ teams, filter, onFilterChange }: TeamTableProps) {
             {teams.map((team, i) => (
               <tr
                 key={i}
-                className={`border-b border-white/5 hover:bg-white/5 ${team.status === "ELIMINATED" ? "opacity-40" : ""}`}
+                className={`border-b border-white/5 hover:bg-white/5 ${team.status === "ELIMINATED" ? "opacity-40" : ""} ${team.status === "BANKRUPT" ? "bg-[#ff3333]/5" : ""}`}
               >
                 <td className="px-4 py-3 font-bold text-white">{team.name}</td>
                 <td className="px-4 py-3 text-[#FFB000] font-bold">
@@ -100,15 +124,23 @@ export function TeamTable({ teams, filter, onFilterChange }: TeamTableProps) {
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`border px-2 py-0.5 text-[9px] ${getStatusBadge(team.status)}`}
+                    className={`border px-2 py-0.5 text-[9px] ${getStatusBadge(team.status, team.cooldownRemaining)}`}
                   >
-                    {team.status}
+                    {getStatusText(team.status, team.cooldownRemaining)}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">{team.liquidity}</td>
                 <td className="px-4 py-3 text-right">{team.mktCap}</td>
-                <td className="px-4 py-3 text-zinc-500 italic truncate max-w-[150px]">
-                  {team.lastDirective}
+                <td className="px-4 py-3">
+                  {team.status === "COOLDOWN" ? (
+                    <span className="text-[#FFB000] italic">
+                      AWAITING_BOARD ({team.cooldownRemaining} REMAINING)
+                    </span>
+                  ) : (
+                    <span className="text-zinc-500 italic truncate max-w-[150px] block">
+                      {team.lastDirective}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right space-x-1">
                   <button className="bg-[#2196F3]/10 text-[#2196F3] border border-[#2196F3]/30 px-2 py-1 hover:bg-[#2196F3] hover:text-white text-[9px] uppercase cursor-pointer">
@@ -116,9 +148,14 @@ export function TeamTable({ teams, filter, onFilterChange }: TeamTableProps) {
                   </button>
                   {team.status === "ACTIVE" && (
                     <>
-                      <button className="bg-[#FFB000]/10 text-[#FFB000] border border-[#FFB000]/30 px-2 py-1 hover:bg-[#FFB000] hover:text-black text-[9px] uppercase cursor-pointer">
-                        FORCE BANKRUPT
-                      </button>
+                      {onForceBankrupt && (
+                        <button
+                          onClick={() => onForceBankrupt(team)}
+                          className="bg-[#FFB000]/10 text-[#FFB000] border border-[#FFB000]/30 px-2 py-1 hover:bg-[#FFB000] hover:text-black text-[9px] uppercase cursor-pointer"
+                        >
+                          FORCE BANKRUPT
+                        </button>
+                      )}
                       <button className="bg-[#ff3333]/10 text-[#ff3333] border border-[#ff3333]/30 px-2 py-1 hover:bg-[#ff3333] hover:text-white text-[9px] uppercase cursor-pointer">
                         ELIMINATE
                       </button>

@@ -10,11 +10,33 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [tickerError, setTickerError] = useState("");
   const { login } = useAuth();
   const router = useRouter();
 
+  const handleTickerChange = (value: string) => {
+    const filtered = value
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "")
+      .slice(0, 4);
+    setTicker(filtered);
+
+    if (filtered.length > 0 && filtered.length < 3) {
+      setTickerError("Ticker must be 3-4 characters");
+    } else {
+      setTickerError("");
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate ticker
+    if (ticker.length < 3 || ticker.length > 4) {
+      setTickerError("Ticker must be 3-4 characters");
+      return;
+    }
+
     // In real app, this would submit to API and wait for admin approval
     // For now, we'll simulate registration and redirect to game
     login({
@@ -190,15 +212,18 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     value={ticker}
-                    onChange={(e) =>
-                      setTicker(e.target.value.toUpperCase().slice(0, 4))
-                    }
+                    onChange={(e) => handleTickerChange(e.target.value)}
                     maxLength={4}
                     required
-                    className="w-full bg-transparent border-b-2 border-[#2a2a2a] focus:border-[#FFB000] outline-none py-3 pl-6 text-xl transition-colors duration-150 placeholder:text-[#2a2a2a] font-black uppercase"
+                    className={`w-full bg-transparent border-b-2 focus:border-[#FFB000] outline-none py-3 pl-6 text-xl transition-colors duration-150 placeholder:text-[#2a2a2a] font-black uppercase ${tickerError ? "border-[#ff3333]" : "border-[#2a2a2a]"}`}
                     placeholder="ABBR"
                   />
                 </div>
+                {tickerError && (
+                  <span className="text-[0.6rem] text-[#ff3333]">
+                    {tickerError}
+                  </span>
+                )}
               </div>
 
               {/* CONTACT_EMAIL */}

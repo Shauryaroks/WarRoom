@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 
-const STORAGE_KEY = 'complex_directive_draft';
+const STORAGE_KEY = "complex_directive_draft";
 
 interface DirectiveEditorProps {
   maxChars?: number;
@@ -13,7 +13,7 @@ export function DirectiveEditor({
   maxChars = 2000,
   onSubmit,
 }: DirectiveEditorProps) {
-  const [directive, setDirective] = useState('');
+  const [directive, setDirective] = useState("");
   const [charCount, setCharCount] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,33 +51,34 @@ export function DirectiveEditor({
 
   const handleSubmit = () => {
     if (!directive.trim()) return;
-    
+
     setIsSubmitting(true);
-    
+
     // Clear from localStorage on submit
     localStorage.removeItem(STORAGE_KEY);
     setIsSaved(false);
-    
+
     if (onSubmit) {
       onSubmit(directive);
     } else {
-      console.log('Submitting directive:', directive);
+      console.log("Submitting directive:", directive);
     }
-    
+
     // Clear the editor
-    setDirective('');
+    setDirective("");
     setCharCount(0);
     setIsSubmitting(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Tab') {
+    if (e.key === "Tab") {
       e.preventDefault();
       const textarea = textareaRef.current;
       if (textarea) {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
-        const newValue = directive.substring(0, start) + '  ' + directive.substring(end);
+        const newValue =
+          directive.substring(0, start) + "  " + directive.substring(end);
         setDirective(newValue);
         setTimeout(() => {
           textarea.selectionStart = textarea.selectionEnd = start + 2;
@@ -85,7 +86,7 @@ export function DirectiveEditor({
       }
     }
     // Ctrl+S to save
-    if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSaveLocal();
     }
@@ -102,13 +103,11 @@ export function DirectiveEditor({
             DIRECTIVE_DRAFT ({charCount} / {maxChars})
           </span>
           {isSaved && (
-            <span className="text-[9px] text-[#00c853] ml-2">
-              ✓ SAVED
-            </span>
+            <span className="text-[9px] text-[#00c853] ml-2">✓ SAVED</span>
           )}
         </div>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={handleSaveLocal}
             disabled={!directive.trim()}
             className="bg-[#353534] px-3 py-1 text-[9px] text-zinc-300 hover:text-white border border-[#353534] uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -120,7 +119,7 @@ export function DirectiveEditor({
             disabled={!directive.trim() || isSubmitting}
             className="bg-[#00c853] px-4 py-1 text-[9px] text-black font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {isSubmitting ? 'SUBMITTING...' : 'SUBMIT TO BOARD'}
+            {isSubmitting ? "SUBMITTING..." : "SUBMIT TO BOARD"}
           </button>
         </div>
       </div>
@@ -134,7 +133,7 @@ export function DirectiveEditor({
             onKeyDown={handleKeyDown}
             placeholder="_Submit strategic directive..."
             className="w-full h-full bg-transparent outline-none text-zinc-300 resize-none placeholder:text-zinc-600"
-            style={{ minHeight: '200px' }}
+            style={{ minHeight: "200px" }}
           />
         </div>
 

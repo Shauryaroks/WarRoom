@@ -3,13 +3,22 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://complex.helixtiet.in'),
+  metadataBase: new URL("https://complex.helixtiet.in"),
   title: {
     default: "COMPLEX | Corporate Strategy Case Arena",
     template: "%s | COMPLEX",
   },
-  description: "High-intensity synchronous multiplayer business simulation. 50 teams compete in a live market simulation with LLM-driven strategic evaluation.",
-  keywords: ["business simulation", "case competition", "strategy game", "multiplayer", "LLM", "stock market", "corporate strategy"],
+  description:
+    "High-intensity synchronous multiplayer business simulation. 50 teams compete in a live market simulation with LLM-driven strategic evaluation.",
+  keywords: [
+    "business simulation",
+    "case competition",
+    "strategy game",
+    "multiplayer",
+    "LLM",
+    "stock market",
+    "corporate strategy",
+  ],
   authors: [{ name: "HELIX TIET" }],
   creator: "HELIX TIET",
   publisher: "HELIX TIET",
@@ -24,7 +33,8 @@ export const metadata: Metadata = {
     url: "https://complex.helixtiet.in",
     siteName: "COMPLEX",
     title: "COMPLEX | Corporate Strategy Case Arena",
-    description: "High-intensity synchronous multiplayer business simulation. 50 teams compete in a live market simulation with LLM-driven strategic evaluation.",
+    description:
+      "High-intensity synchronous multiplayer business simulation. 50 teams compete in a live market simulation with LLM-driven strategic evaluation.",
     images: [
       {
         url: "/ComplexBanner.png",
