@@ -1,0 +1,1390 @@
+openapi: 3.0.3
+info:
+  title: Complex Business Simulation API
+  version: 1.0.0
+  description: |
+    High-intensity synchronous multiplayer business simulation platform.
+    All timestamps are ISO 8601 UTC. Financial values are decimal with 2 precision.
+    
+servers:
+  - url: /api/v1
+    description: Production API
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+
+  # ============================================================================
+  # AUTHENTICATION & REGISTRATION
+  # ============================================================================
+  
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Submit team registration for admin approval
+      description: Creates pending team. Admin must approve before game access.
+      security: []  # Public endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [team_name, ticker, email, password]
+              properties:
+                team_name:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  pattern: '^[a-zA-Z0-9\s]+$'
+                  example: "Barbie Inc"
+                ticker:
+                  type: string
+                  minLength: 3
+                  maxLength: 4
+                  pattern: '^[A-Z]{3,4}$'
+                  description: "3-4 uppercase letters, will be prefixed with $"
+                  example: "BRBE"
+                email:
+                  type: string
+                  format: email
+                  example: "team@university.edu"
+                password:
+                  type: string
+                  minLength: 8
+                  format: password
+                  example: "secure123"
+      responses:
+        '202':
+          description: Registration submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registration pending admin approval"
+                  registration_id:
+                    type: string
+                    format: uuid
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ticker or team name already exists
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate and receive API key
+      security: []  # Public endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticker, password]
+              properties:
+                ticker:
+                  type: string
+                  example: "$BRBE"
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    format: uuid
+                    description: Bearer token for subsequent requests
+                  team_name:
+                    type: string
+                  ticker:
+                    type: string
+                  status:
+                    type: string
+                    enum: [PENDING, ACTIVE, COOLDOWN, BANKRUPT, ELIMINATED]
+                  ws_endpoint:
+                    type: string
+                    description: WebSocket connection URL
+                    example: "/ws/team/{api_key}"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================================
+  # GAME STATE (Global Event Status)
+  # ============================================================================
+  
+  /game/state:
+    get:
+      tags: [Game State]
+      summary: Get current game status and timing
+      description: |
+        Returns global game state including session timing, next purge, and system status.
+        Used by HeaderBar (session elapsed, next purge) and all clients for sync.
+      responses:
+        '200':
+          description: Current game state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, server_time]
+                properties:
+                  status:
+                    type: string
+                    enum: [SETUP, ACTIVE, PAUSED, FINISHED]
+                    description: Current phase of the event
+                  server_time:
+                    type: string
+                    format: date-time
+                  started_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  elapsed_seconds:
+                    type: integer
+                    description: Wall-clock seconds since game start
+                  next_purge_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: Scheduled time of next elimination round
+                  current_round:
+                    type: integer
+                    description: "0 = before first purge, 1 = 50→25, etc."
+                  teams_remaining:
+                    type: integer
+                  total_llm_cost_usd:
+                    type: number
+                    format: decimal
+                  llm_queue_depth:
+                    type: integer
+                    description: Current directives waiting for LLM processing
+
+  # ============================================================================
+  # TEAM MANAGEMENT (Self and Others)
+  # ============================================================================
+  
+  /teams/me:
+    get:
+      tags: [Teams]
+      summary: Get current team's complete profile and financials
+      description: |
+        Primary endpoint for LeftSidebar, SecondaryStatusBar, and DirectiveEditor.
+        Returns everything needed to render the terminal interface.
+      responses:
+        '200':
+          description: Complete team dossier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamDossier'
+
+  /teams/me/holdings:
+    get:
+      tags: [Teams]
+      summary: Get stock portfolio with real-time PnL
+      description: Used by LeftSidebar portfolio tab and trading interface.
+      responses:
+        '200':
+          description: Current stock holdings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  holdings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StockHolding'
+                  total_portfolio_value:
+                    type: number
+                    format: decimal
+                  total_unrealized_pnl:
+                    type: number
+                    format: decimal
+
+  /teams/me/directives:
+    get:
+      tags: [Directives]
+      summary: List team's directive history with board feedback
+      description: |
+        Used by DirectiveEditor to show historical submissions and Board responses.
+        Returns most recent first, paginated.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of directives with LLM feedback
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  directives:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DirectiveWithFeedback'
+                  total_count:
+                    type: integer
+
+  /teams:
+    get:
+      tags: [Teams]
+      summary: List all teams (admin) or active teams (public)
+      description: |
+        Admin: Full list with all statuses, filterable.
+        Public: Only ACTIVE/COOLDOWN teams with limited fields (for competitor analysis).
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, ACTIVE, COOLDOWN, BANKRUPT, ELIMINATED, ALL]
+          description: Filter by status (admin only)
+        - name: filter
+          in: query
+          schema:
+            type: string
+          description: Text search on name or ticker
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeamSummary'
+                  pending_count:
+                    type: integer
+                    description: Number of teams awaiting approval (admin only)
+
+  /teams/{teamId}/approve:
+    post:
+      tags: [Admin - Teams]
+      summary: Approve pending team registration
+      description: Assign portfolio and activate team for gameplay.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [portfolio_id]
+              properties:
+                portfolio_id:
+                  type: string
+                  description: "e.g., PORT_TECH_01, PORT_LEGACY_01"
+                starting_cash:
+                  type: number
+                  format: decimal
+                  default: 1000000
+      responses:
+        '200':
+          description: Team approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: string
+                    format: uuid
+                  api_key:
+                    type: string
+                    format: uuid
+                  message:
+                    type: string
+                    example: "Team approved and activated"
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /teams/{teamId}/reject:
+    post:
+      tags: [Admin - Teams]
+      summary: Reject pending team registration
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Rejection reason emailed to team
+      responses:
+        '200':
+          description: Team rejected
+
+  /teams/{teamId}/bankrupt:
+    post:
+      tags: [Admin - Teams]
+      summary: Force team into bankruptcy (admin override)
+      description: |
+        Immediate bankruptcy without grace period. Used for cheating detection
+        or emergency removal. Triggers liquidation and elimination.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [DISQUALIFIED, ADMIN_OVERRIDE, CHEATING_DETECTED]
+                public_message:
+                  type: string
+                  description: Broadcast to all players
+      responses:
+        '200':
+          description: Team force-bankrupted
+
+  # ============================================================================
+  # DIRECTIVE SUBMISSION
+  # ============================================================================
+  
+  /directives:
+    post:
+      tags: [Directives]
+      summary: Submit strategic directive to LLM Board
+      description: |
+        Primary gameplay action. Markdown text parsed by Claude for strategy extraction.
+        Returns immediately with cooldown start; LLM processing is async.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [directive_markdown]
+              properties:
+                directive_markdown:
+                  type: string
+                  maxLength: 2000
+                  description: "Markdown-formatted strategy (prose over parameters)"
+                  example: "# Q3 Response\nWe will cut prices by 15%..."
+                player_confidence_rating:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  description: Optional self-assessment
+      responses:
+        '202':
+          description: Directive accepted, processing async
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  submission_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [COOLDOWN]
+                  cooldown_until:
+                    type: string
+                    format: date-time
+                  seconds_remaining:
+                    type: integer
+                  message:
+                    type: string
+                    example: "Directive received. The Board is reviewing."
+        '429':
+          description: Cooldown active or rate limit hit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Cooldown active"
+                  retry_after:
+                    type: integer
+                  cooldown_until:
+                    type: string
+                    format: date-time
+
+  # ============================================================================
+  # TRADING ENDPOINTS
+  # ============================================================================
+  
+  /orders:
+    post:
+      tags: [Trading]
+      summary: Submit buy or sell order
+      description: |
+        Execute market order immediately (if valid) or queue for processing.
+        All orders are atomic and subject to SERIALIZABLE isolation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, target_ticker, shares]
+              properties:
+                action:
+                  type: string
+                  enum: [buy, sell]
+                target_ticker:
+                  type: string
+                  pattern: '^\$[A-Z]{3,4}$'
+                  example: "$APEX"
+                shares:
+                  type: integer
+                  minimum: 1
+                  maximum: 100000  -- Adjust based on float limits
+                order_type:
+                  type: string
+                  enum: [MARKET]
+                  default: MARKET
+                  description: "Limit orders not implemented in v1"
+      responses:
+        '200':
+          description: Order executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [FILLED, PARTIAL, PENDING]
+                  filled_shares:
+                    type: integer
+                  remaining_shares:
+                    type: integer
+                  execution_price:
+                    type: number
+                    format: decimal
+                  total_value:
+                    type: number
+                    format: decimal
+                  updated_cash:
+                    type: number
+                    format: decimal
+                  updated_holdings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StockHolding'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum: [INSUFFICIENT_CASH, INSUFFICIENT_SHARES, OWNERSHIP_LIMIT_EXCEEDED, FLOAT_EXHAUSTED, TREASURY_CAP_EXCEEDED, TARGET_NOT_TRADABLE]
+                  detail:
+                    type: string
+
+    get:
+      tags: [Trading]
+      summary: List own orders (pending and history)
+      description: Track order status and view trade history.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PARTIAL, FILLED, CANCELLED, FAILED, ALL]
+          default: ALL
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+
+  /orders/{orderId}:
+    delete:
+      tags: [Trading]
+      summary: Cancel pending order
+      description: Only PENDING or PARTIAL orders can be cancelled.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order cancelled
+        '400':
+          description: Cannot cancel (already filled or failed)
+
+  # ============================================================================
+  # MARKET DATA
+  # ============================================================================
+  
+  /market/tickers:
+    get:
+      tags: [Market Data]
+      summary: Get all stock prices and market data
+      description: |
+        Used by Footer ticker, LeftSidebar market view, and trading dropdown.
+        Returns real-time prices for all active teams.
+      responses:
+        '200':
+          description: Current market snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  tickers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TickerSnapshot'
+
+  /market/history/{ticker}:
+    get:
+      tags: [Market Data]
+      summary: Get price history for charting
+      description: |
+        Candlestick data for post-game analytics and real-time charts.
+        Returns price points since game start or specified window.
+      parameters:
+        - name: ticker
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\$[A-Z]{3,4}$'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: interval
+          in: query
+          schema:
+            type: string
+            enum: [1m, 5m, 15m, 1h]
+          default: 5m
+      responses:
+        '200':
+          description: Price history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticker:
+                    type: string
+                  interval:
+                    type: string
+                  data_points:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format: date-time
+                        open:
+                          type: number
+                        high:
+                          type: number
+                        low:
+                          type: number
+                        close:
+                          type: number
+                        volume:
+                          type: integer
+
+  /market/sectors:
+    get:
+      tags: [Market Data]
+      summary: Get sector heatmap data
+      description: |
+        Used by RightSidebar heatmap. Groups teams by sector (derived from portfolio)
+        and shows aggregate performance.
+      responses:
+        '200':
+          description: Sector performance metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sectors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          enum: [TECH, FIN, REIT, ENG, CONS]
+                        avg_change_percent:
+                          type: number
+                        total_market_cap:
+                          type: number
+                        team_count:
+                          type: integer
+                        color:
+                          type: string
+                          description: "Heat color for UI"
+
+  # ============================================================================
+  # NEWS & MARKET WIRE
+  # ============================================================================
+  
+  /news:
+    get:
+      tags: [News]
+      summary: Get Market Wire news feed
+      description: |
+        Used by RightSidebar "The Wire". Returns last 20 items with pagination.
+        Same data as WebSocket /ws/market but pollable for reconnection.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: before_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: For pagination (get items before this ID)
+        - name: source_type
+          in: query
+          schema:
+            type: string
+            enum: [GLOBAL, TEAM_ACTION, SYSTEM, ADMIN_INJECTED]
+      responses:
+        '200':
+          description: News items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NewsItem'
+                  has_more:
+                    type: boolean
+
+  # ============================================================================
+  # ADMIN CONTROLS (Game Orchestration)
+  # ============================================================================
+  
+  /admin/metrics:
+    get:
+      tags: [Admin - Dashboard]
+      summary: Get real-time system metrics
+      description: |
+        Used by MetricsBar. Returns counts, liquidity aggregates, and LLM status.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System health and game metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_teams:
+                    type: integer
+                  total_teams:
+                    type: integer
+                  teams_by_status:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  aggregate_liquidity:
+                    type: number
+                    format: decimal
+                  avg_market_cap:
+                    type: number
+                    format: decimal
+                  market_cap_change_24h:
+                    type: number
+                  llm_queue_depth:
+                    type: integer
+                  session_cost_usd:
+                    type: number
+                    format: decimal
+
+  /admin/llm-stats:
+    get:
+      tags: [Admin - Observability]
+      summary: Get LLM performance and cost breakdown
+      description: Detailed metrics for OpenRouter usage and performance.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: LLM statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_requests:
+                    type: integer
+                  total_cost_usd:
+                    type: number
+                  avg_latency_ms:
+                    type: integer
+                  error_rate:
+                    type: number
+                  by_model:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        model:
+                          type: string
+                        requests:
+                          type: integer
+                        cost_usd:
+                          type: number
+                        avg_latency_ms:
+                          type: integer
+
+  /admin/market-stats:
+    get:
+      tags: [Admin - Observability]
+      summary: Get trading and market health metrics
+      description: Used for detecting anomalies and collusion.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Market statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_trades:
+                    type: integer
+                  trades_last_hour:
+                    type: integer
+                  volume_by_ticker:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  anomaly_alerts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum: [PRICE_DIVERGENCE, RAPID_TRADING, COLLUSION_PATTERN]
+                        ticker:
+                          type: string
+                        description:
+                          type: string
+
+  /game/start:
+    post:
+      tags: [Admin - Game Control]
+      summary: Start the game session
+      description: |
+        Transitions from SETUP to ACTIVE. Opens trading, starts timer,
+        seeds initial news. Cannot be undone.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduled_duration_hours:
+                  type: integer
+                  default: 6
+                initial_news_items:
+                  type: array
+                  items:
+                    type: string
+                  description: "Override default 10 news items"
+      responses:
+        '200':
+          description: Game started
+        '409':
+          description: Game already started or finished
+
+  /game/pause:
+    post:
+      tags: [Admin - Game Control]
+      summary: Pause all gameplay
+      description: |
+        Emergency stop. Halts trading, directive submissions, and cooldown timers.
+        State is frozen exactly; resume continues from pause point.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Game paused
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paused_at:
+                    type: string
+                    format: date-time
+                  will_resume_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+
+  /game/resume:
+    post:
+      tags: [Admin - Game Control]
+      summary: Resume from pause
+      description: Restores all timers and trading from frozen state.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Game resumed
+
+  /game/end:
+    post:
+      tags: [Admin - Game Control]
+      summary: End the event
+      description: |
+        Finalizes all scores, closes trading, prepares for IRL presentations.
+        Irreversible.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Game ended
+
+  /game/purge:
+    post:
+      tags: [Admin - Game Control]
+      summary: Initiate market purge (elimination round)
+      description: |
+        Calculates Strategic Scores, eliminates bottom 50%, updates dilution caps.
+        Two-step confirmation required (see request body).
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmation]
+              properties:
+                confirmation:
+                  type: string
+                  pattern: '^PURGE$'
+                  description: "Must be exact string 'PURGE' for safety"
+                force:
+                  type: boolean
+                  default: false
+                  description: "Skip safety checks (pending LLM queue, etc.)"
+      responses:
+        '202':
+          description: Purge initiated (async processing)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purge_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [PROCESSING]
+        '200':
+          description: Purge completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purge_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [COMPLETED]
+                  eliminated_teams:
+                    type: array
+                    items:
+                      type: string
+                  surviving_teams:
+                    type: integer
+                  new_treasury_limits:
+                    type: number
+                    description: "New max treasury sale percentage"
+
+  /news/inject:
+    post:
+      tags: [Admin - News]
+      summary: Inject global news headline
+      description: |
+        Admin-generated news affects all teams' LLM context.
+        Used for narrative steering and testing adaptability.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [headline]
+              properties:
+                headline:
+                  type: string
+                  maxLength: 120
+                content:
+                  type: string
+                  description: "Detailed body (optional)"
+                impact_type:
+                  type: string
+                  enum: [macro_bullish, macro_bearish, sector_specific, neutral]
+                affected_sectors:
+                  type: array
+                  items:
+                    type: string
+                    enum: [TECH, FIN, REIT, ENG, CONS]
+                affected_tickers:
+                  type: array
+                  items:
+                    type: string
+                    pattern: '^\$[A-Z]{3,4}$'
+                scheduled_for:
+                  type: string
+                  format: date-time
+                  description: "Future scheduling (null = immediate)"
+      responses:
+        '200':
+          description: News injected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  news_id:
+                    type: string
+                    format: uuid
+                  broadcast_count:
+                    type: integer
+                  scheduled:
+                    type: boolean
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Team API key for authentication
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT token (separate from team API keys)
+
+  schemas:
+  
+    TeamDossier:
+      type: object
+      properties:
+        profile:
+          $ref: '#/components/schemas/TeamProfile'
+        financials:
+          $ref: '#/components/schemas/TeamFinancials'
+        portfolio:
+          $ref: '#/components/schemas/Portfolio'
+        last_directive:
+          $ref: '#/components/schemas/DirectiveSummary'
+        cooldown_status:
+          $ref: '#/components/schemas/CooldownStatus'
+
+    TeamProfile:
+      type: object
+      properties:
+        team_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        ticker:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, COOLDOWN, BANKRUPT, ELIMINATED]
+        swot:
+          type: object
+          properties:
+            strengths:
+              type: string
+            weaknesses:
+              type: string
+            opportunities:
+              type: string
+            threats:
+              type: string
+        portfolio_id:
+          type: string
+
+    TeamFinancials:
+      type: object
+      properties:
+        cash:
+          type: number
+          format: decimal
+        stock_price:
+          type: number
+          format: decimal
+        market_cap:
+          type: number
+          format: decimal
+        liquidity:
+          type: number
+          format: decimal
+        treasury_sale_limit_remaining:
+          type: number
+          description: "Percentage points remaining in current stage"
+
+    Portfolio:
+      type: object
+      properties:
+        holdings:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockHolding'
+        total_portfolio_value:
+          type: number
+          format: decimal
+        total_unrealized_pnl:
+          type: number
+          format: decimal
+
+    StockHolding:
+      type: object
+      properties:
+        ticker:
+          type: string
+        shares:
+          type: integer
+        current_price:
+          type: number
+          format: decimal
+        current_value:
+          type: number
+          format: decimal
+        cost_basis:
+          type: number
+          format: decimal
+        unrealized_pnl:
+          type: number
+          format: decimal
+        ownership_percentage:
+          type: number
+          description: "Of target's outstanding shares"
+
+    DirectiveSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        headline:
+          type: string
+        feedback:
+          type: string
+        submitted_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PROCESSING, COMPLETED, FAILED]
+
+    DirectiveWithFeedback:
+      allOf:
+        - $ref: '#/components/schemas/DirectiveSummary'
+        - type: object
+          properties:
+            raw_markdown:
+              type: string
+            character_count:
+              type: integer
+            extraction_confidence:
+              type: number
+            vibe_scores:
+              type: object
+              properties:
+                consistency:
+                  type: number
+                macro_sensitivity:
+                  type: number
+                aggression:
+                  type: number
+                innovation:
+                  type: number
+            financial_impact:
+              type: object
+              properties:
+                cash_delta:
+                  type: number
+                revenue_delta:
+                  type: number
+                net_profit_impact:
+                  type: number
+
+    CooldownStatus:
+      type: object
+      properties:
+        active:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        seconds_remaining:
+          type: integer
+
+    TeamSummary:
+      type: object
+      properties:
+        team_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        ticker:
+          type: string
+        status:
+          type: string
+        stock_price:
+          type: number
+        market_cap:
+          type: number
+        portfolio_id:
+          type: string
+        eliminated_at:
+          type: string
+          format: date-time
+          nullable: true
+        rank_at_elimination:
+          type: integer
+          nullable: true
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        side:
+          type: string
+          enum: [BUY, SELL]
+        target_ticker:
+          type: string
+        shares:
+          type: integer
+        shares_filled:
+          type: integer
+        price_per_share:
+          type: number
+          format: decimal
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, PARTIAL, FILLED, CANCELLED, FAILED]
+        failure_reason:
+          type: string
+          nullable: true
+        total_value:
+          type: number
+          format: decimal
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        executed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TickerSnapshot:
+      type: object
+      properties:
+        ticker:
+          type: string
+        price:
+          type: number
+          format: decimal
+        change_24h:
+          type: number
+          description: "Percentage change"
+        change_absolute:
+          type: number
+          format: decimal
+        volume_24h:
+          type: integer
+        market_cap:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [ACTIVE, COOLDOWN, HALTED, ELIMINATED]
+
+    NewsItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        headline:
+          type: string
+        content:
+          type: string
+          nullable: true
+        source_type:
+          type: string
+          enum: [GLOBAL, TEAM_ACTION, SYSTEM, ADMIN_INJECTED]
+        source_ticker:
+          type: string
+          nullable: true
+        sentiment_score:
+          type: number
+          nullable: true
+        affected_sectors:
+          type: array
+          items:
+            type: string
+        affected_tickers:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        relevance_decay:
+          type: number
+          description: "1.0 = fresh, 0.0 = stale"
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              detail:
+                type: string
+
+    Unauthorized:
+      description: Invalid or missing credentials
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid API key"
+
+    Forbidden:
+      description: Insufficient permissions (admin required)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Admin access required"
