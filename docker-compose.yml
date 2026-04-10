@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: complex
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ./server/.env
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: ./server
+    restart: unless-stopped
+    command: celery -A app.worker worker --loglevel=info
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ./server/.env
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+
+volumes:
+  db_data:
