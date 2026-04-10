@@ -1,20 +1,94 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from 'react';
+
+const STORAGE_KEY = 'complex_directive_draft';
 
 interface DirectiveEditorProps {
-  charCount?: number;
   maxChars?: number;
+  onSubmit?: (directive: string) => void;
 }
 
 export function DirectiveEditor({
-  charCount = 0,
   maxChars = 2000,
+  onSubmit,
 }: DirectiveEditorProps) {
-  const [directive, setDirective] = useState("");
+  const [directive, setDirective] = useState('');
+  const [charCount, setCharCount] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      setDirective(saved);
+      setCharCount(saved.length);
+      setIsSaved(true);
+    }
+  }, []);
+
+  // Update char count when directive changes
+  useEffect(() => {
+    setCharCount(directive.length);
+    if (directive) {
+      setIsSaved(false);
+    }
+  }, [directive]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length <= maxChars) {
+      setDirective(value);
+    }
+  };
+
+  const handleSaveLocal = () => {
+    localStorage.setItem(STORAGE_KEY, directive);
+    setIsSaved(true);
+  };
 
   const handleSubmit = () => {
-    console.log("Submitting directive:", directive);
+    if (!directive.trim()) return;
+    
+    setIsSubmitting(true);
+    
+    // Clear from localStorage on submit
+    localStorage.removeItem(STORAGE_KEY);
+    setIsSaved(false);
+    
+    if (onSubmit) {
+      onSubmit(directive);
+    } else {
+      console.log('Submitting directive:', directive);
+    }
+    
+    // Clear the editor
+    setDirective('');
+    setCharCount(0);
+    setIsSubmitting(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = directive.substring(0, start) + '  ' + directive.substring(end);
+        setDirective(newValue);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 2;
+        }, 0);
+      }
+    }
+    // Ctrl+S to save
+    if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSaveLocal();
+    }
   };
 
   return (
@@ -27,16 +101,26 @@ export function DirectiveEditor({
           <span className="text-[10px] font-bold text-zinc-300 uppercase">
             DIRECTIVE_DRAFT ({charCount} / {maxChars})
           </span>
+          {isSaved && (
+            <span className="text-[9px] text-[#00c853] ml-2">
+              ✓ SAVED
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
-          <button className="bg-[#353534] px-3 py-1 text-[9px] text-zinc-300 hover:text-white border border-[#353534] uppercase">
+          <button 
+            onClick={handleSaveLocal}
+            disabled={!directive.trim()}
+            className="bg-[#353534] px-3 py-1 text-[9px] text-zinc-300 hover:text-white border border-[#353534] uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             SAVE_LOCAL
           </button>
           <button
             onClick={handleSubmit}
-            className="bg-[#00c853] px-4 py-1 text-[9px] text-black font-bold uppercase"
+            disabled={!directive.trim() || isSubmitting}
+            className="bg-[#00c853] px-4 py-1 text-[9px] text-black font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            SUBMIT TO BOARD
+            {isSubmitting ? 'SUBMITTING...' : 'SUBMIT TO BOARD'}
           </button>
         </div>
       </div>
@@ -44,19 +128,19 @@ export function DirectiveEditor({
       <div className="flex-1 p-6 text-sm relative overflow-hidden flex flex-col gap-6">
         <div className="flex-1 bg-black border border-[#353534] p-6">
           <textarea
+            ref={textareaRef}
             value={directive}
-            onChange={(e) => setDirective(e.target.value.slice(0, maxChars))}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
             placeholder="_Submit strategic directive..."
             className="w-full h-full bg-transparent outline-none text-zinc-300 resize-none placeholder:text-zinc-600"
-            style={{ minHeight: "200px" }}
+            style={{ minHeight: '200px' }}
           />
         </div>
 
-        {/* Bottom Panel: The Board Responds */}
         <BoardResponse />
       </div>
 
-      {/* Tactical Stats */}
       <TacticalStats />
     </section>
   );
