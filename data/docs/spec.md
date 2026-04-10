@@ -2,7 +2,7 @@
 
 ## 1.1. Product Vision
 
-The Corporate Strategy Case Arena is a high-intensity, synchronous multiplayer business simulation designed for competitive academic environments. Unlike traditional case competitions that rely on static PowerPoint submissions, this platform operates as a **live, reflexive market** where 50 teams act as publicly traded companies navigating a compressed 6-7 hour economic lifecycle. Teams communicate strategy through natural language directives parsed by an LLM "Board of Directors," while simultaneously managing real-time equity positions in a live stock market.
+Complex is a high-intensity, synchronous multiplayer business simulation designed for competitive academic environments. Unlike traditional case competitions that rely on static PowerPoint submissions, this platform operates as a **live, reflexive market** where 50 teams act as publicly traded companies navigating a compressed 6-7 hour economic lifecycle. Teams communicate strategy through natural language directives parsed by an LLM "Board of Directors," while simultaneously managing real-time equity positions in a live stock market.
 
 The platform merges qualitative strategic reasoning with quantitative financial outcomes: success requires not only operational excellence (revenue, profit) but also narrative coherence, market timing, and psychological acumen in interpreting competitor movements through the news wire.
 
