@@ -41,13 +41,13 @@ export function HeaderBar({
           <span className="text-[10px] uppercase">SYSTEM: STABLE</span>
         </div>
         <div className="flex gap-2">
-          <button className="text-zinc-500 hover:text-white p-1">
+          <button className="text-zinc-500 hover:text-white p-1 cursor-pointer">
             <span className="material-symbols-outlined">timer</span>
           </button>
-          <button className="text-zinc-500 hover:text-white p-1">
+          <button className="text-zinc-500 hover:text-white p-1 cursor-pointer">
             <span className="material-symbols-outlined">account_tree</span>
           </button>
-          <button className="text-zinc-500 hover:text-white p-1">
+          <button className="text-zinc-500 hover:text-white p-1 cursor-pointer">
             <span className="material-symbols-outlined">notifications</span>
           </button>
         </div>

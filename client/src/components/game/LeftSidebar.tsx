@@ -74,19 +74,19 @@ export function LeftSidebar({
         <nav className="flex border-b border-[#353534]">
           <button
             onClick={() => setActiveTab("ledger")}
-            className={`flex-1 py-1 text-[9px] ${activeTab === "ledger" ? "bg-[#353534] text-[#FFB000] border-b border-[#FFB000]" : "text-zinc-500 hover:bg-[#353534]"} uppercase`}
+            className={`flex-1 py-1 text-[9px] cursor-pointer ${activeTab === "ledger" ? "bg-[#353534] text-[#FFB000] border-b border-[#FFB000]" : "text-zinc-500 hover:bg-[#353534]"} uppercase`}
           >
             LEDGER
           </button>
           <button
             onClick={() => setActiveTab("market")}
-            className={`flex-1 py-1 text-[9px] ${activeTab === "market" ? "bg-[#353534] text-[#FFB000] border-b border-[#FFB000]" : "text-zinc-500 hover:bg-[#353534]"} uppercase`}
+            className={`flex-1 py-1 text-[9px] cursor-pointer ${activeTab === "market" ? "bg-[#353534] text-[#FFB000] border-b border-[#FFB000]" : "text-zinc-500 hover:bg-[#353534]"} uppercase`}
           >
             MARKET
           </button>
           <button
             onClick={() => setActiveTab("trade")}
-            className={`flex-1 py-1 text-[9px] ${activeTab === "trade" ? "bg-[#353534] text-[#FFB000] border-b border-[#FFB000]" : "text-zinc-500 hover:bg-[#353534]"} uppercase`}
+            className={`flex-1 py-1 text-[9px] cursor-pointer ${activeTab === "trade" ? "bg-[#353534] text-[#FFB000] border-b border-[#FFB000]" : "text-zinc-500 hover:bg-[#353534]"} uppercase`}
           >
             TRADE
           </button>

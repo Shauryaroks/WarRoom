@@ -111,14 +111,14 @@ export function DirectiveEditor({
           <button 
             onClick={handleSaveLocal}
             disabled={!directive.trim()}
-            className="bg-[#353534] px-3 py-1 text-[9px] text-zinc-300 hover:text-white border border-[#353534] uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#353534] px-3 py-1 text-[9px] text-zinc-300 hover:text-white border border-[#353534] uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             SAVE_LOCAL
           </button>
           <button
             onClick={handleSubmit}
             disabled={!directive.trim() || isSubmitting}
-            className="bg-[#00c853] px-4 py-1 text-[9px] text-black font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#00c853] px-4 py-1 text-[9px] text-black font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? 'SUBMITTING...' : 'SUBMIT TO BOARD'}
           </button>

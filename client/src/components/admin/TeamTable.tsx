@@ -111,25 +111,25 @@ export function TeamTable({ teams, filter, onFilterChange }: TeamTableProps) {
                   {team.lastDirective}
                 </td>
                 <td className="px-4 py-3 text-right space-x-1">
-                  <button className="bg-[#2196F3]/10 text-[#2196F3] border border-[#2196F3]/30 px-2 py-1 hover:bg-[#2196F3] hover:text-white text-[9px] uppercase">
+                  <button className="bg-[#2196F3]/10 text-[#2196F3] border border-[#2196F3]/30 px-2 py-1 hover:bg-[#2196F3] hover:text-white text-[9px] uppercase cursor-pointer">
                     VIEW DOSSIER
                   </button>
                   {team.status === "ACTIVE" && (
                     <>
-                      <button className="bg-[#FFB000]/10 text-[#FFB000] border border-[#FFB000]/30 px-2 py-1 hover:bg-[#FFB000] hover:text-black text-[9px] uppercase">
+                      <button className="bg-[#FFB000]/10 text-[#FFB000] border border-[#FFB000]/30 px-2 py-1 hover:bg-[#FFB000] hover:text-black text-[9px] uppercase cursor-pointer">
                         FORCE BANKRUPT
                       </button>
-                      <button className="bg-[#ff3333]/10 text-[#ff3333] border border-[#ff3333]/30 px-2 py-1 hover:bg-[#ff3333] hover:text-white text-[9px] uppercase">
+                      <button className="bg-[#ff3333]/10 text-[#ff3333] border border-[#ff3333]/30 px-2 py-1 hover:bg-[#ff3333] hover:text-white text-[9px] uppercase cursor-pointer">
                         ELIMINATE
                       </button>
                     </>
                   )}
                   {team.status === "PENDING" && (
                     <>
-                      <button className="bg-[#00c853]/10 text-[#00c853] border border-[#00c853]/30 px-2 py-1 hover:bg-[#00c853] hover:text-white text-[9px] uppercase">
+                      <button className="bg-[#00c853]/10 text-[#00c853] border border-[#00c853]/30 px-2 py-1 hover:bg-[#00c853] hover:text-white text-[9px] uppercase cursor-pointer">
                         APPROVE
                       </button>
-                      <button className="bg-[#ff3333]/10 text-[#ff3333] border border-[#ff3333]/30 px-2 py-1 hover:bg-[#ff3333] hover:text-white text-[9px] uppercase">
+                      <button className="bg-[#ff3333]/10 text-[#ff3333] border border-[#ff3333]/30 px-2 py-1 hover:bg-[#ff3333] hover:text-white text-[9px] uppercase cursor-pointer">
                         REJECT
                       </button>
                     </>

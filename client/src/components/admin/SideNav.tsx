@@ -35,7 +35,7 @@ export function SideNav({ activeTab, onTabChange }: SideNavProps) {
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex items-center gap-4 px-6 py-4 transition-all ${
+            className={`flex items-center gap-4 px-6 py-4 transition-all cursor-pointer ${
               activeTab === tab.id
                 ? "text-[#FFB000] bg-white/5 border-l-2 border-[#FFB000]"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
