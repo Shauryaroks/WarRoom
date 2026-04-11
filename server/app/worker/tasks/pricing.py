@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
 from app.models import (
+    Directive,
     PriceHistory,
     Team,
     TeamStatus,
@@ -36,6 +37,7 @@ async def _recalculate_price_async(team_id: str):
         team.stock_price = price
         await db.commit()
 
+        await record_price_history(db, team, price)
         await broadcast_price_update(team, price)
 
 
@@ -91,7 +93,7 @@ async def calculate_sentiment_multiplier(db: AsyncSession, team: Team) -> Decima
     if team.public_float == 0:
         return Decimal("1.0")
 
-    window_start = datetime.now(timezone.utc) - timedelta(minutes=15)
+    window_start = datetime.utcnow() - timedelta(minutes=15)
 
     stmt = select(func.sum(Transaction.shares)).where(
         Transaction.target_team_id == team.id,
@@ -122,7 +124,7 @@ async def calculate_sentiment_multiplier(db: AsyncSession, team: Team) -> Decima
 
 async def get_recent_operating_profit(db: AsyncSession, team_id: uuid.UUID) -> Decimal:
     """Sum of net profit from directives in last 30 minutes."""
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=30)
+    cutoff = datetime.utcnow() - timedelta(minutes=30)
 
     stmt = select(Directive).where(
         Directive.team_id == team_id,
@@ -149,26 +151,26 @@ async def record_price_history(db: AsyncSession, team: Team, price: Decimal):
     sentiment_mult = await calculate_sentiment_multiplier(db, team)
     recent_profit = await get_recent_operating_profit(db, team.id)
 
-    await db.insert(
-        PriceHistory,
-        {
-            "team_id": team.id,
-            "price": price,
-            "market_cap": price * team.shares_outstanding,
-            "vibe_multiplier": vibe_mult,
-            "sentiment_multiplier": sentiment_mult,
-            "consistency_score": None,
-            "macro_sensitivity_score": None,
-            "profit_component": recent_profit * Decimal("10"),
-            "cash_component": team.cash * Decimal("0.1"),
-            "calculated_at": datetime.now(timezone.utc),
-        },
+    history = PriceHistory(
+        team_id=team.id,
+        price=price,
+        market_cap=price * team.shares_outstanding,
+        vibe_multiplier=vibe_mult,
+        sentiment_multiplier=sentiment_mult,
+        consistency_score=None,
+        macro_sensitivity_score=None,
+        profit_component=recent_profit * Decimal("10"),
+        cash_component=team.cash * Decimal("0.1"),
+        calculated_at=datetime.utcnow(),
     )
+    db.add(history)
+    await db.commit()
 
 
 async def broadcast_price_update(team: Team, price: Decimal):
     """Broadcast price update via Redis Pub/Sub."""
-    pass  # Placeholder for WebSocket broadcast
+    # TODO: Implement WebSocket broadcast through Redis pub/sub
+    pass
 
 
 @celery_app.task

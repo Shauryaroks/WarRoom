@@ -9,18 +9,15 @@ from typing import Any
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.database import AsyncSessionLocal
 from app.models import (
     CashLedger,
     Directive,
-    GameSettings,
+    GameState,
     MarketNews,
     Team,
     TeamStatus,
-    Transaction,
-    TransactionType,
 )
 from app.worker import celery_app
 
@@ -31,10 +28,10 @@ OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/ap
 @celery_app.task(bind=True, max_retries=3)
 def process_directive(self, directive_id: str):
     """Process a directive through the LLM Board."""
-    asyncio.run(_process_directive_async(directive_id))
+    asyncio.run(_process_directive_async(self, directive_id))
 
 
-async def _process_directive_async(directive_id: str):
+async def _process_directive_async(task_self, directive_id: str):
     async with AsyncSessionLocal() as db:
         directive = await db.get(Directive, uuid.UUID(directive_id))
         if not directive:
@@ -75,10 +72,7 @@ async def _process_directive_async(directive_id: str):
             await apply_financial_impact(db, team, directive)
 
             directive.status = "COMPLETED"
-            directive.completed_at = datetime.now(timezone.utc)
-
-            team.status = TeamStatus.ACTIVE
-            team.cooldown_until = None
+            directive.completed_at = datetime.utcnow()
 
             await db.commit()
             await db.refresh(directive)
@@ -90,7 +84,7 @@ async def _process_directive_async(directive_id: str):
             directive.status = "FAILED"
             directive.board_feedback = f"Processing failed: {str(e)}"
             await db.commit()
-            raise self.retry(exc=e)
+            raise task_self.retry(exc=e)
 
 
 async def evaluate_directive(
@@ -149,6 +143,11 @@ Evaluate the following strategic directive. Return JSON with:
             },
         }
 
+    gs = await db.get(GameState, 1)
+    model = gs.llm_model if gs else "anthropic/claude-3.5-sonnet"
+    max_tokens = gs.llm_max_tokens if gs else 2000
+    temperature = gs.llm_temperature if gs else 0.7
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{OPENROUTER_BASE_URL}/chat/completions",
@@ -157,14 +156,14 @@ Evaluate the following strategic directive. Return JSON with:
                 "Content-Type": "application/json",
             },
             json={
-                "model": "anthropic/claude-3.5-sonnet",
+                "model": model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
                 "response_format": {"type": "json_object"},
-                "max_tokens": 2000,
-                "temperature": 0.7,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
             },
             timeout=30.0,
         )
@@ -192,18 +191,16 @@ async def apply_financial_impact(db: AsyncSession, team: Team, directive: Direct
 
     await db.flush()
 
-    await db.insert(
-        CashLedger,
-        {
-            "team_id": team.id,
-            "entry_type": "DIRECTIVE_PROFIT",
-            "amount": Decimal(str(cash_change)),
-            "balance_after": team.cash,
-            "reference_type": "directive",
-            "reference_id": directive.id,
-            "description": f"Directive profit/loss: ${cash_change:,.2f}",
-        },
+    ledger = CashLedger(
+        team_id=team.id,
+        entry_type="DIRECTIVE_REVENUE" if cash_change >= 0 else "DIRECTIVE_COST",
+        amount=Decimal(str(cash_change)),
+        balance_after=team.cash,
+        reference_type="DIRECTIVE",
+        reference_id=directive.id,
+        description=f"Directive profit/loss: ${cash_change:,.2f}",
     )
+    db.add(ledger)
 
 
 async def generate_public_news(db: AsyncSession, directive: Directive, team: Team):
@@ -211,15 +208,13 @@ async def generate_public_news(db: AsyncSession, directive: Directive, team: Tea
     if not directive.news_headline:
         return
 
-    await db.insert(
-        MarketNews,
-        {
-            "headline": directive.news_headline,
-            "source_team_id": team.id,
-            "is_global": False,
-            "priority": 1,
-        },
+    news = MarketNews(
+        headline=directive.news_headline,
+        source_type="TEAM_ACTION",
+        source_team_id=team.id,
     )
+    db.add(news)
+    await db.commit()
 
 
 @celery_app.task
@@ -234,11 +229,9 @@ async def _start_directive_cooldown_async(team_id: str):
         if not team:
             return
 
-        settings = await db.get(GameSettings, 1)
-        cooldown_minutes = settings.cooldown_minutes if settings else 10
+        gs = await db.get(GameState, 1)
+        cooldown_minutes = gs.cooldown_minutes if gs else 10
 
         team.status = TeamStatus.COOLDOWN
-        team.cooldown_until = datetime.now(timezone.utc) + timedelta(
-            minutes=cooldown_minutes
-        )
+        team.cooldown_until = datetime.utcnow() + timedelta(minutes=cooldown_minutes)
         await db.commit()

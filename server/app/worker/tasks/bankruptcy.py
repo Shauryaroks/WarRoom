@@ -6,7 +6,6 @@ from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.database import AsyncSessionLocal
 from app.models import (
@@ -115,40 +114,39 @@ async def execute_liquidation_trade(
     holding = result.scalar_one_or_none()
     if holding:
         holding.shares_owned = 0
+        holding.total_cost_basis = Decimal("0")
 
     await db.flush()
 
-    await db.insert(
-        CashLedger,
-        {
-            "team_id": seller.id,
-            "entry_type": "BANKRUPTCY_LIQUIDATION",
-            "amount": proceeds,
-            "balance_after": seller.cash,
-            "reference_type": "ADMIN_ACTION",
-            "reference_id": None,
-            "description": f"Fire-sale liquidation: {shares} shares of {target.ticker}",
-        },
+    ledger = CashLedger(
+        team_id=seller.id,
+        entry_type="BANKRUPTCY_LIQUIDATION",
+        amount=proceeds,
+        balance_after=seller.cash,
+        reference_type="ADMIN_ACTION",
+        reference_id=None,
+        description=f"Fire-sale liquidation: {shares} shares of {target.ticker}",
     )
+    db.add(ledger)
 
-    await db.insert(
-        Transaction,
-        {
-            "buyer_team_id": None,
-            "seller_team_id": seller.id,
-            "target_team_id": target.id,
-            "shares": shares,
-            "price_per_share": price,
-            "total_value": proceeds,
-            "transaction_type": TransactionType.BANKRUPTCY_LIQUIDATION,
-        },
+    transaction = Transaction(
+        buyer_team_id=None,
+        seller_team_id=seller.id,
+        target_team_id=target.id,
+        shares=shares,
+        price_per_share=price,
+        total_value=proceeds,
+        transaction_type=TransactionType.BANKRUPTCY_LIQUIDATION,
     )
+    db.add(transaction)
 
 
 async def eliminate_team(db: AsyncSession, team: Team, reason: str):
     """Eliminate a team and zero out their stock price."""
     team.status = TeamStatus.ELIMINATED
     team.stock_price = Decimal("0")
+    team.eliminated_at = datetime.utcnow()
+    team.elimination_reason = reason
     await db.commit()
 
     stmt = select(StockHolding).where(StockHolding.target_team_id == team.id)
@@ -157,6 +155,9 @@ async def eliminate_team(db: AsyncSession, team: Team, reason: str):
 
     for holding in holdings:
         holding.shares_owned = 0
+        holding.total_cost_basis = Decimal("0")
+
+    await db.commit()
 
 
 @celery_app.task
@@ -167,6 +168,7 @@ def periodic_bankruptcy_check():
 
 async def _periodic_bankruptcy_check_async():
     async with AsyncSessionLocal() as db:
+        # Check teams already in BANKRUPT state
         stmt = select(Team).where(
             Team.status == TeamStatus.BANKRUPT,
             Team.bankrupt_since != None,
@@ -176,10 +178,11 @@ async def _periodic_bankruptcy_check_async():
 
         for team in bankrupt_teams:
             if team.bankrupt_since:
-                elapsed = datetime.now(timezone.utc) - team.bankrupt_since
+                elapsed = datetime.utcnow() - team.bankrupt_since
                 if elapsed > timedelta(seconds=60):
                     resolve_bankruptcy_task.delay(str(team.id))
 
+        # Check active teams with negative cash
         stmt = select(Team).where(
             Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]),
             Team.cash < 0,
@@ -194,7 +197,7 @@ async def _periodic_bankruptcy_check_async():
 async def enter_bankruptcy(db: AsyncSession, team: Team):
     """Transition team to BANKRUPT status."""
     team.status = TeamStatus.BANKRUPT
-    team.bankrupt_since = datetime.now(timezone.utc)
+    team.bankrupt_since = datetime.utcnow()
     team.bankrupt_resolved = False
     await db.commit()
 

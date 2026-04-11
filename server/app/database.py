@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str = (
-        "postgresql+asyncpg://warroom:warroom_secret@localhost:5432/warroom"
+        "postgresql+asyncpg://postgres:postgres@db:5432/complex"
     )
     REDIS_URL: str = "redis://localhost:6379/0"
     OPENROUTER_API_KEY: str = ""
@@ -32,6 +32,7 @@ engine = create_async_engine(
     echo=False,
     pool_size=20,
     max_overflow=0,
+    connect_args={"prepared_statement_cache_size": 0},
 )
 
 AsyncSessionLocal = async_sessionmaker(

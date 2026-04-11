@@ -5,9 +5,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base, AsyncSessionLocal
-from app.api import auth, trading, directive, market, admin
-from app.worker.celery_app import celery_app
-from app.models import GameSettings
+from app.api import auth, trading, directive, market, admin, teams, game
+from app.api import news
+from app.models import GameState, GameStatus
 from app.websocket import manager
 
 
@@ -17,15 +17,15 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as db:
-        settings = await db.get(GameSettings, 1)
-        if not settings:
-            settings = GameSettings(
+        gs = await db.get(GameState, 1)
+        if not gs:
+            gs = GameState(
                 id=1,
-                game_active=False,
-                current_purge_count=0,
+                status=GameStatus.SETUP,
+                current_round=0,
                 cooldown_minutes=10,
             )
-            db.add(settings)
+            db.add(gs)
             await db.commit()
 
     yield
@@ -51,6 +51,9 @@ app.include_router(trading.router, prefix="/api/v1")
 app.include_router(directive.router, prefix="/api/v1")
 app.include_router(market.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(teams.router, prefix="/api/v1")
+app.include_router(game.router, prefix="/api/v1")
+app.include_router(news.router, prefix="/api/v1")
 
 
 @app.get("/")
@@ -66,8 +69,10 @@ async def health():
 @app.get("/health/db")
 async def health_db():
     try:
+        from sqlalchemy import text
+
         async with AsyncSessionLocal() as db:
-            await db.execute("SELECT 1")
+            await db.execute(text("SELECT 1"))
         return {"status": "ok", "database": "connected"}
     except Exception as e:
         return {"status": "error", "database": "disconnected", "error": str(e)}
@@ -110,8 +115,6 @@ async def websocket_endpoint(websocket: WebSocket, team_id: str = None):
                     await manager.connect(websocket, channel.replace("team:", ""))
 
     except WebSocketDisconnect:
-        await manager.disconnect(websocket, team_id)
-    except Exception:
         await manager.disconnect(websocket, team_id)
     except Exception:
         await manager.disconnect(websocket, team_id)

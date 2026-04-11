@@ -9,8 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import get_current_team
 from app.database import get_db
 from app.models import (
-    CashLedger,
-    GameSettings,
+    GameState,
     MarketNews,
     PriceHistory,
     StockHolding,
@@ -22,41 +21,36 @@ from app.models import (
 router = APIRouter(prefix="/market", tags=["market"])
 
 
-class TickerInfo(BaseModel):
+# --- GET /market/tickers ---
+
+
+class TickerSnapshot(BaseModel):
     ticker: str
     name: str
     price: float
     change_24h: Optional[float]
+    change_absolute: Optional[float]
+    volume_24h: int
     market_cap: float
     status: str
-    volume: int
 
 
-class MarketOverviewResponse(BaseModel):
-    active_teams: int
-    total_market_cap: float
-    news_count: int
-    tickers: list[TickerInfo]
+class TickersResponse(BaseModel):
+    timestamp: str
+    tickers: list[TickerSnapshot]
 
 
-@router.get("/overview", response_model=MarketOverviewResponse)
-async def get_market_overview(db: AsyncSession = Depends(get_db)):
+@router.get("/tickers", response_model=TickersResponse)
+async def get_market_tickers(db: AsyncSession = Depends(get_db)):
     stmt = select(Team).where(
         Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN, TeamStatus.BANKRUPT])
     )
     result = await db.execute(stmt)
     teams = result.scalars().all()
 
-    stmt = select(func.count(MarketNews.id))
-    result = await db.execute(stmt)
-    news_count = result.scalar() or 0
-
-    total_market_cap = sum(
-        float(t.shares_outstanding) * float(t.stock_price) for t in teams
-    )
-
     tickers = []
     for team in teams:
+        # Get last 2 price history entries for change calculation
         stmt = (
             select(PriceHistory)
             .where(PriceHistory.team_id == team.id)
@@ -67,30 +61,144 @@ async def get_market_overview(db: AsyncSession = Depends(get_db)):
         price_history = result.scalars().all()
 
         change_24h = None
+        change_absolute = None
         if len(price_history) >= 2:
             old_price = price_history[1].price
             new_price = price_history[0].price
             if old_price > 0:
                 change_24h = float((new_price - old_price) / old_price * 100)
+                change_absolute = float(new_price - old_price)
 
         tickers.append(
-            TickerInfo(
+            TickerSnapshot(
                 ticker=team.ticker,
                 name=team.name,
                 price=float(team.stock_price),
                 change_24h=change_24h,
+                change_absolute=change_absolute,
+                volume_24h=team.public_float,
                 market_cap=float(team.shares_outstanding) * float(team.stock_price),
                 status=team.status.value,
-                volume=team.public_float,
             )
         )
 
-    return MarketOverviewResponse(
-        active_teams=len(teams),
-        total_market_cap=total_market_cap,
-        news_count=news_count,
+    return TickersResponse(
+        timestamp=datetime.utcnow().isoformat(),
         tickers=tickers,
     )
+
+
+# --- GET /market/history/{ticker} ---
+
+
+class PricePoint(BaseModel):
+    timestamp: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+
+
+class PriceHistoryResponse(BaseModel):
+    ticker: str
+    interval: str
+    data_points: list[PricePoint]
+
+
+@router.get("/history/{ticker}", response_model=PriceHistoryResponse)
+async def get_price_history(
+    ticker: str,
+    interval: str = Query("5m", pattern=r"^(1m|5m|15m|1h)$"),
+    limit: int = Query(100, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    # Normalize ticker
+    if not ticker.startswith("$"):
+        ticker = "$" + ticker.upper()
+    else:
+        ticker = ticker.upper()
+
+    stmt = select(Team).where(Team.ticker == ticker)
+    result = await db.execute(stmt)
+    target = result.scalar_one_or_none()
+
+    if not target:
+        raise HTTPException(status_code=404, detail="Ticker not found")
+
+    stmt = (
+        select(PriceHistory)
+        .where(PriceHistory.team_id == target.id)
+        .order_by(PriceHistory.calculated_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    history = result.scalars().all()
+
+    # TODO: Aggregate price history into proper OHLCV candlesticks based on interval.
+    # Currently returns raw price points as close-only candles.
+    data_points = []
+    for h in reversed(history):  # oldest first
+        price = float(h.price)
+        data_points.append(
+            PricePoint(
+                timestamp=h.calculated_at.isoformat(),
+                open=price,
+                high=price,
+                low=price,
+                close=price,
+                volume=0,
+            )
+        )
+
+    return PriceHistoryResponse(
+        ticker=ticker,
+        interval=interval,
+        data_points=data_points,
+    )
+
+
+# --- GET /market/sectors ---
+
+
+class SectorInfo(BaseModel):
+    name: str
+    avg_change_percent: float
+    total_market_cap: float
+    team_count: int
+    color: str
+
+
+class SectorsResponse(BaseModel):
+    sectors: list[SectorInfo]
+
+
+@router.get("/sectors", response_model=SectorsResponse)
+async def get_sector_heatmap(db: AsyncSession = Depends(get_db)):
+    # TODO: Implement real sector grouping based on portfolio type.
+    # Currently returns a placeholder with all teams grouped as one sector.
+    stmt = select(Team).where(
+        Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN])
+    )
+    result = await db.execute(stmt)
+    teams = result.scalars().all()
+
+    total_cap = sum(float(t.stock_price * t.shares_outstanding) for t in teams)
+
+    return SectorsResponse(
+        sectors=[
+            SectorInfo(
+                name="ALL",
+                avg_change_percent=0.0,
+                total_market_cap=total_cap,
+                team_count=len(teams),
+                color="#00ff00",
+            )
+        ]
+    )
+
+
+# --- GET /market/ticker/{ticker} (detail) ---
 
 
 class TeamDetailResponse(BaseModel):
@@ -111,8 +219,13 @@ class TeamDetailResponse(BaseModel):
 
 
 @router.get("/ticker/{ticker}", response_model=TeamDetailResponse)
-async def get_ticker(ticker: str, db: AsyncSession = Depends(get_db)):
-    stmt = select(Team).where(Team.ticker == ticker.upper())
+async def get_ticker_detail(ticker: str, db: AsyncSession = Depends(get_db)):
+    if not ticker.startswith("$"):
+        ticker = "$" + ticker.upper()
+    else:
+        ticker = ticker.upper()
+
+    stmt = select(Team).where(Team.ticker == ticker)
     result = await db.execute(stmt)
     team = result.scalar_one_or_none()
 
@@ -130,6 +243,7 @@ async def get_ticker(ticker: str, db: AsyncSession = Depends(get_db)):
     stock_value = result.scalar() or 0
 
     liquidity = float(team.cash) + (float(stock_value) * 0.5)
+    strategic_score = (0.5 * market_cap) + (0.5 * liquidity)
 
     return TeamDetailResponse(
         team_id=str(team.id),
@@ -144,7 +258,7 @@ async def get_ticker(ticker: str, db: AsyncSession = Depends(get_db)):
         dilution_cap_percent=team.dilution_cap_percent,
         market_cap=market_cap,
         liquidity=liquidity,
-        strategic_score=None,
+        strategic_score=strategic_score,
         swot={
             "strengths": team.swot_strengths,
             "weaknesses": team.swot_weaknesses,
@@ -153,128 +267,4 @@ async def get_ticker(ticker: str, db: AsyncSession = Depends(get_db)):
         }
         if team.swot_strengths
         else None,
-    )
-
-
-class NewsItem(BaseModel):
-    id: str
-    headline: str
-    source_ticker: Optional[str]
-    is_global: bool
-    priority: int
-    created_at: str
-
-
-class NewsResponse(BaseModel):
-    news: list[NewsItem]
-    total: int
-
-
-@router.get("/news", response_model=NewsResponse)
-async def get_news(
-    limit: int = Query(50, le=100),
-    offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
-):
-    stmt = (
-        select(MarketNews)
-        .order_by(MarketNews.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    result = await db.execute(stmt)
-    news_items = result.scalars().all()
-
-    stmt = select(func.count(MarketNews.id))
-    result = await db.execute(stmt)
-    total = result.scalar() or 0
-
-    news_list = []
-    for item in news_items:
-        source_ticker = None
-        if item.source_team_id:
-            team = await db.get(Team, item.source_team_id)
-            if team:
-                source_ticker = team.ticker
-
-        news_list.append(
-            NewsItem(
-                id=str(item.id),
-                headline=item.headline,
-                source_ticker=source_ticker,
-                is_global=item.is_global,
-                priority=item.priority,
-                created_at=item.created_at.isoformat(),
-            )
-        )
-
-    return NewsResponse(news=news_list, total=total)
-
-
-class PriceHistoryResponse(BaseModel):
-    prices: list[dict]
-
-
-@router.get("/ticker/{ticker}/history", response_model=PriceHistoryResponse)
-async def get_price_history(
-    ticker: str,
-    limit: int = Query(100, le=500),
-    team: Team = Depends(get_current_team),
-    db: AsyncSession = Depends(get_db),
-):
-    stmt = select(Team).where(Team.ticker == ticker.upper())
-    result = await db.execute(stmt)
-    target = result.scalar_one_or_none()
-
-    if not target:
-        raise HTTPException(status_code=404, detail="Ticker not found")
-
-    stmt = (
-        select(PriceHistory)
-        .where(PriceHistory.team_id == target.id)
-        .order_by(PriceHistory.calculated_at.desc())
-        .limit(limit)
-    )
-    result = await db.execute(stmt)
-    history = result.scalars().all()
-
-    return PriceHistoryResponse(
-        prices=[
-            {
-                "timestamp": h.calculated_at.isoformat(),
-                "price": float(h.price),
-                "vibe_multiplier": float(h.vibe_multiplier)
-                if h.vibe_multiplier
-                else None,
-                "sentiment_multiplier": float(h.sentiment_multiplier)
-                if h.sentiment_multiplier
-                else None,
-            }
-            for h in history
-        ]
-    )
-
-
-class GameStatusResponse(BaseModel):
-    game_active: bool
-    current_purge_count: int
-    cooldown_minutes: int
-    teams_remaining: int
-
-
-@router.get("/status", response_model=GameStatusResponse)
-async def get_game_status(db: AsyncSession = Depends(get_db)):
-    settings = await db.get(GameSettings, 1)
-
-    stmt = select(func.count(Team.id)).where(
-        Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN, TeamStatus.BANKRUPT])
-    )
-    result = await db.execute(stmt)
-    teams_remaining = result.scalar() or 0
-
-    return GameStatusResponse(
-        game_active=settings.game_active if settings else False,
-        current_purge_count=settings.current_purge_count if settings else 0,
-        cooldown_minutes=settings.cooldown_minutes if settings else 10,
-        teams_remaining=teams_remaining,
     )

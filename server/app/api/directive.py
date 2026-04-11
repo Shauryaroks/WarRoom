@@ -9,10 +9,9 @@ import uuid
 
 from app.api.auth import get_current_team
 from app.database import get_db
-from app.models import Directive, Team, TeamStatus
-from app.worker.tasks.directive import process_directive, start_directive_cooldown
+from app.models import Directive, GameState, GameStatus, Team, TeamStatus
 
-router = APIRouter(prefix="/directive", tags=["directive"])
+router = APIRouter(prefix="/directives", tags=["directives"])
 
 
 class SubmitDirectiveRequest(BaseModel):
@@ -24,30 +23,43 @@ class SubmitDirectiveResponse(BaseModel):
     submission_id: str
     status: str
     cooldown_until: str
+    seconds_remaining: int
     message: str
 
 
-@router.post("/submit", response_model=SubmitDirectiveResponse)
+@router.post("", response_model=SubmitDirectiveResponse, status_code=202)
 async def submit_directive(
     request: SubmitDirectiveRequest,
     team: Team = Depends(get_current_team),
     db: AsyncSession = Depends(get_db),
 ):
-    if team.status not in [TeamStatus.ACTIVE, TeamStatus.PENDING_START]:
+    # Must be ACTIVE (or COOLDOWN that has expired)
+    if team.status not in [TeamStatus.ACTIVE, TeamStatus.COOLDOWN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot submit directives in current status",
         )
 
+    # Check game is active
+    gs = await db.get(GameState, 1)
+    if not gs or gs.status != GameStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Game is not active",
+        )
+
+    # Check cooldown
+    now = datetime.utcnow()
     if team.status == TeamStatus.COOLDOWN and team.cooldown_until:
-        if team.cooldown_until > datetime.now(timezone.utc):
-            retry_after = (team.cooldown_until - datetime.now(timezone.utc)).seconds
+        if team.cooldown_until > now:
+            retry_after = int((team.cooldown_until - now).total_seconds())
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Cooldown active. Retry after {retry_after} seconds.",
+                detail="Cooldown active",
                 headers={"Retry-After": str(retry_after)},
             )
 
+    # Expired cooldown — reset to ACTIVE
     if team.status == TeamStatus.COOLDOWN:
         team.status = TeamStatus.ACTIVE
 
@@ -65,30 +77,29 @@ async def submit_directive(
     await db.commit()
     await db.refresh(directive)
 
-    cooldown_minutes = 10
-    from sqlalchemy import select
-    from app.models import GameSettings
-
-    stmt = select(GameSettings).where(GameSettings.id == 1)
-    result = await db.execute(stmt)
-    settings = result.scalar_one_or_none()
-    if settings:
-        cooldown_minutes = settings.cooldown_minutes
+    # Set cooldown
+    cooldown_minutes = gs.cooldown_minutes if gs else 10
 
     team.status = TeamStatus.COOLDOWN
-    team.cooldown_until = datetime.now(timezone.utc) + timedelta(
-        minutes=cooldown_minutes
-    )
+    team.cooldown_until = now + timedelta(minutes=cooldown_minutes)
     await db.commit()
 
+    seconds_remaining = int((team.cooldown_until - now).total_seconds())
+
+    # Dispatch to worker
+    from app.worker.tasks.directive import process_directive
     process_directive.delay(str(directive.id))
 
     return SubmitDirectiveResponse(
         submission_id=str(directive.id),
-        status="PENDING",
+        status="COOLDOWN",
         cooldown_until=team.cooldown_until.isoformat(),
-        message="Directive submitted to Board. Cooldown started.",
+        seconds_remaining=seconds_remaining,
+        message="Directive received. The Board is reviewing.",
     )
+
+
+# --- GET /directives/history ---
 
 
 class DirectiveHistoryResponse(BaseModel):
@@ -117,7 +128,7 @@ async def get_directive_history(
                 "content": d.content[:200] + "..."
                 if len(d.content) > 200
                 else d.content,
-                "status": d.status,
+                "status": d.status.value if hasattr(d.status, 'value') else str(d.status),
                 "board_feedback": d.board_feedback,
                 "created_at": d.created_at.isoformat(),
                 "completed_at": d.completed_at.isoformat() if d.completed_at else None,
@@ -126,6 +137,9 @@ async def get_directive_history(
             for d in directives
         ]
     )
+
+
+# --- GET /directives/{id} ---
 
 
 class DirectiveDetailResponse(BaseModel):
@@ -178,7 +192,7 @@ async def get_directive(
     return DirectiveDetailResponse(
         id=str(directive.id),
         content=directive.content,
-        status=directive.status,
+        status=directive.status.value if hasattr(directive.status, 'value') else str(directive.status),
         board_feedback=directive.board_feedback,
         news_headline=directive.news_headline,
         extraction_confidence=directive.extraction_confidence,

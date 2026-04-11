@@ -19,8 +19,8 @@ services:
       - redis
     env_file:
       - ./server/.env
-    expose:
-      - "80"
+    ports:
+      - "8080:80"
     healthcheck:
       test:
         [
@@ -49,6 +49,6 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/Caddyfile
 volumes:
   db_data:

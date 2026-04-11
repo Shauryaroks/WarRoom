@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
@@ -9,12 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
 import uuid
 
-from app.database import get_db
-from app.models import Team, TeamStatus, PortfolioType
+from app.database import get_db, settings as app_settings
+from app.models import Team, TeamStatus
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 api_key_header = APIKeyHeader(name="X-API-Key")
+
+
+async def verify_admin_key(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+) -> bool:
+    """Dependency that verifies admin key from X-Admin-Key header. Raises 403 if invalid."""
+    if not x_admin_key or x_admin_key != app_settings.ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid or missing admin key",
+        )
+    return True
 
 
 async def get_current_team(
@@ -40,123 +52,102 @@ async def get_current_team(
     return team
 
 
+# --- Registration ---
+
+
 class RegisterRequest(BaseModel):
-    name: str = Field(..., min_length=3, max_length=50)
-    ticker: str = Field(..., min_length=3, max_length=4)
+    team_name: str = Field(..., min_length=3, max_length=50)
+    ticker: str = Field(..., min_length=3, max_length=4, pattern=r"^[A-Z]{3,4}$")
     email: EmailStr
     password: str = Field(..., min_length=8)
 
 
 class RegisterResponse(BaseModel):
-    team_id: str
-    name: str
-    ticker: str
-    status: str
     message: str
+    registration_id: str
 
 
-@router.post("/register", response_model=RegisterResponse)
+@router.post("/register", response_model=RegisterResponse, status_code=202)
 async def register_team(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    stmt = select(Team).where(Team.ticker == request.ticker.upper())
+    # Check ticker uniqueness
+    stmt = select(Team).where(Team.ticker == "$" + request.ticker.upper())
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Ticker already exists",
         )
 
-    stmt = select(Team).where(Team.email == request.email)
+    # Check team name uniqueness
+    stmt = select(Team).where(Team.name == request.team_name)
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Team name already exists",
         )
 
     password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
 
     team = Team(
-        name=request.name,
+        name=request.team_name,
         ticker="$" + request.ticker.upper(),
         email=request.email,
         password_hash=password_hash,
-        status=TeamStatus.PENDING_APPROVAL,
+        status=TeamStatus.PENDING,
     )
     db.add(team)
     await db.commit()
     await db.refresh(team)
 
     return RegisterResponse(
-        team_id=str(team.id),
-        name=team.name,
-        ticker=team.ticker,
-        status=team.status.value,
-        message="Registration submitted. Awaiting admin approval.",
+        message="Registration pending admin approval",
+        registration_id=str(team.id),
     )
 
 
+# --- Login ---
+
+
+class LoginRequest(BaseModel):
+    ticker: str
+    password: str
+
+
 class LoginResponse(BaseModel):
-    team_id: str
-    name: str
+    api_key: str
+    team_name: str
     ticker: str
     status: str
-    api_key: str
+    ws_endpoint: str
 
 
 @router.post("/login", response_model=LoginResponse)
 async def login_team(
-    email: str,
-    password: str,
+    request: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Team).where(Team.email == email)
+    # Normalize ticker: accept with or without $ prefix
+    ticker = request.ticker.upper()
+    if not ticker.startswith("$"):
+        ticker = "$" + ticker
+
+    stmt = select(Team).where(Team.ticker == ticker)
     result = await db.execute(stmt)
     team = result.scalar_one_or_none()
 
-    if not team or not bcrypt.checkpw(password.encode(), team.password_hash.encode()):
+    if not team or not bcrypt.checkpw(
+        request.password.encode(), team.password_hash.encode()
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="Invalid ticker or password",
         )
 
     return LoginResponse(
-        team_id=str(team.id),
-        name=team.name,
-        ticker=team.ticker,
-        status=team.status.value,
         api_key=str(team.api_key),
-    )
-
-
-class TeamStatusResponse(BaseModel):
-    team_id: str
-    name: str
-    ticker: str
-    status: str
-    cash: float
-    stock_price: float
-    cooldown_until: Optional[str]
-    portfolio_type: Optional[str]
-    swot: Optional[dict]
-
-
-@router.get("/me", response_model=TeamStatusResponse)
-async def get_my_team(team: Team = Depends(get_current_team)):
-    return TeamStatusResponse(
-        team_id=str(team.id),
-        name=team.name,
+        team_name=team.name,
         ticker=team.ticker,
         status=team.status.value,
-        cash=float(team.cash),
-        stock_price=float(team.stock_price),
-        cooldown_until=team.cooldown_until.isoformat() if team.cooldown_until else None,
-        portfolio_type=team.portfolio_type.value if team.portfolio_type else None,
-        swot={
-            "strengths": team.swot_strengths,
-            "weaknesses": team.swot_weaknesses,
-            "opportunities": team.swot_opportunities,
-            "threats": team.swot_threats,
-        }
-        if team.swot_strengths
-        else None,
+        ws_endpoint=f"/ws/team/{team.api_key}",
     )
