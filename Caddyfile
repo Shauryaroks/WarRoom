@@ -1,6 +1,7 @@
-:80
+api-complex.helixtiet.in {
+  reverse_proxy api:80
+}
 
-route {
-  reverse_proxy /ws/* api:80
-  reverse_proxy /* api:80
+localhost {
+  reverse_proxy api:80
 }
