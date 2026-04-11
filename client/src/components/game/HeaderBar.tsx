@@ -5,16 +5,17 @@ import React from "react";
 interface HeaderBarProps {
   sessionElapsed?: string;
   timerSeq?: string;
-  nextPurge?: string;
   ticker?: string;
-  latency?: string;
+  isMarketConnected?: boolean;
+  isTeamConnected?: boolean;
 }
 
 export function HeaderBar({
-  sessionElapsed = "05:23:17",
+  sessionElapsed = "00:00:00",
   timerSeq = "2/4",
   ticker = "$XXX",
-  latency = "12ms",
+  isMarketConnected = false,
+  isTeamConnected = false,
 }: HeaderBarProps) {
   const gameState = "ACTIVE"; // Could come from context
 
@@ -58,10 +59,11 @@ export function HeaderBar({
         <span className="text-[#505050]">|</span>
         <div className="flex items-center gap-2">
           <span className="text-[#808080]">WS:</span>
-          <span className="text-[#00c853]">{latency}</span>
-        </div>
-        <div className="flex gap-0.5 text-[#00c853] tracking-widest text-[10px]">
-          [■■■■]
+          {isMarketConnected && isTeamConnected ? (
+            <span className="text-[#00c853]">CONNECTED</span>
+          ) : (
+            <span className="text-[#ff3333] animate-pulse">RECONNECTING...</span>
+          )}
         </div>
       </div>
     </header>

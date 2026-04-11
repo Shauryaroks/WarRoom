@@ -1,17 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useGameContext } from "@/contexts/GameContext";
-import { api } from "@/lib/api";
-import { TickerSnapshot } from "@/lib/models";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
 export function Footer() {
   const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
-  const [tickers, setTickers] = useState<TickerSnapshot[]>([]);
-
-  useEffect(() => {
-    api.getMarketTickers().then(setTickers).catch(console.error);
-  }, []);
+  const { marketTickers: tickers } = useWebSocket();
 
   const getChangeColor = (change: number) => {
     return change > 0 ? "text-[#00c853]" : change < 0 ? "text-[#ff3333]" : "text-[#808080]";

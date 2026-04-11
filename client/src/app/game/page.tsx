@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { GameProvider, useGameContext } from "@/contexts/GameContext";
-import { api } from "@/lib/api";
-import { GameState } from "@/lib/models";
+import { WebSocketProvider, useWebSocket } from "@/contexts/WebSocketContext";
 import {
   HeaderBar,
   LeftSidebar,
@@ -18,21 +16,7 @@ function GameLayout() {
   const { user } = useAuth();
   const ticker = user?.ticker || "$BRBE";
   const { isTradeModalOpen, isFeedbackModalOpen } = useGameContext();
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [now, setNow] = useState<number>(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setNow(Date.now()), 0);
-    const interval = setInterval(() => setNow(Date.now()), 60000);
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-  }, []);
-
-  useEffect(() => {
-    api.getGameState().then(setGameState).catch(console.error);
-  }, []);
+  const { gameState, isMarketConnected, isTeamConnected } = useWebSocket();
 
   const formatSeconds = (secs?: number) => {
     if (!secs) return "00:00:00";
@@ -40,12 +24,6 @@ function GameLayout() {
     const m = Math.floor((secs % 3600) / 60);
     const s = secs % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const getMinutesUntil = (dateStr?: string | null) => {
-    if (!dateStr || !now) return "N/A";
-    const mins = Math.max(0, Math.floor((new Date(dateStr).getTime() - now) / 60000));
-    return `${mins} MIN`;
   };
 
   return (
@@ -69,8 +47,9 @@ function GameLayout() {
           <HeaderBar
             sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
             timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
-            nextPurge={getMinutesUntil(gameState?.next_purge_at)}
             ticker={ticker}
+            isMarketConnected={isMarketConnected}
+            isTeamConnected={isTeamConnected}
           />
         </div>
 
@@ -78,7 +57,7 @@ function GameLayout() {
           style={{ gridArea: "ledger" }}
           className="border-r border-[#2a2a2a] bg-[#0a0a0a]"
         >
-          <LeftSidebar ticker={ticker} />
+          <LeftSidebar />
         </div>
 
         <div style={{ gridArea: "command" }} className="bg-[#0d0d0d]">
@@ -109,7 +88,9 @@ function GameLayout() {
 export default function GamePage() {
   return (
     <GameProvider>
-      <GameLayout />
+      <WebSocketProvider>
+        <GameLayout />
+      </WebSocketProvider>
     </GameProvider>
   );
 }

@@ -1,18 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useGameContext } from "@/contexts/GameContext";
-import { api } from "@/lib/api";
-import { TeamDossier } from "@/lib/models";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
-export function LeftSidebar({ ticker = "$XXX" }: { ticker?: string }) {
+export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState<"portfolio" | "market" | "history">("portfolio");
   const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
-  const [dossier, setDossier] = useState<TeamDossier | null>(null);
-
-  useEffect(() => {
-    api.getMyTeamDossier().then(setDossier).catch(console.error);
-  }, [ticker]);
+  const { dossier } = useWebSocket();
 
   const handleTradeClick = (symbol: string) => {
     setSelectedTicker(symbol);

@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { useState } from "react";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 import { NewsItem } from "@/lib/models";
 
 export function RightSidebar() {
   const [filter, setFilter] = useState<"ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM">("ALL");
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
-
-  useEffect(() => {
-    api.getNewsItems(20).then(setNewsItems).catch(console.error);
-  }, []);
+  const { marketNews: newsItems } = useWebSocket();
 
   const getTagStyle = (item: NewsItem) => {
     switch (item.source_type) {
@@ -50,7 +46,14 @@ export function RightSidebar() {
 
       {/* News Feed */}
       <div className="flex-1 overflow-y-auto flex flex-col">
-        {newsItems.map((item) => (
+        {newsItems
+          .filter(
+            (item) =>
+              filter === "ALL" ||
+              item.source_type === filter ||
+              (filter === "HOLDINGS" && item.source_type === "TEAM_ACTION")
+          )
+          .map((item) => (
           <div
             key={item.id}
             className="min-h-[60px] border-b border-[#1a1a1a] p-3 flex gap-3 hover:bg-[#141414] transition-colors"
