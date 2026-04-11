@@ -16,6 +16,18 @@ interface WebSocketContextType {
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
+/**
+ * WebSocketProvider manages the persistent WebSocket connections to the backend
+ * (both the public market feed and the private team feed).
+ * 
+ * It automatically handles reconnection with exponential backoff and tracks
+ * the latest sequence IDs to recover missed messages upon reconnection.
+ * Exposes live market news, tickers, game state, and team dossier to the rest of the application.
+ *
+ * @param {Object} props - React props.
+ * @param {ReactNode} props.children - Child components to be provided with WS state.
+ * @returns A context provider component.
+ */
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { setCooldownRemaining } = useGameContext();

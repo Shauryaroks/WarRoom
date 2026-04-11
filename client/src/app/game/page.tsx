@@ -12,6 +12,14 @@ import {
 } from "@/components/game";
 import { TradeModal, BoardFeedbackModal } from "@/components/game/Modals";
 
+/**
+ * The inner layout component for the main game dashboard.
+ * Connects to the Auth, Game, and WebSocket contexts to retrieve the user,
+ * game state, and modal statuses, and renders the terminal UI grid consisting
+ * of the header, sidebars, directive editor, and footer ticker.
+ *
+ * @returns The rendered terminal layout.
+ */
 function GameLayout() {
   const { user } = useAuth();
   const ticker = user?.ticker || "$BRBE";
@@ -85,6 +93,12 @@ function GameLayout() {
   );
 }
 
+/**
+ * The main entry point for the player game dashboard.
+ * Wraps the `GameLayout` in the required context providers (GameProvider and WebSocketProvider).
+ *
+ * @returns The wrapped game page layout.
+ */
 export default function GamePage() {
   return (
     <GameProvider>

@@ -4,6 +4,15 @@ import { useState } from "react";
 import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 
+/**
+ * The LeftSidebar component serves as the player's primary ledger and dashboard.
+ * It displays their current net worth, available cash, liquidity score, and
+ * a real-time updating portfolio table.
+ * 
+ * Subscribes to the WebSocket context for live dossier updates.
+ *
+ * @returns The rendered ledger sidebar component.
+ */
 export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState<"portfolio" | "market" | "history">("portfolio");
   const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();

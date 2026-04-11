@@ -5,6 +5,17 @@ import { useGameContext } from "@/contexts/GameContext";
 
 const STORAGE_KEY = "complex_directive_draft";
 
+/**
+ * The DirectiveEditor component provides a terminal-like text editor for players
+ * to draft and submit strategic directives to the AI board.
+ * 
+ * It features line numbers, character counting, local storage draft saving,
+ * template insertion, and visual cooldown management.
+ *
+ * @param {Object} props - Component props.
+ * @param {number} [props.maxChars=2000] - The maximum number of characters allowed for a directive.
+ * @returns The rendered DirectiveEditor component.
+ */
 export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
   const { cooldownRemaining, setCooldownRemaining, setIsFeedbackModalOpen } =
     useGameContext();

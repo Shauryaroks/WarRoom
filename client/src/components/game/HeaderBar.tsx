@@ -10,6 +10,19 @@ interface HeaderBarProps {
   isTeamConnected?: boolean;
 }
 
+/**
+ * The HeaderBar component displays the top-level game state and terminal information.
+ * It shows the current session time, round number, player ticker, and the
+ * WebSocket connection status.
+ *
+ * @param {HeaderBarProps} props - The properties for the HeaderBar.
+ * @param {string} [props.sessionElapsed="00:00:00"] - The formatted elapsed game time.
+ * @param {string} [props.timerSeq="2/4"] - The current round sequence.
+ * @param {string} [props.ticker="$XXX"] - The player's team ticker.
+ * @param {boolean} [props.isMarketConnected=false] - Whether the market WS is connected.
+ * @param {boolean} [props.isTeamConnected=false] - Whether the team WS is connected.
+ * @returns The rendered header bar.
+ */
 export function HeaderBar({
   sessionElapsed = "00:00:00",
   timerSeq = "2/4",

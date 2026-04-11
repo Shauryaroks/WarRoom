@@ -4,6 +4,15 @@ import React from "react";
 import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 
+/**
+ * The Footer component displays a live-updating, scrolling ticker tape
+ * of stock prices and their 24h percentage changes.
+ * 
+ * Subscribes to the WebSocket context to receive real-time ticker updates.
+ * Clicking on a ticker opens the trade modal for that symbol.
+ *
+ * @returns The rendered scrolling ticker footer.
+ */
 export function Footer() {
   const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
   const { marketTickers: tickers } = useWebSocket();

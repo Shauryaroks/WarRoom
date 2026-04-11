@@ -4,6 +4,14 @@ import { useState } from "react";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { NewsItem } from "@/lib/models";
 
+/**
+ * The RightSidebar ("The Wire") component provides a real-time feed of market news
+ * and system events. It supports filtering events by their source type.
+ *
+ * Subscribes to the WebSocket context to populate the `marketNews` items.
+ * 
+ * @returns The rendered news feed sidebar.
+ */
 export function RightSidebar() {
   const [filter, setFilter] = useState<"ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM">("ALL");
   const { marketNews: newsItems } = useWebSocket();
