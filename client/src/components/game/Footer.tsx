@@ -1,7 +1,13 @@
+"use client";
+
+import React from "react";
+import { useGameContext } from "@/contexts/GameContext";
+
 interface StockTicker {
   symbol: string;
+  price: string;
   change: string;
-  volume: string;
+  sparkline: string;
 }
 
 interface FooterProps {
@@ -10,45 +16,53 @@ interface FooterProps {
 }
 
 const defaultTickers: StockTicker[] = [
-  { symbol: "$CORP", change: "▲+2.41%", volume: "12.4M" },
-  { symbol: "$TECH", change: "▼-1.24%", volume: "890K" },
-  { symbol: "$SOLA", change: "▲+0.08%", volume: "2.1M" },
+  { symbol: "$BRBE", price: "95.50", change: "▼2.1%", sparkline: "▁▃▄▅" },
+  { symbol: "$APEX", price: "104.00", change: "▲2.4%", sparkline: "▃▄▅▇" },
+  { symbol: "$MNST", price: "88.00", change: "▼5.0%", sparkline: "▇▄▃▁" },
+  { symbol: "$TECH", price: "156.20", change: "▲1.2%", sparkline: "▅▆▇▇" },
+  { symbol: "$SOLA", price: "12.44", change: "▲0.8%", sparkline: "▃▃▄▅" },
+  { symbol: "$AERO", price: "205.12", change: "▼4.8%", sparkline: "▇▆▄▃" },
+  { symbol: "$CORP", price: "142.09", change: "▲2.4%", sparkline: "▄▅▆▇" },
+  { symbol: "$BRBE", price: "95.50", change: "▼2.1%", sparkline: "▁▃▄▅" },
+  { symbol: "$APEX", price: "104.00", change: "▲2.4%", sparkline: "▃▄▅▇" },
+  { symbol: "$MNST", price: "88.00", change: "▼5.0%", sparkline: "▇▄▃▁" },
 ];
 
 export function Footer({
   ticker = "$XXX",
   tickers = defaultTickers,
 }: FooterProps) {
+  const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
+
   const getChangeColor = (change: string) => {
     return change.startsWith("▲") ? "text-[#00c853]" : "text-[#ff3333]";
   };
 
+  const handleTickerClick = (symbol: string) => {
+    setSelectedTicker(symbol);
+    setIsTradeModalOpen(true);
+  };
+
   return (
-    <footer className="fixed bottom-0 left-0 w-full z-50 flex items-center justify-between px-4 bg-black h-6 border-t border-[#353534]">
-      <div className="flex gap-4 overflow-hidden items-center flex-1">
-        <div
-          className="flex items-center gap-6 whitespace-nowrap text-[9px] animate-[ticker_40s_linear_infinite]"
-          style={{ animation: "ticker 40s linear infinite" }}
-        >
-          <span className="text-[#FFB000] font-bold">
-            {ticker} <span className="text-[#00c853]">▲+2.41%</span>{" "}
-            <span className="text-zinc-600">[VOL: 12.4M]</span>
-          </span>
-          {tickers.map((t, i) => (
-            <span key={i} className="text-[#FFB000] font-bold">
-              {t.symbol}{" "}
-              <span className={getChangeColor(t.change)}>{t.change}</span>{" "}
-              <span className="text-zinc-600">[VOL: {t.volume}]</span>
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flex items-center gap-4 border-l border-[#353534] pl-4 h-full text-[8px] tracking-[0.1em]">
-        <div className="flex gap-3">
-          <span className="text-[#00c853]">MARKET_STATUS: ACTIVE</span>
-          <span className="text-zinc-500 uppercase">ENCRYPTION: AES_256</span>
-        </div>
-        <span className="text-zinc-600">SYSTEM_STABLE_v1.02_FIN</span>
+    <footer className="h-full w-full flex items-center overflow-hidden font-mono text-[13px] bg-black text-[#e0e0e0]">
+      <div className="flex items-center whitespace-nowrap animate-[ticker_40s_linear_infinite] hover:[animation-play-state:paused]">
+        {tickers.map((t, i) => (
+          <React.Fragment key={i}>
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:bg-[#1a1a1a] px-2 py-1 transition-colors"
+              onClick={() => handleTickerClick(t.symbol)}
+              title={t.symbol}
+            >
+              <span className="text-[#ffb000] font-bold">{t.symbol}</span>
+              <span className="text-white tabular-nums">{t.price}</span>
+              <span className={getChangeColor(t.change)}>{t.change}</span>
+              <span className="text-[#505050] tracking-tighter">
+                {t.sparkline}
+              </span>
+            </div>
+            <span className="text-[#2a2a2a] mx-2">|</span>
+          </React.Fragment>
+        ))}
       </div>
     </footer>
   );
