@@ -3,12 +3,18 @@ FROM python:3.13-slim
 # Install uv.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy the application into the container.
-COPY . /app
-
-# Install the application dependencies.
+# Create app directory
+RUN mkdir -p /app
 WORKDIR /app
+
+# Copy only dependency files first
+COPY pyproject.toml uv.lock ./
+
+# Install the application dependencies
 RUN uv sync --frozen --no-cache
+
+# Copy the application code
+COPY . .
 
 # Use 'uv run' to execute the application
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
