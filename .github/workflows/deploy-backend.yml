@@ -19,18 +19,26 @@ jobs:
           script: |
             set -e
 
-            echo "→ Navigating to app directory"
-            cd ${{ secrets.DEPLOY_PATH }}
+            APP_DIR=${{ secrets.DEPLOY_PATH }}
 
-            echo "→ Fetching latest code"
-            git fetch origin master
-            git reset --hard origin/master
+            echo "→ Ensuring app directory"
+            mkdir -p $APP_DIR
+            cd $APP_DIR
 
-            echo "→ Building updated services"
+            if [ ! -d ".git" ]; then
+              echo "→ First-time clone"
+              git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }} .
+            else
+              echo "→ Updating repo"
+              git fetch origin master
+              git reset --hard origin/master
+            fi
+
+            echo "→ Building services"
             docker compose build api worker
 
-            echo "→ Starting services (non-destructive)"
+            echo "→ Starting containers"
             docker compose up -d
 
-            echo "→ Cleaning unused images"
+            echo "→ Pruning images"
             docker image prune -f
