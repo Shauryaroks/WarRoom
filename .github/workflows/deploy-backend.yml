@@ -1,0 +1,36 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            echo "→ Navigating to app directory"
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "→ Fetching latest code"
+            git fetch origin master
+            git reset --hard origin/master
+
+            echo "→ Building updated services"
+            docker compose build api worker
+
+            echo "→ Starting services (non-destructive)"
+            docker compose up -d
+
+            echo "→ Cleaning unused images"
+            docker image prune -f
