@@ -73,6 +73,7 @@ export default function MarketPage() {
                 <label
                   key={type}
                   className="flex items-center gap-2 cursor-pointer group"
+                  onClick={() => setImpactType(type)}
                 >
                   <div
                     className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${impactType === type ? "border-[#ffb000]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}

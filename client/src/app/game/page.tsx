@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { GameProvider, useGameContext } from "@/contexts/GameContext";
+import { api } from "@/lib/api";
+import { GameState } from "@/lib/models";
 import {
   HeaderBar,
   LeftSidebar,
@@ -13,8 +16,37 @@ import { TradeModal, BoardFeedbackModal } from "@/components/game/Modals";
 
 function GameLayout() {
   const { user } = useAuth();
-  const ticker = user?.ticker || "$XXX";
+  const ticker = user?.ticker || "$BRBE";
   const { isTradeModalOpen, isFeedbackModalOpen } = useGameContext();
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [now, setNow] = useState<number>(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setNow(Date.now()), 0);
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    api.getGameState().then(setGameState).catch(console.error);
+  }, []);
+
+  const formatSeconds = (secs?: number) => {
+    if (!secs) return "00:00:00";
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getMinutesUntil = (dateStr?: string | null) => {
+    if (!dateStr || !now) return "N/A";
+    const mins = Math.max(0, Math.floor((new Date(dateStr).getTime() - now) / 60000));
+    return `${mins} MIN`;
+  };
 
   return (
     <div className="h-screen w-screen bg-[#0a0a0a] text-[#e0e0e0] font-mono text-[13px] leading-tight overflow-hidden select-none">
@@ -35,9 +67,9 @@ function GameLayout() {
           className="border-b border-[#2a2a2a] bg-[#0a0a0a]"
         >
           <HeaderBar
-            sessionElapsed="04:23:17"
-            timerSeq="ROUND: [2/4]"
-            nextPurge="15 MIN"
+            sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
+            timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
+            nextPurge={getMinutesUntil(gameState?.next_purge_at)}
             ticker={ticker}
           />
         </div>
@@ -64,7 +96,7 @@ function GameLayout() {
           style={{ gridArea: "ticker" }}
           className="border-t border-[#2a2a2a] bg-black"
         >
-          <Footer ticker={ticker} />
+          <Footer />
         </div>
       </div>
 

@@ -78,9 +78,9 @@ export default function MetricsPage() {
               Active Teams
             </span>
             <span className="text-xl text-white font-['JetBrains_Mono',monospace]">
-              {metrics?.activeTeams}{" "}
+              {metrics?.active_teams}{" "}
               <span className="text-xs text-gray-500">
-                / {metrics?.totalTeams}
+                / {metrics?.total_teams}
               </span>
             </span>
           </div>
@@ -89,7 +89,7 @@ export default function MetricsPage() {
               Total Liquidity
             </span>
             <span className="text-xl text-[#00c853] font-['JetBrains_Mono',monospace]">
-              {formatCurrency(metrics?.aggregateLiquidity || 0)}
+              {formatCurrency(metrics?.aggregate_liquidity || 0)}
             </span>
           </div>
           <div className="flex justify-between items-end pb-2">
@@ -97,7 +97,7 @@ export default function MetricsPage() {
               Avg Market Cap
             </span>
             <span className="text-xl text-[#ffb000] font-['JetBrains_Mono',monospace]">
-              {formatCurrency(metrics?.avgMarketCap || 0)}
+              {formatCurrency(metrics?.avg_market_cap || 0)}
             </span>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function MetricsPage() {
               Avg Latency
             </span>
             <span className="text-xl text-white font-['JetBrains_Mono',monospace]">
-              {llm?.avgLatencyMs}ms
+              {llm?.avg_latency_ms}ms
             </span>
           </div>
           <div className="flex justify-between items-end border-b border-[#2a2a2a] pb-2">
@@ -121,7 +121,7 @@ export default function MetricsPage() {
               Error Rate
             </span>
             <span className="text-xl text-[#ffb000] font-['JetBrains_Mono',monospace]">
-              {((llm?.errorRate || 0) * 100).toFixed(1)}%
+              {((llm?.error_rate || 0) * 100).toFixed(1)}%
             </span>
           </div>
           <div className="flex justify-between items-end pb-2">
@@ -129,7 +129,7 @@ export default function MetricsPage() {
               Session Cost
             </span>
             <span className="text-xl text-[#ff3333] font-['JetBrains_Mono',monospace]">
-              ${metrics?.sessionCostUsd?.toFixed(2)}
+              ${metrics?.session_cost_usd?.toFixed(2)}
             </span>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function MetricsPage() {
               Total Trades
             </span>
             <span className="text-xl text-white font-['JetBrains_Mono',monospace]">
-              {market?.totalTrades}
+              {market?.total_trades}
             </span>
           </div>
           <div className="flex justify-between items-end border-b border-[#2a2a2a] pb-2">
@@ -155,7 +155,7 @@ export default function MetricsPage() {
               Trades Last Hour
             </span>
             <span className="text-xl text-[#ffb000] font-['JetBrains_Mono',monospace]">
-              {market?.tradesLastHour}
+              {market?.trades_last_hour}
             </span>
           </div>
           <div className="flex justify-between items-end pb-2">
@@ -163,7 +163,7 @@ export default function MetricsPage() {
               Most Traded
             </span>
             <span className="text-xl text-[#00c853] font-['JetBrains_Mono',monospace]">
-              {Object.keys(market?.volumeByTicker || {})[0] || "N/A"}
+              {Object.keys(market?.volume_by_ticker || {})[0] || "N/A"}
             </span>
           </div>
         </div>
@@ -178,8 +178,8 @@ export default function MetricsPage() {
           <h2>System Anomalies</h2>
         </div>
         <div className="space-y-2">
-          {market?.anomalyAlerts && market.anomalyAlerts.length > 0
-            ? market.anomalyAlerts.map((alert, idx) => (
+          {market?.anomaly_alerts && market.anomaly_alerts.length > 0
+            ? market.anomaly_alerts.map((alert, idx) => (
                 <div
                   key={idx}
                   className="bg-[#ff3333]/10 border border-[#ff3333]/20 p-3 rounded flex justify-between items-center text-sm font-['JetBrains_Mono',monospace]"
@@ -194,7 +194,7 @@ export default function MetricsPage() {
                 </div>
               ))
             : null}
-          {(metrics?.llmQueueDepth ?? 0) > 10 ? (
+          {(metrics?.llm_queue_depth ?? 0) > 10 ? (
             <div className="bg-[#ffb000]/10 border border-[#ffb000]/20 p-3 rounded flex justify-between items-center text-sm font-['JetBrains_Mono',monospace]">
               <span className="text-[#ffb000] flex items-center gap-2">
                 <span className="material-symbols-outlined text-[14px]">
@@ -203,7 +203,7 @@ export default function MetricsPage() {
                 HIGH_DIRECTIVE_QUEUE_DEPTH
               </span>
               <span className="text-gray-400">
-                DEPTH: {metrics?.llmQueueDepth}
+                DEPTH: {metrics?.llm_queue_depth}
               </span>
             </div>
           ) : (
@@ -215,7 +215,7 @@ export default function MetricsPage() {
                 SYSTEM_NOMINAL
               </span>
               <span className="text-gray-400">
-                QUEUE: {metrics?.llmQueueDepth || 0}
+                QUEUE: {metrics?.llm_queue_depth || 0}
               </span>
             </div>
           )}

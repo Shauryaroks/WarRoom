@@ -13,7 +13,6 @@ interface HeaderBarProps {
 export function HeaderBar({
   sessionElapsed = "05:23:17",
   timerSeq = "2/4",
-  nextPurge = "15 MIN",
   ticker = "$XXX",
   latency = "12ms",
 }: HeaderBarProps) {

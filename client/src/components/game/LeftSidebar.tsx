@@ -1,45 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGameContext } from "@/contexts/GameContext";
-
-interface Holding {
-  symbol: string;
-  price: string;
-  shares: number;
-  pnl: string;
-  sparkline: string;
-}
-
-const defaultHoldings: Holding[] = [
-  {
-    symbol: "$APEX",
-    price: "104.00",
-    shares: 150,
-    pnl: "+2.4%",
-    sparkline: "▁▃▅▇▃",
-  },
-  {
-    symbol: "$MNST",
-    price: "88.50",
-    shares: 300,
-    pnl: "-5.1%",
-    sparkline: "▇▆▄▃▁",
-  },
-  {
-    symbol: "$TECH",
-    price: "156.20",
-    shares: 50,
-    pnl: "+12.0%",
-    sparkline: "▃▄▅▆▇",
-  },
-];
+import { api } from "@/lib/api";
+import { TeamDossier } from "@/lib/models";
 
 export function LeftSidebar({ ticker = "$XXX" }: { ticker?: string }) {
-  const [activeTab, setActiveTab] = useState<
-    "portfolio" | "market" | "history"
-  >("portfolio");
+  const [activeTab, setActiveTab] = useState<"portfolio" | "market" | "history">("portfolio");
   const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
+  const [dossier, setDossier] = useState<TeamDossier | null>(null);
+
+  useEffect(() => {
+    api.getMyTeamDossier().then(setDossier).catch(console.error);
+  }, [ticker]);
 
   const handleTradeClick = (symbol: string) => {
     setSelectedTicker(symbol);
@@ -76,12 +49,12 @@ export function LeftSidebar({ ticker = "$XXX" }: { ticker?: string }) {
             {/* Net Worth Header */}
             <div className="p-4 border-b border-[#2a2a2a] whitespace-pre font-mono text-[12px] leading-tight text-[#ffb000]">
               {`┌────────────────────────────────────┐
-│ NET WORTH            $1,245,000.00 │
+│ NET WORTH            $${(dossier?.financials.cash || 0).toLocaleString()} │
 │ ▲ +12.4% ▲ $137,000      [REFRESH] │
 ├────────────────────────────────────┤
-│ CASH                   $850,000.00 │
+│ CASH                   $${(dossier?.financials.cash || 0).toLocaleString()} │
 │ MARGIN USED                  12.5% │
-│ LIQUIDITY SCORE          1,245,000 │
+│ LIQUIDITY SCORE          ${(dossier?.financials.liquidity || 0).toLocaleString()} │
 └────────────────────────────────────┘`}
             </div>
 
@@ -98,29 +71,26 @@ export function LeftSidebar({ ticker = "$XXX" }: { ticker?: string }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {defaultHoldings.map((h, i) => (
+                  {dossier?.portfolio.holdings.map((h, i) => (
                     <tr
                       key={i}
                       className="border-b border-[#1a1a1a] hover:bg-[#141414] group"
                     >
-                      <td className="p-3 text-[#e0e0e0]">{h.symbol}</td>
+                      <td className="p-3 text-[#e0e0e0]">{h.ticker}</td>
                       <td className="p-3 text-[#ffb000] text-right tabular-nums">
-                        {h.price}
+                        {h.current_price}
                       </td>
                       <td className="p-3 text-right tabular-nums">
                         {h.shares}
                       </td>
                       <td
-                        className={`p-3 text-right tabular-nums ${h.pnl.startsWith("+") ? "text-[#00c853]" : "text-[#ff3333]"}`}
+                        className={`p-3 text-right tabular-nums ${h.unrealized_pnl > 0 ? "text-[#00c853]" : "text-[#ff3333]"}`}
                       >
-                        {h.pnl}{" "}
-                        <span className="text-[#505050] text-[10px] ml-1">
-                          {h.sparkline}
-                        </span>
+                        {h.unrealized_pnl > 0 ? "+" : ""}{h.unrealized_pnl}%{" "}
                       </td>
                       <td className="p-3 text-center">
                         <button
-                          onClick={() => handleTradeClick(h.symbol)}
+                          onClick={() => handleTradeClick(h.ticker)}
                           className="hidden group-hover:block border border-[#ffb000] text-[#ffb000] px-2 py-0.5 text-[11px] hover:bg-[#ffb000] hover:text-black uppercase"
                         >
                           Trade
@@ -152,20 +122,8 @@ export function LeftSidebar({ ticker = "$XXX" }: { ticker?: string }) {
 
         {activeTab === "history" && (
           <div className="flex flex-col">
-            <div className="p-3 border-b border-[#1a1a1a] flex items-center gap-2">
-              <span className="text-[#505050]">[14:32:05]</span>
-              <span className="text-[#e0e0e0]">BOUGHT 100 $APEX @ 104.00</span>
-              <span className="text-[#00c853]">[FILLED]</span>
-            </div>
-            <div className="p-3 border-b border-[#1a1a1a] flex items-center gap-2">
-              <span className="text-[#505050]">[13:10:22]</span>
-              <span className="text-[#e0e0e0]">SOLD 50 $TECH @ 150.00</span>
-              <span className="text-[#ffb000]">[FILLED]</span>
-            </div>
-            <div className="p-3 border-b border-[#1a1a1a] flex items-center gap-2">
-              <span className="text-[#505050]">[12:05:01]</span>
-              <span className="text-[#e0e0e0]">BOUGHT 200 $MNST @ 88.50</span>
-              <span className="text-[#00c853]">[FILLED]</span>
+            <div className="p-3 border-b border-[#1a1a1a] flex items-center gap-2 text-[#808080] italic">
+                History not implemented...
             </div>
           </div>
         )}

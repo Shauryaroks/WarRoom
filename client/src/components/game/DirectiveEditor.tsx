@@ -11,12 +11,14 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
   const [directive, setDirective] = useState("");
   const [charCount, setCharCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scrollTop, setScrollTop] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load draft
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDirective(saved);
       setCharCount(saved.length);
     }
@@ -124,7 +126,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         <div
           className="w-[40px] shrink-0 border-r border-[#2a2a2a] bg-[#0a0a0a] text-[#505050] text-right py-[20px] px-2 select-none overflow-hidden"
           style={{
-            transform: `translateY(-${textareaRef.current?.scrollTop || 0}px)`,
+            transform: `translateY(-${scrollTop}px)`,
           }}
         >
           {lines.map((n) => (
@@ -139,6 +141,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           ref={textareaRef}
           value={directive}
           onChange={handleChange}
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           disabled={cooldownRemaining > 0}
           className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[#505050] focus:ring-1 focus:ring-inset focus:ring-[#ffb000]"
           placeholder="# Enter strategic directive here..."

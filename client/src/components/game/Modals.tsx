@@ -107,9 +107,9 @@ export function BoardFeedbackModal() {
           <div className="border-b border-[#2a2a2a]"></div>
 
           <p className="text-[#e0e0e0] italic leading-relaxed pl-4 border-l-2 border-[#505050]">
-            "Your 15% price slash is bold, but you failed to address the rising
+            &quot;Your 15% price slash is bold, but you failed to address the rising
             interest rate environment in your justification. The Board questions
-            your macro awareness. Execution proceeds with caution."
+            your macro awareness. Execution proceeds with caution.&quot;
           </p>
 
           <div className="border-b border-[#2a2a2a]"></div>
@@ -145,8 +145,8 @@ export function BoardFeedbackModal() {
           <div className="flex flex-col gap-2 mt-4 bg-[#0a0a0a] p-3 border border-[#2a2a2a]">
             <span className="text-[#808080]">[GENERATED HEADLINE ▼]</span>
             <span className="text-[#ffb000]">
-              "Barbie Inc ($BRBE) slashes prices in aggressive market share
-              grab"
+              &quot;Barbie Inc ($BRBE) slashes prices in aggressive market share
+              grab&quot;
             </span>
           </div>
         </div>

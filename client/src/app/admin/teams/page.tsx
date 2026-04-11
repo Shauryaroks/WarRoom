@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Team } from "@/lib/models";
+import { TeamSummary } from "@/lib/models";
 
 export default function TeamsPage() {
   const [filter, setFilter] = useState("ALL");
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState<TeamSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   // For native HTML select of portfolios
@@ -16,6 +16,7 @@ export default function TeamsPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const fetchData = async () => {
@@ -28,7 +29,7 @@ export default function TeamsPage() {
       const initialPorts: Record<string, string> = {};
       fetchedTeams.forEach((t) => {
         if (t.status === "PENDING") {
-          initialPorts[t.id] = "PORT_TECH_01";
+          initialPorts[t.team_id] = "PORT_TECH_01";
         }
       });
       setSelectedPortfolios((prev) => ({ ...initialPorts, ...prev }));
@@ -149,7 +150,7 @@ export default function TeamsPage() {
             ) : (
               teams.map((team, idx) => (
                 <tr
-                  key={team.id}
+                  key={team.team_id}
                   className={`h-[56px] transition-colors ${
                     idx % 2 === 0 ? "bg-[#111]" : "bg-[#161616]"
                   } hover:bg-[#1a1a1a]`}
@@ -179,12 +180,12 @@ export default function TeamsPage() {
                   <td className="px-4 whitespace-nowrap text-gray-400 font-['JetBrains_Mono',monospace] text-sm tabular-nums hidden sm:table-cell">
                     {team.status === "PENDING"
                       ? "---"
-                      : formatCurrency(team.liquidity || 0)}
+                      : formatCurrency(team.market_cap || 0)}
                   </td>
                   <td className="px-4 whitespace-nowrap text-gray-400 font-['JetBrains_Mono',monospace] text-sm tabular-nums hidden sm:table-cell">
                     {team.status === "PENDING"
                       ? "---"
-                      : formatCurrency(team.marketCap || 0)}
+                      : formatCurrency(team.market_cap || 0)}
                   </td>
                   <td className="px-4 whitespace-nowrap text-right space-x-2">
                     {team.status === "PENDING" && (
@@ -193,16 +194,16 @@ export default function TeamsPage() {
                           type="text"
                           placeholder="e.g. PORT_TECH_01"
                           className="bg-[#0a0a0a] border border-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-[#ffb000] font-['JetBrains_Mono',monospace] w-[130px]"
-                          value={selectedPortfolios[team.id] || ""}
+                          value={selectedPortfolios[team.team_id] || ""}
                           onChange={(e) =>
                             setSelectedPortfolios({
                               ...selectedPortfolios,
-                              [team.id]: e.target.value,
+                              [team.team_id]: e.target.value,
                             })
                           }
                         />
                         <button
-                          onClick={() => handleApprove(team.id)}
+                          onClick={() => handleApprove(team.team_id)}
                           className="p-1.5 rounded bg-[#00c853]/10 text-[#00c853] hover:bg-[#00c853]/20 transition-colors"
                           title="Approve"
                         >
@@ -211,7 +212,7 @@ export default function TeamsPage() {
                           </span>
                         </button>
                         <button
-                          onClick={() => handleReject(team.id)}
+                          onClick={() => handleReject(team.team_id)}
                           className="p-1.5 rounded bg-[#ff3333]/10 text-[#ff3333] hover:bg-[#ff3333]/20 transition-colors"
                           title="Reject"
                         >
@@ -224,7 +225,7 @@ export default function TeamsPage() {
                     {(team.status === "ACTIVE" ||
                       team.status === "COOLDOWN") && (
                       <button
-                        onClick={() => handleBankrupt(team.id)}
+                        onClick={() => handleBankrupt(team.team_id)}
                         className="p-1.5 rounded bg-[#ff3333]/10 text-[#ff3333] hover:bg-[#ff3333]/20 transition-colors inline-flex items-center gap-1"
                         title="Force Bankrupt"
                       >
