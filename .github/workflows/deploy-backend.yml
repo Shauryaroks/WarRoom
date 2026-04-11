@@ -3,7 +3,8 @@ name: Deploy Backend
 on:
   push:
     branches: [master]
-
+    paths-ignore:
+      - "client/**"
 jobs:
   deploy:
     runs-on: ubuntu-latest
