@@ -1,203 +1,223 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useGameContext } from "@/contexts/GameContext";
 
 const STORAGE_KEY = "complex_directive_draft";
 
-interface DirectiveEditorProps {
-  maxChars?: number;
-  onSubmit?: (directive: string) => void;
-}
-
-export function DirectiveEditor({
-  maxChars = 2000,
-  onSubmit,
-}: DirectiveEditorProps) {
+/**
+ * The DirectiveEditor component provides a terminal-like text editor for players
+ * to draft and submit strategic directives to the AI board.
+ * 
+ * It features line numbers, character counting, local storage draft saving,
+ * template insertion, and visual cooldown management.
+ *
+ * @param {Object} props - Component props.
+ * @param {number} [props.maxChars=2000] - The maximum number of characters allowed for a directive.
+ * @returns The rendered DirectiveEditor component.
+ */
+export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
+  const { cooldownRemaining, setCooldownRemaining, setIsFeedbackModalOpen } =
+    useGameContext();
   const [directive, setDirective] = useState("");
   const [charCount, setCharCount] = useState(0);
-  const [isSaved, setIsSaved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scrollTop, setScrollTop] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load from localStorage on mount
+  // Load draft
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDirective(saved);
       setCharCount(saved.length);
-      setIsSaved(true);
     }
   }, []);
-
-  // Update char count when directive changes
-  useEffect(() => {
-    setCharCount(directive.length);
-    if (directive) {
-      setIsSaved(false);
-    }
-  }, [directive]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     if (value.length <= maxChars) {
       setDirective(value);
+      setCharCount(value.length);
+      localStorage.setItem(STORAGE_KEY, value);
     }
   };
 
-  const handleSaveLocal = () => {
-    localStorage.setItem(STORAGE_KEY, directive);
-    setIsSaved(true);
+  const handleTemplate = (template: string) => {
+    const newVal = directive ? directive + "\n\n" + template : template;
+    if (newVal.length <= maxChars) {
+      setDirective(newVal);
+      setCharCount(newVal.length);
+    }
   };
 
   const handleSubmit = () => {
-    if (!directive.trim()) return;
+    if (!directive.trim() || cooldownRemaining > 0) return;
 
     setIsSubmitting(true);
-
-    // Clear from localStorage on submit
-    localStorage.removeItem(STORAGE_KEY);
-    setIsSaved(false);
-
-    if (onSubmit) {
-      onSubmit(directive);
-    } else {
-      console.log("Submitting directive:", directive);
-    }
-
-    // Clear the editor
-    setDirective("");
-    setCharCount(0);
-    setIsSubmitting(false);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setCooldownRemaining(600); // 10 mins
+      setIsFeedbackModalOpen(true); // Demo: show feedback after submit
+      setDirective("");
+      setCharCount(0);
+      localStorage.removeItem(STORAGE_KEY);
+    }, 1500);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const textarea = textareaRef.current;
-      if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const newValue =
-          directive.substring(0, start) + "  " + directive.substring(end);
-        setDirective(newValue);
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 2;
-        }, 0);
-      }
-    }
-    // Ctrl+S to save
-    if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSaveLocal();
-    }
+  // Generate line numbers
+  const lineCount = directive.split("\n").length;
+  const lines = Array.from(
+    { length: Math.max(10, lineCount) },
+    (_, i) => i + 1,
+  );
+
+  // Format time MM:SS
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
   };
+
+  // Demo decrement cooldown
+  useEffect(() => {
+    if (cooldownRemaining > 0) {
+      const timer = setInterval(
+        () => setCooldownRemaining(cooldownRemaining - 1),
+        1000,
+      );
+      return () => clearInterval(timer);
+    }
+  }, [cooldownRemaining, setCooldownRemaining]);
+
+  const isWarningChars = charCount >= 1800;
+  const isMaxChars = charCount >= maxChars;
 
   return (
-    <section className="flex-1 flex flex-col bg-black relative">
-      <div className="p-3 border-b border-[#353534] flex justify-between items-center bg-[#131313]/80 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#FFB000]">
-            edit_note
-          </span>
-          <span className="text-[10px] font-bold text-zinc-300 uppercase">
-            DIRECTIVE_DRAFT ({charCount} / {maxChars})
-          </span>
-          {isSaved && (
-            <span className="text-[9px] text-[#00c853] ml-2">✓ SAVED</span>
-          )}
+    <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[#0d0d0d] text-[#e0e0e0] relative">
+      {/* Toolbar (40px) */}
+      <div className="h-[40px] shrink-0 border-b border-[#2a2a2a] flex items-center px-4 gap-4 bg-[#0a0a0a]">
+        <button className="text-[#ffb000] hover:text-[#e0e0e0]">
+          [TEMPLATE ▼]
+        </button>
+        <button
+          onClick={() =>
+            handleTemplate("# Price War\nWe will cut prices by 15%...")
+          }
+          className="text-[#505050] hover:text-[#e0e0e0]"
+        >
+          [PRICE WAR]
+        </button>
+        <button
+          onClick={() =>
+            handleTemplate("# R&D Push\nWe are allocating $500k to R&D...")
+          }
+          className="text-[#505050] hover:text-[#e0e0e0]"
+        >
+          [R&D PUSH]
+        </button>
+        <button
+          onClick={() => handleTemplate("# Pivot\nWe are shifting focus to...")}
+          className="text-[#505050] hover:text-[#e0e0e0]"
+        >
+          [PIVOT]
+        </button>
+        <div className="flex-1"></div>
+        <button className="text-[#505050] hover:text-[#e0e0e0]">
+          [? HELP]
+        </button>
+      </div>
+
+      {/* Editor Area */}
+      <div className="flex-1 relative flex overflow-hidden group">
+        {/* Line Numbers Gutter */}
+        <div
+          className="w-[40px] shrink-0 border-r border-[#2a2a2a] bg-[#0a0a0a] text-[#505050] text-right py-[20px] px-2 select-none overflow-hidden"
+          style={{
+            transform: `translateY(-${scrollTop}px)`,
+          }}
+        >
+          {lines.map((n) => (
+            <div key={n} className={n === lineCount ? "text-[#808080]" : ""}>
+              {n}
+            </div>
+          ))}
         </div>
-        <div className="flex gap-2">
+
+        {/* Textarea */}
+        <textarea
+          ref={textareaRef}
+          value={directive}
+          onChange={handleChange}
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+          disabled={cooldownRemaining > 0}
+          className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[#505050] focus:ring-1 focus:ring-inset focus:ring-[#ffb000]"
+          placeholder="# Enter strategic directive here..."
+          spellCheck={false}
+        />
+
+        {/* Character Counter */}
+        <div
+          className={`absolute bottom-4 right-4 font-bold ${isMaxChars ? "text-[#ff3333] animate-pulse" : isWarningChars ? "text-[#ffb000]" : "text-[#505050]"}`}
+        >
+          {charCount} / {maxChars}
+        </div>
+
+        {/* Cooldown Overlay */}
+        {cooldownRemaining > 0 && (
+          <div className="absolute inset-0 bg-[#0a0a0acc] flex items-center justify-center backdrop-blur-[1px] z-10">
+            <div className="border-2 border-[#ffb000] p-8 text-center bg-[#0a0a0a] shadow-[0_0_20px_rgba(255,176,0,0.2)] animate-pulse">
+              <div className="text-[#ffb000] mb-4 text-[16px] tracking-widest">
+                BOARD REVIEWING DIRECTIVE
+              </div>
+              <div className="text-[#ffb000] text-[48px] font-bold tracking-widest mb-4">
+                ██ {formatTime(cooldownRemaining)} ██
+              </div>
+              <div className="text-[#808080]">Trading still enabled</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status Bar (30px) */}
+      <div className="h-[30px] shrink-0 border-t border-b border-[#2a2a2a] bg-[#0a0a0a] flex items-center px-4 justify-between text-[#808080] text-[11px]">
+        <span>READY</span>
+        <span>|</span>
+        <span>LAST SAVE: {new Date().toLocaleTimeString()}</span>
+        <span>|</span>
+        <span className="flex items-center gap-2">
+          CONFIDENCE: <span className="text-[#e0e0e0]">[████░░░░░░] 45%</span>
+        </span>
+      </div>
+
+      {/* Submit Area (60px) */}
+      <div className="h-[60px] shrink-0 bg-[#0a0a0a] p-1.5 flex">
+        {cooldownRemaining > 0 ? (
           <button
-            onClick={handleSaveLocal}
-            disabled={!directive.trim()}
-            className="bg-[#353534] px-3 py-1 text-[9px] text-zinc-300 hover:text-white border border-[#353534] uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            disabled
+            className="w-full h-full bg-[#1a1a1a] text-[#505050] font-bold uppercase tracking-widest border border-[#2a2a2a]"
           >
-            SAVE_LOCAL
+            COOLDOWN ACTIVE - {formatTime(cooldownRemaining)}
           </button>
+        ) : isSubmitting ? (
+          <button
+            disabled
+            className="w-full h-full bg-[#ffb000] text-black font-bold uppercase tracking-widest animate-pulse"
+          >
+            TRANSMITTING... ▓▒░
+          </button>
+        ) : (
           <button
             onClick={handleSubmit}
-            disabled={!directive.trim() || isSubmitting}
-            className="bg-[#00c853] px-4 py-1 text-[9px] text-black font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            disabled={!directive.trim()}
+            className="w-full h-full bg-[#ffb000] text-black font-bold uppercase tracking-[0.1em] hover:brightness-110 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "SUBMITTING..." : "SUBMIT TO BOARD"}
+            [ SUBMIT TO BOARD ]
           </button>
-        </div>
-      </div>
-
-      <div className="flex-1 p-6 text-sm relative overflow-hidden flex flex-col gap-6">
-        <div className="flex-1 bg-black border border-[#353534] p-6">
-          <textarea
-            ref={textareaRef}
-            value={directive}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder="_Submit strategic directive..."
-            className="w-full h-full bg-transparent outline-none text-zinc-300 resize-none placeholder:text-zinc-600"
-            style={{ minHeight: "200px" }}
-          />
-        </div>
-
-        <BoardResponse />
-      </div>
-
-      <TacticalStats />
-    </section>
-  );
-}
-
-function BoardResponse() {
-  return (
-    <div className="h-44 bg-[#131313] border border-[#353534] p-4 flex flex-col">
-      <div className="flex items-center justify-between mb-3 border-b border-[#353534] pb-2">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#FFB000] text-sm">
-            gavel
-          </span>
-          <span className="font-bold text-[10px] tracking-widest uppercase">
-            THE BOARD RESPONDS
-          </span>
-        </div>
-        <span className="text-[9px] text-zinc-500">--:--:--</span>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <p className="text-[11px] text-zinc-300 leading-relaxed normal-case font-medium">
-          Board feedback will appear here after submitting your first directive.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function TacticalStats() {
-  return (
-    <div className="h-12 grid grid-cols-4 border-t border-[#353534] bg-[#131313]">
-      <div className="border-r border-[#353534] p-2 flex flex-col justify-center">
-        <span className="text-[8px] text-zinc-500 uppercase">
-          PORTFOLIO_RISK
-        </span>
-        <div className="w-full bg-[#353534] h-1 mt-1">
-          <div className="bg-[#FFB000] h-full w-2/3"></div>
-        </div>
-      </div>
-      <div className="border-r border-[#353534] p-2 flex flex-col justify-center">
-        <span className="text-[8px] text-zinc-500 uppercase">
-          MARKET_STATUS
-        </span>
-        <span className="text-[10px] text-[#00c853] font-bold uppercase">
-          ACTIVE
-        </span>
-      </div>
-      <div className="border-r border-[#353534] p-2 flex flex-col justify-center">
-        <span className="text-[8px] text-zinc-500 uppercase">
-          ALPHA_GENERATION
-        </span>
-        <span className="text-[10px] text-[#FFB000]">--</span>
-      </div>
-      <div className="p-2 flex flex-col justify-center">
-        <span className="text-[8px] text-zinc-500 uppercase">
-          PENDING_DIRECTIVES
-        </span>
-        <span className="text-[10px] text-[#FFB000] font-bold">0</span>
+        )}
       </div>
     </div>
   );

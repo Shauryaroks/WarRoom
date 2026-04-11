@@ -4,3 +4,4 @@ export { LeftSidebar } from "./LeftSidebar";
 export { DirectiveEditor } from "./DirectiveEditor";
 export { RightSidebar } from "./RightSidebar";
 export { Footer } from "./Footer";
+export * from "./Modals";

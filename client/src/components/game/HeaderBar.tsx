@@ -1,55 +1,82 @@
+"use client";
+
+import React from "react";
+
 interface HeaderBarProps {
   sessionElapsed?: string;
   timerSeq?: string;
-  nextPurge?: string;
+  ticker?: string;
+  isMarketConnected?: boolean;
+  isTeamConnected?: boolean;
 }
 
+/**
+ * The HeaderBar component displays the top-level game state and terminal information.
+ * It shows the current session time, round number, player ticker, and the
+ * WebSocket connection status.
+ *
+ * @param {HeaderBarProps} props - The properties for the HeaderBar.
+ * @param {string} [props.sessionElapsed="00:00:00"] - The formatted elapsed game time.
+ * @param {string} [props.timerSeq="2/4"] - The current round sequence.
+ * @param {string} [props.ticker="$XXX"] - The player's team ticker.
+ * @param {boolean} [props.isMarketConnected=false] - Whether the market WS is connected.
+ * @param {boolean} [props.isTeamConnected=false] - Whether the team WS is connected.
+ * @returns The rendered header bar.
+ */
 export function HeaderBar({
   sessionElapsed = "00:00:00",
-  timerSeq = "00:00:00",
-  nextPurge = "-- MIN",
+  timerSeq = "2/4",
+  ticker = "$XXX",
+  isMarketConnected = false,
+  isTeamConnected = false,
 }: HeaderBarProps) {
+  const gameState = "ACTIVE"; // Could come from context
+
   return (
-    <header className="fixed top-0 left-0 w-full px-4 h-10 z-50 bg-[#131313] flex justify-between items-center border-b border-[#353534]">
-      <div className="flex items-center gap-6">
-        <span className="font-bold text-lg text-[#FFB000] tracking-tighter">
-          COMPLEX
-        </span>
-        <div className="h-4 w-px bg-[#353534]"></div>
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <span className="text-[9px] text-zinc-500 uppercase">
-              SESSION ELAPSED
-            </span>
-            <span className="text-[#FFB000] font-bold">{sessionElapsed}</span>
-          </div>
-          <div className="flex flex-col border-l border-[#353534] pl-4">
-            <span className="text-[9px] text-zinc-500 uppercase">
-              TIMER_SEQ
-            </span>
-            <span className="text-white">{timerSeq}</span>
-          </div>
+    <header className="flex h-full w-full justify-between items-center px-4 font-mono text-[13px] bg-[#0a0a0a] text-[#e0e0e0]">
+      {/* Left Zone */}
+      <div className="flex items-center gap-3 w-[380px]">
+        <div className="w-2 h-2 rounded-full bg-[#00c853] animate-pulse"></div>
+        <span className="font-bold tracking-wide">COMPLEX_TERMINAL</span>
+        <span className="text-[#505050] text-[11px]">v1.0.4</span>
+        {gameState === "ACTIVE" && (
+          <span className="border border-[#00c853] text-[#00c853] px-1.5 py-0.5 text-[11px]">
+            [LIVE]
+          </span>
+        )}
+      </div>
+
+      {/* Center Zone */}
+      <div className="flex items-center gap-6 justify-center flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[#808080]">PHASE:</span>
+          <span className="bg-[#00c853]/10 text-[#00c853] px-2 py-0.5">
+            [{gameState}]
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[#808080]">T-MINUS:</span>
+          <span className="text-[#ffb000] tabular-nums font-bold">
+            [{sessionElapsed}]
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[#808080]">ROUND:</span>
+          <span className="text-[#e0e0e0]">[{timerSeq}]</span>
         </div>
       </div>
-      <div className="flex items-center gap-8">
-        <div className="flex flex-col items-end">
-          <span className="text-[9px] text-zinc-500 uppercase">NEXT PURGE</span>
-          <span className="text-[#ff3333] font-bold">{nextPurge}</span>
-        </div>
-        <div className="flex items-center gap-2 bg-black px-3 py-1 border border-[#353534]">
-          <div className="w-1.5 h-1.5 bg-[#00c853] animate-pulse"></div>
-          <span className="text-[10px] uppercase">SYSTEM: STABLE</span>
-        </div>
-        <div className="flex gap-2">
-          <button className="text-zinc-500 hover:text-white p-1 cursor-pointer">
-            <span className="material-symbols-outlined">timer</span>
-          </button>
-          <button className="text-zinc-500 hover:text-white p-1 cursor-pointer">
-            <span className="material-symbols-outlined">account_tree</span>
-          </button>
-          <button className="text-zinc-500 hover:text-white p-1 cursor-pointer">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
+
+      {/* Right Zone */}
+      <div className="flex items-center gap-4 justify-end w-[380px]">
+        <span className="text-[#ffb000] font-bold text-[14px]">{ticker}</span>
+        <span className="text-[#505050]">|</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[#808080]">WS:</span>
+          {isMarketConnected && isTeamConnected ? (
+            <span className="text-[#00c853]">CONNECTED</span>
+          ) : (
+            <span className="text-[#ff3333] animate-pulse">RECONNECTING...</span>
+          )}
         </div>
       </div>
     </header>

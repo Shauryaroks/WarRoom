@@ -1,216 +1,95 @@
 "use client";
 
 import { useState } from "react";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { NewsItem } from "@/lib/models";
 
-interface NewsItem {
-  id: string;
-  timestamp: string;
-  type: "urgent" | "acquisition" | "info";
-  content: string;
-  headline?: string;
-}
+/**
+ * The RightSidebar ("The Wire") component provides a real-time feed of market news
+ * and system events. It supports filtering events by their source type.
+ *
+ * Subscribes to the WebSocket context to populate the `marketNews` items.
+ * 
+ * @returns The rendered news feed sidebar.
+ */
+export function RightSidebar() {
+  const [filter, setFilter] = useState<"ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM">("ALL");
+  const { marketNews: newsItems } = useWebSocket();
 
-interface RightSidebarProps {
-  newsItems?: NewsItem[];
-}
-
-const defaultNewsItems: NewsItem[] = [
-  {
-    id: "1",
-    timestamp: "14:22:01",
-    type: "urgent",
-    headline: "FED RATE DECISION",
-    content:
-      "Fed announces 0.25% rate hike. Markets reacting to hawk-ish stance.",
-  },
-  {
-    id: "2",
-    timestamp: "14:18:45",
-    type: "acquisition",
-    headline: "MERGER ALERT",
-    content:
-      "$APEX acquires logistics firm for $420M, stock surges 12% in pre-market.",
-  },
-  {
-    id: "3",
-    timestamp: "14:05:12",
-    type: "info",
-    headline: "EXPANSION NEWS",
-    content:
-      "Barbie Inc ($BRBE) announces Asian expansion plans following Q2 beat.",
-  },
-];
-
-export function RightSidebar({
-  newsItems = defaultNewsItems,
-}: RightSidebarProps) {
-  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
-
-  const getBorderColor = (type: NewsItem["type"]) => {
-    switch (type) {
-      case "urgent":
-        return "border-[#ff3333]";
-      case "acquisition":
-        return "border-[#00c853]";
-      default:
-        return "border-[#FFB000]";
+  const getTagStyle = (item: NewsItem) => {
+    switch (item.source_type) {
+      case "GLOBAL":
+      case "ADMIN_INJECTED":
+        return "bg-[#2a2a2a] text-white";
+      case "TEAM_ACTION":
+        return "bg-[#332200] text-[#ffb000]";
+      case "SYSTEM":
+        return "bg-[#002233] text-[#00d4ff]";
     }
   };
 
-  const getLabel = (type: NewsItem["type"]) => {
-    switch (type) {
-      case "urgent":
-        return "URGENT";
-      case "acquisition":
-        return "ACQUISITION";
-      default:
-        return null;
-    }
+  const getSentimentColor = (sentimentScore?: number | null) => {
+    if (sentimentScore === undefined || sentimentScore === null) return "text-[#808080]";
+    if (sentimentScore < 0) return "text-[#ff3333]";
+    if (sentimentScore > 0) return "text-[#00c853]";
+    return "text-[#808080]";
   };
 
   return (
-    <>
-      <aside className="w-72 bg-[#201f1f] flex flex-col border-l border-[#353534]">
-        <div className="p-3 bg-[#131313] border-b border-[#353534] flex items-center justify-between">
-          <span className="font-bold text-[10px] tracking-widest uppercase">
-            THE_WIRE
-          </span>
-          <span className="text-[9px] text-[#00c853]">LIVE_FEED</span>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-4">
-          {newsItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setSelectedNews(item)}
-              className={`w-full text-left border-l pl-3 py-1 cursor-pointer hover:bg-[#353534]/30 transition-colors ${getBorderColor(item.type)}`}
-            >
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[8px] text-zinc-500">
-                  {item.timestamp}
-                </span>
-                {getLabel(item.type) && (
-                  <span
-                    className={`text-[8px] font-bold ${item.type === "urgent" ? "text-[#ff3333]" : "text-[#00c853]"}`}
-                  >
-                    {getLabel(item.type)}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] leading-tight text-white normal-case">
-                {item.content}
-              </p>
-            </button>
-          ))}
-        </div>
-
-        <MarketHeatmap />
-        <SystemAdBlock />
-      </aside>
-
-      {/* News Modal */}
-      {selectedNews && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={() => setSelectedNews(null)}
+    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#e0e0e0]">
+      {/* Header */}
+      <div className="flex h-[40px] shrink-0 items-center justify-between px-4 border-b border-[#2a2a2a] bg-[#0a0a0a]">
+        <span className="uppercase text-[#ffb000] font-bold">THE WIRE</span>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as "ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM")}
+          className="bg-transparent border-none text-[#505050] hover:text-[#e0e0e0] focus:outline-none uppercase cursor-pointer"
         >
-          {/* Vignette overlay */}
-          <div
-            className="absolute inset-0 bg-black/80"
-            style={{
-              background:
-                "radial-gradient(circle, transparent 30%, rgba(0,0,0,0.9) 100%)",
-            }}
-          />
-
-          {/* Modal content */}
-          <div
-            className="relative bg-[#131313] border border-[#353534] p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] text-zinc-500">
-                {selectedNews.timestamp}
-              </span>
-              <button
-                onClick={() => setSelectedNews(null)}
-                className="text-zinc-500 hover:text-white cursor-pointer"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            {selectedNews.headline && (
-              <div
-                className={`text-xs font-bold uppercase mb-3 ${selectedNews.type === "urgent" ? "text-[#ff3333]" : selectedNews.type === "acquisition" ? "text-[#00c853]" : "text-[#FFB000]"}`}
-              >
-                {selectedNews.headline}
-              </div>
-            )}
-            <h2 className="text-lg font-bold text-[#FFB000] mb-4">
-              {selectedNews.content.split(".")[0]}.
-            </h2>
-            <p className="text-[11px] text-zinc-300 leading-relaxed">
-              {selectedNews.content.split(".").slice(1).join(".").trim() ||
-                "Full story details would appear here from the news wire."}
-            </p>
-            <div className="mt-6 pt-4 border-t border-[#353534] flex justify-between items-center">
-              <span className="text-[8px] text-zinc-500 uppercase">
-                SOURCE: MARKET_WIRE
-              </span>
-              <span className="text-[8px] text-[#00c853]">● LIVE</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function MarketHeatmap() {
-  const sectors = [
-    { name: "TECH", color: "bg-[#00c853]/40 border-[#00c853]/60" },
-    { name: "FIN", color: "bg-[#ff3333]/40 border-[#ff3333]/60" },
-    { name: "REIT", color: "bg-[#00c853]/20 border-[#00c853]/40" },
-    { name: "ENG", color: "bg-[#ff3333]/20 border-[#ff3333]/40" },
-    { name: "CONS", color: "bg-[#00c853]/50 border-[#00c853]/70" },
-  ];
-
-  return (
-    <div className="h-56 border-t border-[#353534] p-3 bg-black">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[9px] text-zinc-500 uppercase">
-          MARKET_HEATMAP
-        </span>
-        <span className="material-symbols-outlined text-zinc-600 text-[14px]">
-          grid_view
-        </span>
+          <option value="ALL">[ALL ▼]</option>
+          <option value="GLOBAL">[GLOBAL ▼]</option>
+          <option value="HOLDINGS">[HOLDINGS ▼]</option>
+          <option value="SYSTEM">[SYSTEM ▼]</option>
+        </select>
       </div>
-      <div
-        className="grid h-36"
-        style={{
-          gridTemplateColumns: "2fr 1fr 1fr",
-          gridTemplateRows: "1.5fr 1fr",
-        }}
-      >
-        {sectors.map((sector, i) => (
+
+      {/* News Feed */}
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {newsItems
+          .filter(
+            (item) =>
+              filter === "ALL" ||
+              item.source_type === filter ||
+              (filter === "HOLDINGS" && item.source_type === "TEAM_ACTION")
+          )
+          .map((item) => (
           <div
-            key={i}
-            className={`${sector.color} border flex items-center justify-center text-[8px] text-white ${sector.name === "TECH" || sector.name === "CONS" ? "font-bold" : ""}`}
+            key={item.id}
+            className="min-h-[60px] border-b border-[#1a1a1a] p-3 flex gap-3 hover:bg-[#141414] transition-colors"
           >
-            {sector.name}
+            <span className="text-[#505050] text-[11px] shrink-0 mt-0.5">
+              [{new Date(item.created_at).toLocaleTimeString()}]
+            </span>
+            <div className="flex flex-col flex-1 gap-1">
+              <span className="text-[13px] text-[#e0e0e0] leading-tight line-clamp-2">
+                <span
+                  className={`px-1 mr-2 text-[11px] font-bold uppercase inline-block ${getTagStyle(item)}`}
+                >
+                  [{item.source_type === "TEAM_ACTION" ? item.source_ticker : item.source_type}]
+                </span>
+                {item.headline}
+              </span>
+              <div className="flex gap-2 text-[10px] uppercase font-bold tracking-wider">
+                <span className="text-[#808080]">
+                  [{item.source_type === "TEAM_ACTION" ? "TECH" : "MACRO"}]
+                </span>
+                <span className={getSentimentColor(item.sentiment_score)}>
+                  [{item.sentiment_score === null ? "NEUTRAL" : item.sentiment_score! > 0 ? "BULLISH" : "BEARISH"}]
+                </span>
+              </div>
+            </div>
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function SystemAdBlock() {
-  return (
-    <div className="p-3 bg-[#131313] border-t border-[#353534]">
-      <div className="h-16 bg-black border border-[#353534] flex items-center justify-center text-[8px] text-zinc-600">
-        TERMINAL_V1_ADS_BLOCKED
-      </div>
-    </div>
+    </aside>
   );
 }

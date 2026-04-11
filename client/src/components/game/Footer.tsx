@@ -1,54 +1,50 @@
-interface StockTicker {
-  symbol: string;
-  change: string;
-  volume: string;
-}
+"use client";
 
-interface FooterProps {
-  ticker?: string;
-  tickers?: StockTicker[];
-}
+import React from "react";
+import { useGameContext } from "@/contexts/GameContext";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
-const defaultTickers: StockTicker[] = [
-  { symbol: "$CORP", change: "▲+2.41%", volume: "12.4M" },
-  { symbol: "$TECH", change: "▼-1.24%", volume: "890K" },
-  { symbol: "$SOLA", change: "▲+0.08%", volume: "2.1M" },
-];
+/**
+ * The Footer component displays a live-updating, scrolling ticker tape
+ * of stock prices and their 24h percentage changes.
+ * 
+ * Subscribes to the WebSocket context to receive real-time ticker updates.
+ * Clicking on a ticker opens the trade modal for that symbol.
+ *
+ * @returns The rendered scrolling ticker footer.
+ */
+export function Footer() {
+  const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
+  const { marketTickers: tickers } = useWebSocket();
 
-export function Footer({
-  ticker = "$XXX",
-  tickers = defaultTickers,
-}: FooterProps) {
-  const getChangeColor = (change: string) => {
-    return change.startsWith("▲") ? "text-[#00c853]" : "text-[#ff3333]";
+  const getChangeColor = (change: number) => {
+    return change > 0 ? "text-[#00c853]" : change < 0 ? "text-[#ff3333]" : "text-[#808080]";
+  };
+
+  const handleTickerClick = (symbol: string) => {
+    setSelectedTicker(symbol);
+    setIsTradeModalOpen(true);
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 w-full z-50 flex items-center justify-between px-4 bg-black h-6 border-t border-[#353534]">
-      <div className="flex gap-4 overflow-hidden items-center flex-1">
-        <div
-          className="flex items-center gap-6 whitespace-nowrap text-[9px] animate-[ticker_40s_linear_infinite]"
-          style={{ animation: "ticker 40s linear infinite" }}
-        >
-          <span className="text-[#FFB000] font-bold">
-            {ticker} <span className="text-[#00c853]">▲+2.41%</span>{" "}
-            <span className="text-zinc-600">[VOL: 12.4M]</span>
-          </span>
-          {tickers.map((t, i) => (
-            <span key={i} className="text-[#FFB000] font-bold">
-              {t.symbol}{" "}
-              <span className={getChangeColor(t.change)}>{t.change}</span>{" "}
-              <span className="text-zinc-600">[VOL: {t.volume}]</span>
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flex items-center gap-4 border-l border-[#353534] pl-4 h-full text-[8px] tracking-[0.1em]">
-        <div className="flex gap-3">
-          <span className="text-[#00c853]">MARKET_STATUS: ACTIVE</span>
-          <span className="text-zinc-500 uppercase">ENCRYPTION: AES_256</span>
-        </div>
-        <span className="text-zinc-600">SYSTEM_STABLE_v1.02_FIN</span>
+    <footer className="h-full w-full flex items-center overflow-hidden font-mono text-[13px] bg-black text-[#e0e0e0]">
+      <div className="flex items-center whitespace-nowrap animate-[ticker_40s_linear_infinite] hover:[animation-play-state:paused]">
+        {tickers.map((t, i) => (
+          <React.Fragment key={i}>
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:bg-[#1a1a1a] px-2 py-1 transition-colors"
+              onClick={() => handleTickerClick(t.ticker)}
+              title={t.ticker}
+            >
+              <span className="text-[#ffb000] font-bold">{t.ticker}</span>
+              <span className="text-white tabular-nums">{t.price.toFixed(2)}</span>
+              <span className={getChangeColor(t.change_24h)}>
+                {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : ""}{Math.abs(t.change_24h).toFixed(1)}%
+              </span>
+            </div>
+            <span className="text-[#2a2a2a] mx-2">|</span>
+          </React.Fragment>
+        ))}
       </div>
     </footer>
   );

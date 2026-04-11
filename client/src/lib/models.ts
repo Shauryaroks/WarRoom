@@ -9,14 +9,6 @@ export const TeamStatusSchema = z.enum([
 ]);
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;
 
-export const PortfolioTypeSchema = z.enum([
-  "Tech Startup",
-  "Legacy Manufacturer",
-  "D2C Disruptor",
-  "Conglomerate",
-]);
-export type PortfolioType = z.infer<typeof PortfolioTypeSchema>;
-
 export const SWOTProfileSchema = z.object({
   strengths: z.string(),
   weaknesses: z.string(),
@@ -25,246 +17,195 @@ export const SWOTProfileSchema = z.object({
 });
 export type SWOTProfile = z.infer<typeof SWOTProfileSchema>;
 
-export const PortfolioSchema = z.object({
-  id: z.string(),
-  name: PortfolioTypeSchema,
-  swot: SWOTProfileSchema,
-});
-export type Portfolio = z.infer<typeof PortfolioSchema>;
-
-export const TeamSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(3).max(50),
-  ticker: z.string().regex(/^\$[A-Z]{3,4}$/),
-  apiKey: z.string().uuid().optional(),
-  status: TeamStatusSchema,
-  portfolioId: z.string().nullable(),
-  swotProfile: SWOTProfileSchema.nullable(),
-  cash: z.number().default(1000000),
-  stockPrice: z.number().default(100),
-  sharesOutstanding: z.number().default(1000000),
-  publicFloat: z.number().default(100000),
-  maxTreasurySalePct: z.number().default(10),
-  cooldownUntil: z.string().datetime().nullable(),
-  liquidity: z.number().optional(),
-  marketCap: z.number().optional(),
-  lastDirective: z.string().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
-export type Team = z.infer<typeof TeamSchema>;
-
-export const ExtractionSchema = z.object({
-  pricingStrategy: z.string().nullable(),
-  pricingMagnitude: z.number().nullable(),
-  marketingSpend: z.number().nullable(),
-  rdSpend: z.number().nullable(),
-  expansionGeographic: z.string().nullable(),
-  treasuryAction: z
-    .object({
-      action: z.enum(["sell", "buy", "hold"]).nullable(),
-      percentage: z.number().nullable(),
-    })
-    .nullable(),
-  confidence: z.number().min(0).max(1),
-});
-export type Extraction = z.infer<typeof ExtractionSchema>;
-
-export const VibeScoresSchema = z.object({
-  consistency: z.number().min(0).max(1),
-  macroSensitivity: z.number().min(0).max(1),
-  aggression: z.number().min(0).max(1),
-  innovation: z.number().min(0).max(1),
-});
-export type VibeScores = z.infer<typeof VibeScoresSchema>;
-
-export const FinancialImpactSchema = z.object({
-  cashDelta: z.number(),
-  revenueDelta: z.number(),
-  cogsDelta: z.number(),
-  marketingCost: z.number(),
-  treasuryProceeds: z.number(),
-  netProfitDelta: z.number(),
-  explanation: z.string(),
-});
-export type FinancialImpact = z.infer<typeof FinancialImpactSchema>;
-
-export const BoardFeedbackSchema = z.object({
-  tone: z.enum(["supportive", "neutral", "skeptical", "critical"]),
-  narrative: z.string(),
-  headline: z.string().max(120),
-});
-export type BoardFeedback = z.infer<typeof BoardFeedbackSchema>;
-
-export const DirectiveStatusSchema = z.enum([
-  "PROCESSING",
-  "COMPLETED",
-  "FAILED",
-]);
-export type DirectiveStatus = z.infer<typeof DirectiveStatusSchema>;
-
-export const DirectiveSchema = z.object({
-  id: z.string().uuid(),
-  teamId: z.string().uuid(),
-  rawMarkdown: z.string(),
-  characterCount: z.number(),
-  extractionConfidence: z.number().min(0).max(1).nullable(),
-  vibeScores: VibeScoresSchema.nullable(),
-  financialImpact: FinancialImpactSchema.nullable(),
-  boardFeedback: BoardFeedbackSchema.nullable(),
-  publicHeadline: z.string().max(120).nullable(),
-  status: DirectiveStatusSchema,
-  errorMessage: z.string().nullable(),
-  processingTimeMs: z.number().nullable(),
-  createdAt: z.string().datetime(),
-  completedAt: z.string().datetime().nullable(),
-});
-export type Directive = z.infer<typeof DirectiveSchema>;
-
-export const TransactionTypeSchema = z.enum([
-  "MARKET_BUY",
-  "MARKET_SELL",
-  "TREASURY_SALE",
-]);
-export type TransactionType = z.infer<typeof TransactionTypeSchema>;
-
-export const TransactionSchema = z.object({
-  id: z.string().uuid(),
-  buyerTeamId: z.string().uuid().nullable(),
-  sellerTeamId: z.string().uuid().nullable(),
-  targetTeamId: z.string().uuid(),
-  shares: z.number(),
-  pricePerShare: z.number(),
-  totalValue: z.number(),
-  transactionType: TransactionTypeSchema,
-  executedAt: z.string().datetime(),
-});
-export type Transaction = z.infer<typeof TransactionSchema>;
-
-export const StockHoldingSchema = z.object({
-  id: z.string().uuid(),
-  ownerTeamId: z.string().uuid(),
-  targetTeamId: z.string().uuid(),
-  sharesOwned: z.number(),
-  averageCostBasis: z.number(),
-  updatedAt: z.string().datetime(),
-});
-export type StockHolding = z.infer<typeof StockHoldingSchema>;
-
-export const NewsSourceTypeSchema = z.enum(["GLOBAL", "TEAM_ACTION", "SYSTEM"]);
-export type NewsSourceType = z.infer<typeof NewsSourceTypeSchema>;
-
-export const NewsItemSchema = z.object({
-  id: z.string().uuid(),
-  headline: z.string().max(120),
-  content: z.string().nullable(),
-  sourceType: NewsSourceTypeSchema,
-  sourceTeamId: z.string().uuid().nullable(),
-  metadata: z
-    .object({
-      ticker: z.string(),
-      priceChange: z.number().optional(),
-    })
-    .optional(),
-  createdAt: z.string().datetime(),
-});
-export type NewsItem = z.infer<typeof NewsItemSchema>;
-
-export const MarketTickerSchema = z.object({
+export const TeamProfileSchema = z.object({
+  team_id: z.string().uuid(),
+  name: z.string(),
   ticker: z.string(),
-  price: z.number(),
-  changePct: z.number(),
-  volume: z.number(),
+  status: TeamStatusSchema,
+  swot: SWOTProfileSchema.optional(),
+  portfolio_id: z.string().optional(),
 });
-export type MarketTicker = z.infer<typeof MarketTickerSchema>;
+export type TeamProfile = z.infer<typeof TeamProfileSchema>;
 
 export const TeamFinancialsSchema = z.object({
   cash: z.number(),
+  stock_price: z.number(),
+  market_cap: z.number(),
   liquidity: z.number(),
-  stockPrice: z.number(),
-  marketCap: z.number(),
-  holdings: z.array(
-    z.object({
-      ticker: z.string(),
-      shares: z.number(),
-      currentValue: z.number(),
-    }),
-  ),
+  treasury_sale_limit_remaining: z.number(),
 });
 export type TeamFinancials = z.infer<typeof TeamFinancialsSchema>;
 
+export const StockHoldingSchema = z.object({
+  ticker: z.string(),
+  shares: z.number(),
+  current_price: z.number(),
+  current_value: z.number(),
+  cost_basis: z.number(),
+  unrealized_pnl: z.number(),
+  ownership_percentage: z.number(),
+});
+export type StockHolding = z.infer<typeof StockHoldingSchema>;
+
+export const PortfolioSchema = z.object({
+  holdings: z.array(StockHoldingSchema),
+  total_portfolio_value: z.number(),
+  total_unrealized_pnl: z.number(),
+});
+export type Portfolio = z.infer<typeof PortfolioSchema>;
+
+export const DirectiveSummarySchema = z.object({
+  id: z.string().uuid(),
+  headline: z.string(),
+  feedback: z.string(),
+  submitted_at: z.string(),
+  status: z.enum(["PROCESSING", "COMPLETED", "FAILED"]),
+});
+export type DirectiveSummary = z.infer<typeof DirectiveSummarySchema>;
+
+export const CooldownStatusSchema = z.object({
+  active: z.boolean(),
+  started_at: z.string().optional(),
+  ends_at: z.string().optional(),
+  seconds_remaining: z.number().optional(),
+});
+export type CooldownStatus = z.infer<typeof CooldownStatusSchema>;
+
+export const TeamDossierSchema = z.object({
+  profile: TeamProfileSchema,
+  financials: TeamFinancialsSchema,
+  portfolio: PortfolioSchema,
+  last_directive: DirectiveSummarySchema.optional(),
+  cooldown_status: CooldownStatusSchema,
+});
+export type TeamDossier = z.infer<typeof TeamDossierSchema>;
+
+export const DirectiveWithFeedbackSchema = DirectiveSummarySchema.extend({
+  raw_markdown: z.string().optional(),
+  character_count: z.number().optional(),
+  extraction_confidence: z.number().optional(),
+  vibe_scores: z
+    .object({
+      consistency: z.number(),
+      macro_sensitivity: z.number(),
+      aggression: z.number(),
+      innovation: z.number(),
+    })
+    .optional(),
+  financial_impact: z
+    .object({
+      cash_delta: z.number(),
+      revenue_delta: z.number(),
+      net_profit_impact: z.number(),
+    })
+    .optional(),
+});
+export type DirectiveWithFeedback = z.infer<typeof DirectiveWithFeedbackSchema>;
+
+export const TeamSummarySchema = z.object({
+  team_id: z.string().uuid(),
+  name: z.string(),
+  ticker: z.string(),
+  status: TeamStatusSchema,
+  stock_price: z.number(),
+  market_cap: z.number(),
+  portfolio_id: z.string(),
+  eliminated_at: z.string().nullable().optional(),
+  rank_at_elimination: z.number().nullable().optional(),
+});
+export type TeamSummary = z.infer<typeof TeamSummarySchema>;
+
+export const OrderSchema = z.object({
+  id: z.string().uuid(),
+  side: z.enum(["BUY", "SELL"]),
+  target_ticker: z.string(),
+  shares: z.number(),
+  shares_filled: z.number(),
+  price_per_share: z.number().nullable(),
+  status: z.enum(["PENDING", "PARTIAL", "FILLED", "CANCELLED", "FAILED"]),
+  failure_reason: z.string().nullable().optional(),
+  total_value: z.number().nullable(),
+  created_at: z.string(),
+  executed_at: z.string().nullable().optional(),
+});
+export type Order = z.infer<typeof OrderSchema>;
+
+export const TickerSnapshotSchema = z.object({
+  ticker: z.string(),
+  price: z.number(),
+  change_24h: z.number(),
+  change_absolute: z.number(),
+  volume_24h: z.number(),
+  market_cap: z.number(),
+  status: z.enum(["ACTIVE", "COOLDOWN", "HALTED", "ELIMINATED"]),
+});
+export type TickerSnapshot = z.infer<typeof TickerSnapshotSchema>;
+
+export const NewsItemSchema = z.object({
+  id: z.string().uuid(),
+  headline: z.string(),
+  content: z.string().nullable().optional(),
+  source_type: z.enum(["GLOBAL", "TEAM_ACTION", "SYSTEM", "ADMIN_INJECTED"]),
+  source_ticker: z.string().nullable().optional(),
+  sentiment_score: z.number().nullable().optional(),
+  affected_sectors: z.array(z.string()).optional(),
+  affected_tickers: z.array(z.string()).optional(),
+  created_at: z.string(),
+  relevance_decay: z.number().optional(),
+});
+export type NewsItem = z.infer<typeof NewsItemSchema>;
+
+export const GameStateSchema = z.object({
+  status: z.enum(["SETUP", "ACTIVE", "PAUSED", "FINISHED"]),
+  server_time: z.string(),
+  started_at: z.string().nullable().optional(),
+  elapsed_seconds: z.number().optional(),
+  next_purge_at: z.string().nullable().optional(),
+  current_round: z.number().optional(),
+  teams_remaining: z.number().optional(),
+  total_llm_cost_usd: z.number().optional(),
+  llm_queue_depth: z.number().optional(),
+});
+export type GameState = z.infer<typeof GameStateSchema>;
+
+export const AdminMetricsSchema = z.object({
+  active_teams: z.number(),
+  total_teams: z.number(),
+  teams_by_status: z.record(z.string(), z.number()),
+  aggregate_liquidity: z.number(),
+  avg_market_cap: z.number(),
+  market_cap_change_24h: z.number(),
+  llm_queue_depth: z.number(),
+  session_cost_usd: z.number(),
+});
+export type AdminMetrics = z.infer<typeof AdminMetricsSchema>;
+
 export const LLMStatsSchema = z.object({
-  avgResponse: z.string(),
-  confidence: z.string(),
-  blocked: z.number(),
-  queueLength: z.number().optional(),
+  total_requests: z.number(),
+  total_cost_usd: z.number(),
+  avg_latency_ms: z.number(),
+  error_rate: z.number(),
+  by_model: z.array(
+    z.object({
+      model: z.string(),
+      requests: z.number(),
+      cost_usd: z.number(),
+      avg_latency_ms: z.number(),
+    })
+  ).optional(),
 });
 export type LLMStats = z.infer<typeof LLMStatsSchema>;
 
 export const MarketStatsSchema = z.object({
-  volIndex: z.number(),
-  mostTraded: z.string(),
-  pending: z.number(),
-  totalLiquidity: z.number().optional(),
+  total_trades: z.number(),
+  trades_last_hour: z.number(),
+  volume_by_ticker: z.record(z.string(), z.number()),
+  anomaly_alerts: z.array(
+    z.object({
+      type: z.enum(["PRICE_DIVERGENCE", "RAPID_TRADING", "COLLUSION_PATTERN"]),
+      ticker: z.string(),
+      description: z.string(),
+    })
+  ).optional(),
 });
 export type MarketStats = z.infer<typeof MarketStatsSchema>;
-
-export const AdminMetricsSchema = z.object({
-  activeTeams: z.number(),
-  totalTeams: z.number(),
-  aggregateLiquidity: z.number(),
-  avgMarketCap: z.number(),
-  marketCapChange: z.number(),
-  llmQueue: z.number(),
-  sessionCost: z.number(),
-});
-export type AdminMetrics = z.infer<typeof AdminMetricsSchema>;
-
-export const SectorHeatmapSchema = z.object({
-  name: z.string(),
-  change: z.number(),
-});
-export type SectorHeatmap = z.infer<typeof SectorHeatmapSchema>;
-
-export const GameStateSchema = z.object({
-  status: z.enum(["SETUP", "ACTIVE", "PAUSED", "ENDED"]),
-  sessionStartTime: z.string().datetime().nullable(),
-  nextPurgeTime: z.string().datetime().nullable(),
-  currentPhase: z.string().nullable(),
-  survivingTeams: z.number().optional(),
-});
-export type GameState = z.infer<typeof GameStateSchema>;
-
-export const RegisterRequestSchema = z.object({
-  teamName: z.string().min(3).max(50),
-  ticker: z.string().regex(/^[A-Z]{3,4}$/),
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
-
-export const DirectiveSubmitRequestSchema = z.object({
-  directiveMarkdown: z.string().max(2000),
-  playerConfidenceRating: z.number().min(0).max(1).optional(),
-});
-export type DirectiveSubmitRequest = z.infer<
-  typeof DirectiveSubmitRequestSchema
->;
-
-export const TradeRequestSchema = z.object({
-  action: z.enum(["buy", "sell"]),
-  targetTicker: z.string(),
-  shares: z.number().positive(),
-});
-export type TradeRequest = z.infer<typeof TradeRequestSchema>;
-
-export const NewsInjectRequestSchema = z.object({
-  headline: z.string().max(120),
-  impact: z.enum(["bullish", "bearish"]),
-});
-export type NewsInjectRequest = z.infer<typeof NewsInjectRequestSchema>;
-
-export const PurgeRequestSchema = z.object({
-  confirmText: z.literal("PURGE"),
-});
-export type PurgeRequest = z.infer<typeof PurgeRequestSchema>;
