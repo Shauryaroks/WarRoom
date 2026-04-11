@@ -194,29 +194,52 @@ export const TeamFinancialsSchema = z.object({
 export type TeamFinancials = z.infer<typeof TeamFinancialsSchema>;
 
 export const LLMStatsSchema = z.object({
-  avgResponse: z.string(),
-  confidence: z.string(),
-  blocked: z.number(),
-  queueLength: z.number().optional(),
+  totalRequests: z.number(),
+  totalCostUsd: z.number(),
+  avgLatencyMs: z.number(),
+  errorRate: z.number(),
+  byModel: z
+    .array(
+      z.object({
+        model: z.string(),
+        requests: z.number(),
+        costUsd: z.number(),
+        avgLatencyMs: z.number(),
+      }),
+    )
+    .optional(),
 });
 export type LLMStats = z.infer<typeof LLMStatsSchema>;
 
 export const MarketStatsSchema = z.object({
-  volIndex: z.number(),
-  mostTraded: z.string(),
-  pending: z.number(),
-  totalLiquidity: z.number().optional(),
+  totalTrades: z.number(),
+  tradesLastHour: z.number(),
+  volumeByTicker: z.record(z.string(), z.number()),
+  anomalyAlerts: z
+    .array(
+      z.object({
+        type: z.enum([
+          "PRICE_DIVERGENCE",
+          "RAPID_TRADING",
+          "COLLUSION_PATTERN",
+        ]),
+        ticker: z.string(),
+        description: z.string(),
+      }),
+    )
+    .optional(),
 });
 export type MarketStats = z.infer<typeof MarketStatsSchema>;
 
 export const AdminMetricsSchema = z.object({
   activeTeams: z.number(),
   totalTeams: z.number(),
+  teamsByStatus: z.record(z.string(), z.number()),
   aggregateLiquidity: z.number(),
   avgMarketCap: z.number(),
-  marketCapChange: z.number(),
-  llmQueue: z.number(),
-  sessionCost: z.number(),
+  marketCapChange24h: z.number(),
+  llmQueueDepth: z.number(),
+  sessionCostUsd: z.number(),
 });
 export type AdminMetrics = z.infer<typeof AdminMetricsSchema>;
 

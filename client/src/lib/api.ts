@@ -1,6 +1,5 @@
 import type {
   Team,
-  TeamStatus,
   TeamFinancials,
   Directive,
   DirectiveSubmitRequest,
@@ -16,18 +15,6 @@ import type {
   RegisterRequest,
   TradeRequest,
   NewsInjectRequest,
-  SectorHeatmap as SectorHeatmapType,
-} from "./models";
-import {
-  PortfolioSchema,
-  TeamStatusSchema,
-  NewsSourceTypeSchema,
-  TeamSchema,
-  DirectiveSchema,
-  GameStateSchema,
-  AdminMetricsSchema,
-  LLMStatsSchema,
-  MarketStatsSchema,
 } from "./models";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -283,25 +270,44 @@ const mockGameState: GameState = {
 const mockAdminMetrics: AdminMetrics = {
   activeTeams: 42,
   totalTeams: 50,
+  teamsByStatus: { ACTIVE: 42, PENDING: 8 },
   aggregateLiquidity: 4200000000,
   avgMarketCap: 350000000,
-  marketCapChange: 2.4,
-  llmQueue: 3,
-  sessionCost: 4.23,
+  marketCapChange24h: 2.4,
+  llmQueueDepth: 3,
+  sessionCostUsd: 4.23,
 };
 
 const mockLLMStats: LLMStats = {
-  avgResponse: "1.2S",
-  confidence: "87%",
-  blocked: 2,
-  queueLength: 3,
+  totalRequests: 1240,
+  totalCostUsd: 4.23,
+  avgLatencyMs: 1200,
+  errorRate: 0.05,
+  byModel: [
+    {
+      model: "claude-3-haiku",
+      requests: 1240,
+      costUsd: 4.23,
+      avgLatencyMs: 1200,
+    },
+  ],
 };
 
 const mockMarketStats: MarketStats = {
-  volIndex: 12.4,
-  mostTraded: "$APEX",
-  pending: 3,
-  totalLiquidity: 4200000000,
+  totalTrades: 4200,
+  tradesLastHour: 350,
+  volumeByTicker: {
+    $APEX: 1500000,
+    $BRBE: 1200000,
+  },
+  anomalyAlerts: [
+    {
+      type: "RAPID_TRADING",
+      ticker: "$APEX",
+      description:
+        "High volume of small trades detected in the last 5 minutes.",
+    },
+  ],
 };
 
 const mockTeamFinancials: TeamFinancials = {
@@ -315,9 +321,9 @@ const mockTeamFinancials: TeamFinancials = {
   ],
 };
 
-let teams = [...mockTeams];
-let directives: Directive[] = [];
-let newsItems = [...mockNewsItems];
+const teams = [...mockTeams];
+const directives: Directive[] = [];
+const newsItems = [...mockNewsItems];
 let gameState = { ...mockGameState };
 
 export const api = {
@@ -367,20 +373,16 @@ export const api = {
     return TeamSchema.parse(newTeam);
   },
 
-  async approveTeam(
-    teamId: string,
-    portfolioType: PortfolioType,
-  ): Promise<Team> {
+  async approveTeam(teamId: string, portfolioId: string): Promise<Team> {
     await delay(300);
     const idx = teams.findIndex((t) => t.id === teamId);
     if (idx === -1) throw new Error("Team not found");
 
-    const portfolio = mockPortfolios[portfolioType];
     teams[idx] = {
       ...teams[idx],
       status: "ACTIVE",
-      portfolioId: portfolio.id,
-      swotProfile: portfolio.swot,
+      portfolioId: portfolioId,
+      swotProfile: null, // Removed mock port
       cash: 1000000,
       stockPrice: 100,
     };
@@ -541,22 +543,22 @@ export const api = {
     return newItem;
   },
 
-  async getAdminMetrics(): Promise<AdminMetrics> {
+  async adminGetMetrics(): Promise<AdminMetrics> {
     await delay(100);
     const activeTeams = teams.filter((t) => t.status === "ACTIVE").length;
     return {
       ...mockAdminMetrics,
       activeTeams,
-      llmQueue: directives.filter((d) => d.status === "PROCESSING").length,
+      llmQueueDepth: directives.filter((d) => d.status === "PROCESSING").length,
     };
   },
 
-  async getLLMStats(): Promise<LLMStats> {
+  async adminGetLLMStats(): Promise<LLMStats> {
     await delay(50);
     return mockLLMStats;
   },
 
-  async getMarketStats(): Promise<MarketStats> {
+  async adminGetMarketStats(): Promise<MarketStats> {
     await delay(50);
     return mockMarketStats;
   },

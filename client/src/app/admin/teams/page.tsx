@@ -1,69 +1,108 @@
 "use client";
 
-import { useState } from "react";
-
-const mockTeams = [
-  {
-    id: 1,
-    name: "BARBIE INC",
-    ticker: "$BARB",
-    status: "ACTIVE",
-    liquidity: "$124.5M",
-    mktCap: "$540.0M",
-  },
-  {
-    id: 2,
-    name: "STARK_INDUSTRIES",
-    ticker: "$STRK",
-    status: "PENDING",
-    liquidity: "$0.00",
-    mktCap: "$0.00",
-  },
-  {
-    id: 3,
-    name: "WAYNE_CORP",
-    ticker: "$WAYN",
-    status: "COOLDOWN",
-    liquidity: "$89.2M",
-    mktCap: "$210.0M",
-  },
-  {
-    id: 4,
-    name: "ACME_CO",
-    ticker: "$ACME",
-    status: "ELIMINATED",
-    liquidity: "$0.0M",
-    mktCap: "$0.0M",
-  },
-];
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { Team } from "@/lib/models";
 
 export default function TeamsPage() {
   const [filter, setFilter] = useState("ALL");
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTeams = mockTeams.filter(
-    (t) => filter === "ALL" || t.status === filter,
-  );
+  // For native HTML select of portfolios
+  const [selectedPortfolios, setSelectedPortfolios] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    fetchData();
+  }, [filter]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const fetchedTeams = await api.getTeams(filter.toLowerCase());
+      setTeams(fetchedTeams);
+
+      // Initialize selected portfolios for pending teams
+      const initialPorts: Record<string, string> = {};
+      fetchedTeams.forEach((t) => {
+        if (t.status === "PENDING") {
+          initialPorts[t.id] = "PORT_TECH_01";
+        }
+      });
+      setSelectedPortfolios((prev) => ({ ...initialPorts, ...prev }));
+    } catch (err) {
+      console.error("Failed to fetch data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (teamId: string) => {
+    const portfolioId = selectedPortfolios[teamId] || "PORT_TECH_01";
+    if (!portfolioId) return;
+    try {
+      await api.approveTeam(teamId, portfolioId);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReject = async (teamId: string) => {
+    try {
+      await api.rejectTeam(teamId);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBankrupt = async (teamId: string) => {
+    try {
+      await api.forceBankruptTeam(teamId);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      notation: "compact",
+    }).format(val);
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans">
-      <header className="flex justify-between items-center pb-4 border-b border-gray-200">
+    <div className="space-y-4 max-w-7xl mx-auto p-4">
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-[#111] p-4 border border-[#2a2a2a] rounded-[6px] gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            Team Management
+          <h1 className="text-xl text-gray-200 font-['Inter',sans-serif]">
+            Approvals & Management
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1 font-['Inter',sans-serif]">
             Manage active operators and enforce market rules.
           </p>
         </div>
-        <div className="flex bg-gray-100 p-1 rounded-lg">
-          {["ALL", "ACTIVE", "PENDING", "COOLDOWN", "ELIMINATED"].map((f) => (
+        <div className="flex flex-wrap gap-2">
+          {[
+            "ALL",
+            "PENDING",
+            "ACTIVE",
+            "COOLDOWN",
+            "BANKRUPT",
+            "ELIMINATED",
+          ].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded transition-colors font-['Inter',sans-serif] ${
                 filter === f
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-[#ffb000] text-black"
+                  : "bg-[#2a2a2a] text-gray-400 hover:text-gray-200"
               }`}
             >
               {f}
@@ -72,94 +111,134 @@ export default function TeamsPage() {
         </div>
       </header>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Team
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Ticker
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+      <div className="bg-[#111] rounded-[6px] border border-[#2a2a2a] overflow-x-auto">
+        <table className="min-w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-[#2a2a2a] text-gray-500 text-xs uppercase tracking-wider font-['Inter',sans-serif] h-12">
+              <th className="px-4 font-medium">Team</th>
+              <th className="px-4 font-medium">Ticker</th>
+              <th className="px-4 font-medium">Status</th>
+              <th className="px-4 font-medium hidden sm:table-cell">
                 Liquidity
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-4 font-medium hidden sm:table-cell">
                 Market Cap
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Actions
-              </th>
+              <th className="px-4 font-medium text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredTeams.map((team) => (
-              <tr key={team.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="font-semibold text-gray-900">{team.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-mono text-gray-600 font-bold">
-                    {team.ticker}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      team.status === "ACTIVE"
-                        ? "bg-green-100 text-green-800"
-                        : team.status === "ELIMINATED"
-                          ? "bg-red-100 text-red-800"
-                          : team.status === "COOLDOWN"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {team.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {team.liquidity}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {team.mktCap}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors font-semibold">
-                    Bankrupt
-                  </button>
+          <tbody className="divide-y divide-[#2a2a2a]">
+            {loading ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-8 text-center text-gray-500 font-['JetBrains_Mono',monospace]"
+                >
+                  LOADING_DATA...
                 </td>
               </tr>
-            ))}
+            ) : teams.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-8 text-center text-gray-500 font-['Inter',sans-serif]"
+                >
+                  No teams found.
+                </td>
+              </tr>
+            ) : (
+              teams.map((team, idx) => (
+                <tr
+                  key={team.id}
+                  className={`h-[56px] transition-colors ${
+                    idx % 2 === 0 ? "bg-[#111]" : "bg-[#161616]"
+                  } hover:bg-[#1a1a1a]`}
+                >
+                  <td className="px-4 whitespace-nowrap text-gray-200 font-['Inter',sans-serif] text-sm">
+                    {team.name}
+                  </td>
+                  <td className="px-4 whitespace-nowrap text-white font-['JetBrains_Mono',monospace] text-sm">
+                    {team.ticker}
+                  </td>
+                  <td className="px-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-0.5 text-xs font-bold rounded-sm font-['JetBrains_Mono',monospace] ${
+                        team.status === "ACTIVE"
+                          ? "bg-[#00c853]/20 text-[#00c853]"
+                          : team.status === "ELIMINATED" ||
+                              team.status === "BANKRUPT"
+                            ? "bg-[#ff3333]/20 text-[#ff3333]"
+                            : team.status === "COOLDOWN"
+                              ? "bg-[#ffb000]/20 text-[#ffb000]"
+                              : "bg-[#2a2a2a] text-gray-400"
+                      }`}
+                    >
+                      [{team.status}]
+                    </span>
+                  </td>
+                  <td className="px-4 whitespace-nowrap text-gray-400 font-['JetBrains_Mono',monospace] text-sm tabular-nums hidden sm:table-cell">
+                    {team.status === "PENDING"
+                      ? "---"
+                      : formatCurrency(team.liquidity || 0)}
+                  </td>
+                  <td className="px-4 whitespace-nowrap text-gray-400 font-['JetBrains_Mono',monospace] text-sm tabular-nums hidden sm:table-cell">
+                    {team.status === "PENDING"
+                      ? "---"
+                      : formatCurrency(team.marketCap || 0)}
+                  </td>
+                  <td className="px-4 whitespace-nowrap text-right space-x-2">
+                    {team.status === "PENDING" && (
+                      <div className="flex justify-end items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. PORT_TECH_01"
+                          className="bg-[#0a0a0a] border border-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-[#ffb000] font-['JetBrains_Mono',monospace] w-[130px]"
+                          value={selectedPortfolios[team.id] || ""}
+                          onChange={(e) =>
+                            setSelectedPortfolios({
+                              ...selectedPortfolios,
+                              [team.id]: e.target.value,
+                            })
+                          }
+                        />
+                        <button
+                          onClick={() => handleApprove(team.id)}
+                          className="p-1.5 rounded bg-[#00c853]/10 text-[#00c853] hover:bg-[#00c853]/20 transition-colors"
+                          title="Approve"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            check
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleReject(team.id)}
+                          className="p-1.5 rounded bg-[#ff3333]/10 text-[#ff3333] hover:bg-[#ff3333]/20 transition-colors"
+                          title="Reject"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            close
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                    {(team.status === "ACTIVE" ||
+                      team.status === "COOLDOWN") && (
+                      <button
+                        onClick={() => handleBankrupt(team.id)}
+                        className="p-1.5 rounded bg-[#ff3333]/10 text-[#ff3333] hover:bg-[#ff3333]/20 transition-colors inline-flex items-center gap-1"
+                        title="Force Bankrupt"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          block
+                        </span>
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
-        {filteredTeams.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            No teams found matching filter: {filter}
-          </div>
-        )}
       </div>
     </div>
   );
