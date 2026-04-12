@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import AsyncSessionLocal
+from app.database import get_worker_session
 from app.models import (
     CashLedger,
     StockHolding,
@@ -26,7 +26,7 @@ def resolve_bankruptcy_task(team_id: str):
 
 
 async def _resolve_bankruptcy_async(team_id: str):
-    async with AsyncSessionLocal() as db:
+    async with get_worker_session() as db:
         team = await db.get(Team, uuid.UUID(team_id))
         if not team or team.status != TeamStatus.BANKRUPT:
             return
@@ -167,7 +167,7 @@ def periodic_bankruptcy_check():
 
 
 async def _periodic_bankruptcy_check_async():
-    async with AsyncSessionLocal() as db:
+    async with get_worker_session() as db:
         # Check teams already in BANKRUPT state
         stmt = select(Team).where(
             Team.status == TeamStatus.BANKRUPT,

@@ -390,7 +390,7 @@ class GameState(Base):
 
     # LLM Configuration
     llm_model: Mapped[str] = mapped_column(
-        String(50), default="grok-3-mini"
+        String(50), default="nvidia/nemotron-3-super-120b-a12b:free"
     )
     llm_max_tokens: Mapped[int] = mapped_column(Integer, default=2000)
     llm_temperature: Mapped[float] = mapped_column(default=0.7)

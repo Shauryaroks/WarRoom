@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import AsyncSessionLocal
+from app.database import get_worker_session
 from app.models import (
     Directive,
     PriceHistory,
@@ -27,7 +27,7 @@ def recalculate_price_task(self, team_id: str):
 
 
 async def _recalculate_price_async(team_id: str):
-    async with AsyncSessionLocal() as db:
+    async with get_worker_session() as db:
         team = await db.get(Team, uuid.UUID(team_id))
         if not team or team.status == TeamStatus.ELIMINATED:
             return
@@ -180,7 +180,7 @@ def periodic_price_sweep():
 
 
 async def _periodic_price_sweep_async():
-    async with AsyncSessionLocal() as db:
+    async with get_worker_session() as db:
         stmt = select(Team).where(
             Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN])
         )

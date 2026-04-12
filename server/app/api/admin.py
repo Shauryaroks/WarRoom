@@ -121,7 +121,7 @@ async def get_llm_stats(
         "error_rate": float(failed / total_directives) if total_directives else 0.0,
         "by_model": [
             {
-                "model": gs.llm_model if gs else "grok-3-mini",
+                "model": gs.llm_model if gs else "nvidia/nemotron-3-super-120b-a12b:free",
                 "requests": total_directives or 0,
                 "cost_usd": total_cost,
                 "avg_latency_ms": avg_latency,
