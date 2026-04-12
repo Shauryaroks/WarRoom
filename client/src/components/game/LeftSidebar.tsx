@@ -4,103 +4,112 @@ import { useState } from "react";
 import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 
-/**
- * The LeftSidebar component serves as the player's primary ledger and dashboard.
- * It displays their current net worth, available cash, liquidity score, and
- * a real-time updating portfolio table.
- *
- * Subscribes to the WebSocket context for live dossier updates.
- *
- * @returns The rendered ledger sidebar component.
- */
 export function LeftSidebar() {
-  const [activeTab, setActiveTab] = useState<
-    "portfolio" | "market" | "history"
-  >("portfolio");
-  const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
+  const [activeTab, setActiveTab] = useState<"portfolio" | "market" | "history">("portfolio");
+  const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } = useGameContext();
   const { dossier } = useWebSocket();
 
-  const handleTradeClick = (symbol: string) => {
+  const handleTradeClick = (symbol: string, presetShares?: number) => {
     setSelectedTicker(symbol);
+    if (presetShares !== undefined) {
+      setTradePreset(presetShares);
+    } else {
+      setTradePreset(null);
+    }
     setIsTradeModalOpen(true);
   };
 
+  const cash = dossier?.financials.cash || 0;
+  const stockPrice = dossier?.financials.stock_price || 0;
+  const marketCap = dossier?.financials.market_cap || 0;
+  const totalValue = dossier?.portfolio.total_portfolio_value || 0;
+  const liquidity = cash + 0.5 * totalValue;
+
   return (
-    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#e0e0e0]">
+    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#e0e0e0] border-r border-[#ffb000]">
       {/* Tab Navigation */}
-      <div className="flex h-[40px] border-b border-[#2a2a2a]">
+      <div className="flex h-[40px] border-b border-[#ffb000]">
         <button
           onClick={() => setActiveTab("portfolio")}
-          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "portfolio" ? "border-b-2 border-[#0077b6] text-[#0077b6]" : "text-[#505050] hover:text-[#808080]"}`}
+          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "portfolio" ? "bg-[#ffb000] text-black font-bold" : "text-[#e0e0e0] hover:bg-[#1a1a1a]"}`}
         >
-          <span>[1 PORTFOLIO]</span>
+          <span>[PORTFOLIO]</span>
         </button>
         <button
           onClick={() => setActiveTab("market")}
-          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "market" ? "border-b-2 border-[#0077b6] text-[#0077b6]" : "text-[#505050] hover:text-[#808080]"}`}
+          className={`flex-1 flex justify-center items-center gap-1 uppercase border-l border-[#ffb000] ${activeTab === "market" ? "bg-[#ffb000] text-black font-bold" : "text-[#e0e0e0] hover:bg-[#1a1a1a]"}`}
         >
-          <span>[2 MARKET]</span>
+          <span>[MARKET]</span>
         </button>
         <button
           onClick={() => setActiveTab("history")}
-          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "history" ? "border-b-2 border-[#0077b6] text-[#0077b6]" : "text-[#505050] hover:text-[#808080]"}`}
+          className={`flex-1 flex justify-center items-center gap-1 uppercase border-l border-[#ffb000] ${activeTab === "history" ? "bg-[#ffb000] text-black font-bold" : "text-[#e0e0e0] hover:bg-[#1a1a1a]"}`}
         >
-          <span>[3 HISTORY]</span>
+          <span>[HISTORY]</span>
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col">
         {activeTab === "portfolio" && (
           <>
-            {/* Net Worth Header */}
-            <div className="p-4 border-b border-[#2a2a2a] whitespace-pre font-mono text-[12px] leading-tight text-[#0077b6]">
-              {`┌────────────────────────────────────┐
-│ NET WORTH            $${(dossier?.financials.cash || 0).toLocaleString()} │
-│ ▲ +12.4% ▲ $137,000      [REFRESH] │
-├────────────────────────────────────┤
-│ CASH                   $${(dossier?.financials.cash || 0).toLocaleString()} │
-│ MARGIN USED                  12.5% │
-│ LIQUIDITY SCORE          ${(dossier?.financials.liquidity || 0).toLocaleString()} │
-└────────────────────────────────────┘`}
+            {/* Ledger Header */}
+            <div className="p-4 border-b border-[#ffb000] font-mono text-[12px] leading-tight text-[#ffb000]">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div className="flex justify-between"><span>CASH:</span><span>${cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                <div className="flex justify-between"><span>LIQUIDITY:</span><span>${liquidity.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                <div className="flex justify-between"><span>STOCK P:</span><span>${stockPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                <div className="flex justify-between"><span>MKT CAP:</span><span>${marketCap.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+              </div>
             </div>
 
             {/* Holdings Table */}
             <div className="flex-1 overflow-y-auto">
               <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-[#0a0a0a] z-10 border-b border-[#2a2a2a]">
-                  <tr className="text-[#808080]">
-                    <th className="p-3 font-normal">SYMBOL</th>
-                    <th className="p-3 font-normal text-right">PRICE</th>
-                    <th className="p-3 font-normal text-right">SHARES</th>
-                    <th className="p-3 font-normal text-right">P&L</th>
-                    <th className="p-3 font-normal text-center w-[80px]"></th>
+                <thead className="sticky top-0 bg-[#0a0a0a] z-10 border-b border-[#ffb000]">
+                  <tr className="text-[#ffb000]">
+                    <th className="p-2 font-normal">TICKER</th>
+                    <th className="p-2 font-normal text-right">SHARES</th>
+                    <th className="p-2 font-normal text-right">PRICE</th>
+                    <th className="p-2 font-normal text-right">P&L</th>
+                    <th className="p-2 font-normal text-right">OWN %</th>
+                    <th className="p-2 font-normal text-center w-[120px]">TRADE</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dossier?.portfolio.holdings.map((h, i) => (
                     <tr
                       key={i}
-                      className="border-b border-[#1a1a1a] hover:bg-[#141414] group"
+                      className="border-b border-[#332300] hover:bg-[#1a1a1a] group"
                     >
-                      <td className="p-3 text-[#e0e0e0]">{h.ticker}</td>
-                      <td className="p-3 text-[#0077b6] text-right tabular-nums">
-                        {h.current_price}
-                      </td>
-                      <td className="p-3 text-right tabular-nums">
-                        {h.shares}
-                      </td>
+                      <td className="p-2 text-[#e0e0e0]">{h.ticker}</td>
+                      <td className="p-2 text-right tabular-nums">{h.shares.toLocaleString()}</td>
+                      <td className="p-2 text-right tabular-nums text-[#ffb000]">${h.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                       <td
-                        className={`p-3 text-right tabular-nums ${h.unrealized_pnl > 0 ? "text-[#00c853]" : "text-[#ff3333]"}`}
+                        className={`p-2 text-right tabular-nums ${h.unrealized_pnl > 0 ? "text-green-500" : h.unrealized_pnl < 0 ? "text-red-500" : "text-[#e0e0e0]"}`}
                       >
-                        {h.unrealized_pnl > 0 ? "+" : ""}
-                        {h.unrealized_pnl}%{" "}
+                        {h.unrealized_pnl > 0 ? "+" : ""}{h.unrealized_pnl.toFixed(2)}%
                       </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => handleTradeClick(h.ticker)}
-                          className="hidden group-hover:block border border-[#0077b6] text-[#0077b6] px-2 py-0.5 text-[11px] hover:bg-[#0077b6] hover:text-black uppercase"
+                      <td className={`p-2 text-right tabular-nums ${h.ownership_percentage >= 20 ? "text-red-500 font-bold" : "text-[#e0e0e0]"}`}>
+                        {h.ownership_percentage.toFixed(2)}%
+                      </td>
+                      <td className="p-2 text-center flex gap-1 justify-center">
+                        <button 
+                          onClick={() => handleTradeClick(h.ticker, h.shares * 0.25)}
+                          className="px-1 text-[10px] border border-[#ffb000] text-[#ffb000] hover:bg-[#ffb000] hover:text-black"
                         >
-                          Trade
+                          25%
+                        </button>
+                        <button 
+                          onClick={() => handleTradeClick(h.ticker, h.shares * 0.5)}
+                          className="px-1 text-[10px] border border-[#ffb000] text-[#ffb000] hover:bg-[#ffb000] hover:text-black"
+                        >
+                          50%
+                        </button>
+                        <button 
+                          onClick={() => handleTradeClick(h.ticker, h.shares)}
+                          className="px-1 text-[10px] border border-[#ffb000] text-[#ffb000] hover:bg-[#ffb000] hover:text-black"
+                        >
+                          ALL
                         </button>
                       </td>
                     </tr>
@@ -110,28 +119,26 @@ export function LeftSidebar() {
             </div>
 
             {/* Quick Actions Bar */}
-            <div className="h-[36px] flex border-t border-[#2a2a2a] shrink-0 bg-[#0a0a0a]">
-              <button className="flex-1 bg-[#0077b6] text-black font-bold uppercase hover:brightness-110 border-r border-black">
-                [SELL 25%]
-              </button>
-              <button className="flex-1 bg-[#0077b6] text-black font-bold uppercase hover:brightness-110">
-                [SELL 50%]
+            <div className="p-2 border-t border-[#ffb000] bg-[#0a0a0a] flex flex-col gap-2">
+              <button 
+                onClick={() => setIsTradeModalOpen(true)}
+                className="w-full bg-[#0a0a0a] text-[#ffb000] border border-[#ffb000] font-bold uppercase hover:bg-[#ffb000] hover:text-black py-2"
+              >
+                [OPEN TRADE TERMINAL]
               </button>
             </div>
           </>
         )}
 
         {activeTab === "market" && (
-          <div className="p-4 text-[#808080] italic">
-            Market view not implemented...
+          <div className="p-4 text-[#ffb000] italic">
+            &gt; MARKET VIEW OFFLINE
           </div>
         )}
 
         {activeTab === "history" && (
-          <div className="flex flex-col">
-            <div className="p-3 border-b border-[#1a1a1a] flex items-center gap-2 text-[#808080] italic">
-              History not implemented...
-            </div>
+          <div className="p-4 text-[#ffb000] italic">
+            &gt; HISTORY OFFLINE
           </div>
         )}
       </div>

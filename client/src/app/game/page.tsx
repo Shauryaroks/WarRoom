@@ -36,56 +36,39 @@ function GameLayout() {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#0a0a0a] text-[#e0e0e0] font-mono text-[13px] leading-tight overflow-hidden select-none">
-      <div
-        className="grid h-full w-full"
-        style={{
-          gridTemplateRows: "48px 1fr 32px",
-          gridTemplateColumns: "380px 1fr 380px",
-          gridTemplateAreas: `
-            "header header header"
-            "ledger command wire"
-            "ticker ticker ticker"
-          `,
-        }}
-      >
-        <div
-          style={{ gridArea: "header" }}
-          className="border-b border-[#2a2a2a] bg-[#0a0a0a]"
-        >
-          <HeaderBar
-            sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
-            timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
-            ticker={ticker}
-            isMarketConnected={isMarketConnected}
-            isTeamConnected={isTeamConnected}
-          />
-        </div>
+    <div className="h-screen w-screen flex flex-col bg-[#0a0a0a] text-[#ffb000] font-mono text-[13px] leading-tight overflow-hidden select-none">
+      {/* HEADER BAR */}
+      <div className="h-12 border-b border-[#2a2a2a] bg-[#0a0a0a] shrink-0">
+        <HeaderBar
+          sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
+          timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
+          ticker={ticker}
+          isMarketConnected={isMarketConnected}
+          isTeamConnected={isTeamConnected}
+        />
+      </div>
 
-        <div
-          style={{ gridArea: "ledger" }}
-          className="border-r border-[#2a2a2a] bg-[#0a0a0a]"
-        >
+      {/* MIDDLE SECTION */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEDGER */}
+        <div className="w-1/4 h-full border-r border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden">
           <LeftSidebar />
         </div>
 
-        <div style={{ gridArea: "command" }} className="bg-[#0d0d0d]">
+        {/* COMMAND LINE */}
+        <div className="w-2/4 h-full bg-[#0d0d0d] overflow-hidden">
           <DirectiveEditor maxChars={2000} />
         </div>
 
-        <div
-          style={{ gridArea: "wire" }}
-          className="border-l border-[#2a2a2a] bg-[#0a0a0a]"
-        >
+        {/* THE WIRE */}
+        <div className="w-1/4 h-full border-l border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden">
           <RightSidebar />
         </div>
+      </div>
 
-        <div
-          style={{ gridArea: "ticker" }}
-          className="border-t border-[#2a2a2a] bg-black"
-        >
-          <Footer />
-        </div>
+      {/* FOOTER TICKER */}
+      <div className="h-8 border-t border-[#2a2a2a] bg-black shrink-0">
+        <Footer />
       </div>
 
       {isTradeModalOpen && <TradeModal />}

@@ -1,18 +1,33 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useGameContext } from "@/contexts/GameContext";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
 export function TradeModal() {
-  const { selectedTicker, setIsTradeModalOpen } = useGameContext();
+  const { selectedTicker, setSelectedTicker, setIsTradeModalOpen, tradePreset } = useGameContext();
+  const { dossier, marketTickers } = useWebSocket();
+  const [shares, setShares] = useState(tradePreset ? Math.floor(tradePreset).toString() : "100");
+
+  const cash = dossier?.financials.cash || 0;
+  
+  // Find current price of selected ticker
+  const selectedMarketTicker = marketTickers.find(t => t.ticker === selectedTicker);
+  const holding = dossier?.portfolio.holdings.find(h => h.ticker === selectedTicker);
+  const price = selectedMarketTicker?.price || holding?.current_price || 0;
+
+  const numShares = parseInt(shares) || 0;
+  const totalCost = numShares * price;
+  const postTradeCash = cash - totalCost; // Simplified, assuming buy. If sell, it's + totalCost
+  const maxAffordable = price > 0 ? Math.floor(cash / price) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-[480px] bg-[#141414] border border-[#2a2a2a] flex flex-col font-mono text-[13px] text-[#e0e0e0]">
-        <div className="flex justify-between items-center p-3 border-b border-[#2a2a2a]">
-          <span className="uppercase">Execute Order</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 font-mono">
+      <div className="w-[480px] bg-[#0a0a0a] border-2 border-[#ffb000] flex flex-col text-[13px] text-[#e0e0e0] shadow-none rounded-none">
+        <div className="flex justify-between items-center p-3 border-b-2 border-[#ffb000] bg-[#ffb000] text-black font-bold">
+          <span className="uppercase">[ EXECUTE ORDER ]</span>
           <button
-            className="text-[#505050] hover:text-[#e0e0e0]"
+            className="text-black hover:text-white"
             onClick={() => setIsTradeModalOpen(false)}
           >
             [X]
@@ -21,60 +36,65 @@ export function TradeModal() {
 
         <div className="p-6 flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <span className="text-[#808080]">TARGET:</span>
+            <span className="text-[#ffb000]">TARGET:</span>
             <div className="flex items-center gap-2">
-              <span className="text-[#0077b6] border border-[#2a2a2a] bg-[#0a0a0a] px-2 py-1">
-                [{selectedTicker || "$APEX"} ▼]
-              </span>
-              <span className="text-[#e0e0e0]">[Company Name]</span>
+              <select 
+                className="bg-[#0a0a0a] border border-[#ffb000] text-[#ffb000] p-1 outline-none cursor-pointer uppercase"
+                value={selectedTicker || ""}
+                onChange={(e) => setSelectedTicker(e.target.value)}
+              >
+                <option value="">[SELECT]</option>
+                {dossier?.portfolio.holdings.map(h => (
+                  <option key={h.ticker} value={h.ticker}>{h.ticker}</option>
+                ))}
+                {marketTickers.filter(mt => !dossier?.portfolio.holdings.some(h => h.ticker === mt.ticker)).map(mt => (
+                  <option key={mt.ticker} value={mt.ticker}>{mt.ticker}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[#808080]">MARKET PRICE:</span>
-            <span>104.00</span>
+            <span className="text-[#ffb000]">MARKET PRICE:</span>
+            <span className="tabular-nums">${price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[#808080]">SHARES:</span>
+            <span className="text-[#ffb000]">SHARES:</span>
             <div className="flex flex-col items-end">
               <input
                 type="number"
-                defaultValue="100"
-                className="w-24 bg-[#0a0a0a] border border-[#2a2a2a] text-right px-2 py-1 text-[#e0e0e0] focus:border-[#0077b6] outline-none"
+                value={shares}
+                onChange={(e) => setShares(e.target.value)}
+                className="w-24 bg-[#0a0a0a] border border-[#ffb000] text-right px-2 py-1 text-[#ffb000] focus:border-[#ffb000] outline-none tabular-nums"
               />
-              <span className="text-[#505050] text-[11px] mt-1">
-                └─ Max affordable: 8,173 shares
+              <span className="text-[#808080] text-[11px] mt-1">
+                └─ Max affordable: {maxAffordable.toLocaleString()} shares
               </span>
             </div>
           </div>
 
-          <div className="border-b border-[#2a2a2a] my-2"></div>
+          <div className="border-b border-dashed border-[#ffb000] my-2"></div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[#808080]">TOTAL COST:</span>
-            <span>$10,400.00</span>
+            <span className="text-[#ffb000]">TOTAL VALUE:</span>
+            <span className="tabular-nums">${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[#808080]">AVAILABLE CASH:</span>
-            <span>$850,000.00</span>
+            <span className="text-[#ffb000]">AVAILABLE CASH:</span>
+            <span className="tabular-nums">${cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-[#808080]">POST-TRADE CASH:</span>
-            <span>$839,600.00</span>
-          </div>
-
-          <div className="border-l-4 border-[#00b4d8] bg-[#002a3d] p-3 text-[#00b4d8] mt-4 uppercase">
-            [⚠ OWNERSHIP WARNING: 23% → 25%]
+          <div className="border-l-4 border-amber-500 bg-[#1a1100] p-3 text-amber-500 mt-4 uppercase">
+            [ SYSTEM NOTICE: TRADE EXECUTION REQUIRES BOARD APPROVAL. USE DIRECTIVE CONSOLE. ]
           </div>
 
           <button
-            className="w-full mt-4 py-3 bg-[#0077b6] text-black font-bold uppercase hover:brightness-110 active:translate-y-px"
+            className="w-full mt-4 py-3 bg-[#0a0a0a] border-2 border-[#ffb000] text-[#ffb000] font-bold uppercase hover:bg-[#ffb000] hover:text-black transition-colors"
             onClick={() => setIsTradeModalOpen(false)}
           >
-            [ CONFIRM MARKET ORDER ]
+            [ CLOSE TERMINAL ]
           </button>
         </div>
       </div>
@@ -86,12 +106,12 @@ export function BoardFeedbackModal() {
   const { setIsFeedbackModalOpen } = useGameContext();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-[600px] bg-[#141414] border border-[#2a2a2a] flex flex-col font-mono text-[13px] text-[#e0e0e0]">
-        <div className="flex justify-between items-center p-3 border-b border-[#2a2a2a]">
-          <span className="uppercase">Board of Directors Feedback</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 font-mono text-[13px]">
+      <div className="w-[600px] bg-[#0a0a0a] border-2 border-[#ffb000] flex flex-col text-[#e0e0e0] shadow-none rounded-none">
+        <div className="flex justify-between items-center p-3 border-b-2 border-[#ffb000] bg-[#ffb000] text-black font-bold">
+          <span className="uppercase">[ BOARD OF DIRECTORS FEEDBACK ]</span>
           <button
-            className="text-[#505050] hover:text-[#e0e0e0]"
+            className="text-black hover:text-white"
             onClick={() => setIsFeedbackModalOpen(false)}
           >
             [X]
@@ -99,57 +119,15 @@ export function BoardFeedbackModal() {
         </div>
 
         <div className="p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[#808080]">TONE:</span>
-            <span className="text-[#e0e0e0]">[SKEPTICAL ▼]</span>
+          <div className="text-[#ffb000] uppercase text-center border border-[#ffb000] p-2 mb-2 animate-pulse">
+            FEEDBACK SYSTEM OFFLINE
           </div>
-
-          <div className="border-b border-[#2a2a2a]"></div>
-
-          <p className="text-[#e0e0e0] italic leading-relaxed pl-4 border-l-2 border-[#505050]">
-            &quot;Your 15% price slash is bold, but you failed to address the
-            rising interest rate environment in your justification. The Board
-            questions your macro awareness. Execution proceeds with
-            caution.&quot;
-          </p>
-
-          <div className="border-b border-[#2a2a2a]"></div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-[#808080]">FINANCIAL IMPACT:</span>
-            <div className="flex justify-between pl-4">
-              <span>Revenue:</span>
-              <span className="text-[#00c853]">+$450,000 [▲ GREEN]</span>
-            </div>
-            <div className="flex justify-between pl-4">
-              <span>Costs:</span>
-              <span className="text-[#ff3333]">-$200,000 [▼ RED]</span>
-            </div>
-            <div className="flex justify-between pl-4">
-              <span>Marketing:</span>
-              <span className="text-[#ff3333]">-$150,000 [▼ RED]</span>
-            </div>
-            <div className="border-b border-[#2a2a2a] ml-4 w-1/2 ml-auto my-1"></div>
-            <div className="flex justify-between pl-4">
-              <span>Net Profit:</span>
-              <span>+$100,000</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-[#808080]">NEW STOCK PRICE:</span>
-            <span>
-              $95.50 <span className="text-[#ff3333]">[▼4.5%]</span>
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2 mt-4 bg-[#0a0a0a] p-3 border border-[#2a2a2a]">
-            <span className="text-[#808080]">[GENERATED HEADLINE ▼]</span>
-            <span className="text-[#0077b6]">
-              &quot;Barbie Inc ($BRBE) slashes prices in aggressive market share
-              grab&quot;
-            </span>
-          </div>
+          <button
+            className="w-full mt-4 py-2 bg-[#0a0a0a] border border-[#ffb000] text-[#ffb000] font-bold uppercase hover:bg-[#ffb000] hover:text-black transition-colors"
+            onClick={() => setIsFeedbackModalOpen(false)}
+          >
+            [ ACKNOWLEDGE ]
+          </button>
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ export function HeaderBar({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[#808080]">T-MINUS:</span>
-          <span className="text-[#0077b6] tabular-nums font-bold">
+          <span className="text-[#ffb000] tabular-nums font-bold">
             [{sessionElapsed}]
           </span>
         </div>
@@ -68,7 +68,7 @@ export function HeaderBar({
 
       {/* Right Zone */}
       <div className="flex items-center gap-4 justify-end w-[380px]">
-        <span className="text-[#0077b6] font-bold text-[14px]">{ticker}</span>
+        <span className="text-[#ffb000] font-bold text-[14px]">{ticker}</span>
         <span className="text-[#505050]">|</span>
         <div className="flex items-center gap-2">
           <span className="text-[#808080]">WS:</span>

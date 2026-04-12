@@ -1,111 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { NewsItem } from "@/lib/models";
 
-/**
- * The RightSidebar ("The Wire") component provides a real-time feed of market news
- * and system events. It supports filtering events by their source type.
- *
- * Subscribes to the WebSocket context to populate the `marketNews` items.
- *
- * @returns The rendered news feed sidebar.
- */
 export function RightSidebar() {
-  const [filter, setFilter] = useState<
-    "ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM"
-  >("ALL");
-  const { marketNews: newsItems } = useWebSocket();
+  const [filter, setFilter] = useState<"ALL" | "GLOBAL" | "HOLDINGS">("ALL");
+  const { marketNews: newsItems, dossier } = useWebSocket();
+  const feedEndRef = useRef<HTMLDivElement>(null);
 
-  const getTagStyle = (item: NewsItem) => {
-    switch (item.source_type) {
-      case "GLOBAL":
-      case "ADMIN_INJECTED":
-        return "bg-[#2a2a2a] text-white";
-      case "TEAM_ACTION":
-        return "bg-[#001f2e] text-[#0077b6]";
-      case "SYSTEM":
-        return "bg-[#002233] text-[#00d4ff]";
+  const getTagAndColor = (item: NewsItem) => {
+    let tag = item.source_type;
+    let color = "text-[#ffb000]";
+
+    if (item.source_type === "GLOBAL" || item.source_type === "ADMIN_INJECTED") {
+      tag = "GLOBAL";
+      color = "text-[#a0a0a0]"; // white/gray
+    } else if (item.source_type === "TEAM_ACTION" && item.source_ticker) {
+      tag = "$" + item.source_ticker;
+      if (item.sentiment_score !== null && item.sentiment_score !== undefined) {
+        if (item.sentiment_score > 0) color = "text-green-500";
+        else if (item.sentiment_score < 0) color = "text-red-500";
+        else color = "text-[#ffb000]";
+      } else {
+        color = "text-[#ffb000]";
+      }
+    } else if (item.source_type === "SYSTEM") {
+      tag = "SYSTEM";
+      color = "text-red-500"; // red/amber
     }
+    return { tag, color };
   };
 
-  const getSentimentColor = (sentimentScore?: number | null) => {
-    if (sentimentScore === undefined || sentimentScore === null)
-      return "text-[#808080]";
-    if (sentimentScore < 0) return "text-[#ff3333]";
-    if (sentimentScore > 0) return "text-[#00c853]";
-    return "text-[#808080]";
-  };
+  const filteredNews = newsItems.filter(item => {
+    if (filter === "ALL") return true;
+    if (filter === "GLOBAL") return item.source_type === "GLOBAL" || item.source_type === "ADMIN_INJECTED";
+    if (filter === "HOLDINGS") {
+       const holdings = dossier?.portfolio.holdings.map(h => h.ticker) || [];
+       return item.source_type === "TEAM_ACTION" && item.source_ticker && holdings.includes(item.source_ticker);
+    }
+    return true;
+  });
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (feedEndRef.current) {
+      feedEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [filteredNews.length]);
 
   return (
-    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#e0e0e0]">
-      {/* Header */}
-      <div className="flex h-[40px] shrink-0 items-center justify-between px-4 border-b border-[#2a2a2a] bg-[#0a0a0a]">
-        <span className="uppercase text-[#0077b6] font-bold">THE WIRE</span>
-        <select
-          value={filter}
-          onChange={(e) =>
-            setFilter(
-              e.target.value as "ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM",
-            )
-          }
-          className="bg-transparent border-none text-[#505050] hover:text-[#e0e0e0] focus:outline-none uppercase cursor-pointer"
+    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#ffb000] border-l border-[#ffb000]">
+      {/* Filter Buttons */}
+      <div className="flex h-[40px] shrink-0 border-b border-[#ffb000] bg-[#0a0a0a]">
+        <button
+          onClick={() => setFilter("ALL")}
+          className={`flex-1 border-r border-[#ffb000] uppercase font-bold ${filter === "ALL" ? "bg-[#ffb000] text-black" : "text-[#ffb000] hover:bg-[#1a1a1a]"}`}
         >
-          <option value="ALL">[ALL ▼]</option>
-          <option value="GLOBAL">[GLOBAL ▼]</option>
-          <option value="HOLDINGS">[HOLDINGS ▼]</option>
-          <option value="SYSTEM">[SYSTEM ▼]</option>
-        </select>
+          [ALL]
+        </button>
+        <button
+          onClick={() => setFilter("GLOBAL")}
+          className={`flex-1 border-r border-[#ffb000] uppercase font-bold ${filter === "GLOBAL" ? "bg-[#ffb000] text-black" : "text-[#ffb000] hover:bg-[#1a1a1a]"}`}
+        >
+          [GLOBAL]
+        </button>
+        <button
+          onClick={() => setFilter("HOLDINGS")}
+          className={`flex-1 uppercase font-bold ${filter === "HOLDINGS" ? "bg-[#ffb000] text-black" : "text-[#ffb000] hover:bg-[#1a1a1a]"}`}
+        >
+          [HOLDINGS]
+        </button>
       </div>
 
       {/* News Feed */}
-      <div className="flex-1 overflow-y-auto flex flex-col">
-        {newsItems
-          .filter(
-            (item) =>
-              filter === "ALL" ||
-              item.source_type === filter ||
-              (filter === "HOLDINGS" && item.source_type === "TEAM_ACTION"),
-          )
-          .map((item) => (
-            <div
-              key={item.id}
-              className="min-h-[60px] border-b border-[#1a1a1a] p-3 flex gap-3 hover:bg-[#141414] transition-colors"
-            >
-              <span className="text-[#505050] text-[11px] shrink-0 mt-0.5">
-                [{new Date(item.created_at).toLocaleTimeString()}]
-              </span>
-              <div className="flex flex-col flex-1 gap-1">
-                <span className="text-[13px] text-[#e0e0e0] leading-tight line-clamp-2">
-                  <span
-                    className={`px-1 mr-2 text-[11px] font-bold uppercase inline-block ${getTagStyle(item)}`}
-                  >
-                    [
-                    {item.source_type === "TEAM_ACTION"
-                      ? item.source_ticker
-                      : item.source_type}
-                    ]
-                  </span>
-                  {item.headline}
-                </span>
-                <div className="flex gap-2 text-[10px] uppercase font-bold tracking-wider">
-                  <span className="text-[#808080]">
-                    [{item.source_type === "TEAM_ACTION" ? "TECH" : "MACRO"}]
-                  </span>
-                  <span className={getSentimentColor(item.sentiment_score)}>
-                    [
-                    {item.sentiment_score === null
-                      ? "NEUTRAL"
-                      : item.sentiment_score! > 0
-                        ? "BULLISH"
-                        : "BEARISH"}
-                    ]
-                  </span>
-                </div>
-              </div>
+      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+        {filteredNews.map((item) => {
+          const { tag, color } = getTagAndColor(item);
+          const time = new Date(item.created_at).toLocaleTimeString([], { hour12: false });
+          
+          return (
+            <div key={item.id} className="py-1">
+              <span className="text-[#a0a0a0]">[{time}] </span>
+              <span className={`font-bold ${color}`}>[{tag}] </span>
+              <span className="text-[#ffb000]">{item.headline}</span>
             </div>
-          ))}
+          );
+        })}
+        <div ref={feedEndRef} />
       </div>
     </aside>
   );

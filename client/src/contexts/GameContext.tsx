@@ -13,6 +13,8 @@ interface GameContextType {
   isTradeModalOpen: boolean;
   setIsTradeModalOpen: (isOpen: boolean) => void;
   isFeedbackModalOpen: boolean;
+  tradePreset: number | null;
+  setTradePreset: (preset: number | null) => void;
   setIsFeedbackModalOpen: (isOpen: boolean) => void;
   cooldownRemaining: number;
   setCooldownRemaining: (seconds: number) => void;
@@ -31,6 +33,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [tradePreset, setTradePreset] = useState<number | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   return (
@@ -42,6 +45,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setIsTradeModalOpen,
         isFeedbackModalOpen,
         setIsFeedbackModalOpen,
+        tradePreset,
+        setTradePreset,
         cooldownRemaining,
         setCooldownRemaining,
       }}

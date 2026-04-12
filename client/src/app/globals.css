@@ -1,43 +1,24 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
 
 @import "tailwindcss";
 
 @theme {
   --font-mono: "JetBrains Mono", monospace;
-  --font-body: "Inter", sans-serif;
-  --font-headline: "IBM Plex Mono", monospace;
+  --font-body: "JetBrains Mono", monospace;
+  --font-headline: "JetBrains Mono", monospace;
 
   /* Shared dark theme base */
   --color-background: #0a0a0a;
-  --color-surface: #131313;
+  --color-surface: #111111;
   --color-surface-variant: #201f1f;
-  --color-surface-container-low: #1c1b1b;
-  --color-surface-container: #201f1f;
-  --color-surface-container-high: #2a2a2a;
-  --color-surface-container-highest: #353534;
-  --color-surface-dim: #131313;
-  --color-surface-bright: #3a3939;
-  --color-surface-container-lowest: #0e0e0e;
-
-  --color-outline: #353534;
-  --color-outline-variant: #524533;
-
-  /* Registration page specific */
-  --color-primary-registration: #ffd597;
-  --color-primary-registration-container: #0077b6;
-  --color-secondary-registration: #40e56c;
-  --color-on-primary-registration: #432c00;
-  --color-on-secondary-registration: #003912;
+  
+  --color-outline: #333333;
+  --color-muted: #888888;
 
   /* Terminal page specific */
-  --color-primary-terminal: #0077b6;
-  --color-success-terminal: #00c853;
-  --color-error-terminal: #ff3333;
-
-  /* Admin page specific */
-  --color-primary-admin: #00c853;
-  --color-secondary-admin: #0077b6;
-  --color-institutional-blue: #2196f3;
+  --color-primary: #ffb000;
+  --color-success: #00c853;
+  --color-error: #ff3333;
 }
 
 html,
@@ -78,4 +59,8 @@ body {
 
 .ticker-scroll {
   animation: ticker 40s linear infinite;
+}
+
+input, button {
+  font-family: var(--font-mono);
 }
