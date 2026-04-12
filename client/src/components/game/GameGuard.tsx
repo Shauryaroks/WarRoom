@@ -27,7 +27,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] text-[#ffb000] font-mono">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] text-[#0077b6] font-mono">
         <div className="text-2xl animate-pulse">CONNECTING TO SYSTEM...</div>
       </div>
     );
@@ -39,7 +39,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
     dossier?.profile?.status === "PENDING_START"
   ) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] text-[#ffb000] font-mono p-8 text-center relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] text-[#0077b6] font-mono p-8 text-center relative overflow-hidden">
         {/* Terminal text styling */}
         <div className="absolute top-8 left-8 text-left text-sm opacity-70">
           <p>{`> Initializing terminal interface... [OK]`}</p>
@@ -48,13 +48,13 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
           <p className="animate-pulse">{`> Waiting for Administrator / TRADING_OPEN broadcast...`}</p>
         </div>
 
-        <h1 className="text-4xl font-bold mb-4 tracking-widest border border-[#ffb000] p-4 inline-block shadow-[0_0_15px_rgba(255,176,0,0.3)]">
+        <h1 className="text-4xl font-bold mb-4 tracking-widest border border-[#0077b6] p-4 inline-block shadow-[0_0_15px_rgba(255,176,0,0.3)]">
           PRE-GAME LOBBY
         </h1>
         <p className="text-xl mb-8">MARKET STATUS: CLOSED</p>
 
-        <div className="mb-12 border border-[#ffb000]/50 p-6 max-w-2xl bg-[#ffb000]/5">
-          <h2 className="text-2xl mb-4 underline decoration-[#ffb000]/50">
+        <div className="mb-12 border border-[#0077b6]/50 p-6 max-w-2xl bg-[#0077b6]/5">
+          <h2 className="text-2xl mb-4 underline decoration-[#0077b6]/50">
             SWOT PROFILE (READ-ONLY)
           </h2>
           <div className="grid grid-cols-2 gap-8 text-left">
@@ -85,7 +85,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="mt-auto animate-pulse text-lg border-t border-b border-[#ffb000] py-2 px-8">
+        <div className="mt-auto animate-pulse text-lg border-t border-b border-[#0077b6] py-2 px-8">
           STATUS: {50 - (gameState?.teams_remaining || 0)} of 50 teams ready
         </div>
       </div>
@@ -138,8 +138,8 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
       )}
 
       {isPendingPurge && !isSpectator && !isBankrupt && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]/80 backdrop-blur-sm text-[#ffb000] font-mono">
-          <div className="border-4 border-[#ffb000] p-12 bg-black shadow-[0_0_50px_rgba(255,176,0,0.5)] flex flex-col items-center">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]/80 backdrop-blur-sm text-[#0077b6] font-mono">
+          <div className="border-4 border-[#0077b6] p-12 bg-black shadow-[0_0_50px_rgba(255,176,0,0.5)] flex flex-col items-center">
             <h1 className="text-6xl font-bold mb-6 tracking-[0.2em] opacity-100 animate-pulse">
               MARKET PURGE IN PROGRESS
             </h1>
@@ -151,8 +151,8 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
       )}
 
       {isPaused && !isSpectator && !isBankrupt && !isPendingPurge && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]/70 backdrop-blur-sm text-[#ffb000] font-mono">
-          <div className="border-y-4 border-[#ffb000] py-8 w-full bg-black/90 flex flex-col items-center shadow-[0_0_30px_rgba(255,176,0,0.4)]">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]/70 backdrop-blur-sm text-[#0077b6] font-mono">
+          <div className="border-y-4 border-[#0077b6] py-8 w-full bg-black/90 flex flex-col items-center shadow-[0_0_30px_rgba(255,176,0,0.4)]">
             <h1 className="text-6xl font-bold tracking-[0.4em] animate-pulse">
               TRADING HALTED
             </h1>

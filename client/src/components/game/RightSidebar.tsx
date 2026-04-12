@@ -11,7 +11,7 @@ export function RightSidebar() {
 
   const getTagAndColor = (item: NewsItem) => {
     let tag = item.source_type;
-    let color = "text-[#ffb000]";
+    let color = "text-[#0077b6]";
 
     if (
       item.source_type === "GLOBAL" ||
@@ -24,9 +24,9 @@ export function RightSidebar() {
       if (item.sentiment_score !== null && item.sentiment_score !== undefined) {
         if (item.sentiment_score > 0) color = "text-green-500";
         else if (item.sentiment_score < 0) color = "text-red-500";
-        else color = "text-[#ffb000]";
+        else color = "text-[#0077b6]";
       } else {
-        color = "text-[#ffb000]";
+        color = "text-[#0077b6]";
       }
     } else if (item.source_type === "SYSTEM") {
       tag = "SYSTEM";
@@ -60,24 +60,24 @@ export function RightSidebar() {
   }, [filteredNews.length]);
 
   return (
-    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#ffb000] border-l border-[#ffb000]">
+    <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#0077b6] border-l border-[#0077b6]">
       {/* Filter Buttons */}
-      <div className="flex h-[40px] shrink-0 border-b border-[#ffb000] bg-[#0a0a0a]">
+      <div className="flex h-[40px] shrink-0 border-b border-[#0077b6] bg-[#0a0a0a]">
         <button
           onClick={() => setFilter("ALL")}
-          className={`flex-1 border-r border-[#ffb000] uppercase font-bold ${filter === "ALL" ? "bg-[#ffb000] text-black" : "text-[#ffb000] hover:bg-[#1a1a1a]"}`}
+          className={`flex-1 border-r border-[#0077b6] uppercase font-bold ${filter === "ALL" ? "bg-[#0077b6] text-black" : "text-[#0077b6] hover:bg-[#1a1a1a]"}`}
         >
           [ALL]
         </button>
         <button
           onClick={() => setFilter("GLOBAL")}
-          className={`flex-1 border-r border-[#ffb000] uppercase font-bold ${filter === "GLOBAL" ? "bg-[#ffb000] text-black" : "text-[#ffb000] hover:bg-[#1a1a1a]"}`}
+          className={`flex-1 border-r border-[#0077b6] uppercase font-bold ${filter === "GLOBAL" ? "bg-[#0077b6] text-black" : "text-[#0077b6] hover:bg-[#1a1a1a]"}`}
         >
           [GLOBAL]
         </button>
         <button
           onClick={() => setFilter("HOLDINGS")}
-          className={`flex-1 uppercase font-bold ${filter === "HOLDINGS" ? "bg-[#ffb000] text-black" : "text-[#ffb000] hover:bg-[#1a1a1a]"}`}
+          className={`flex-1 uppercase font-bold ${filter === "HOLDINGS" ? "bg-[#0077b6] text-black" : "text-[#0077b6] hover:bg-[#1a1a1a]"}`}
         >
           [HOLDINGS]
         </button>
@@ -95,7 +95,7 @@ export function RightSidebar() {
             <div key={item.id} className="py-1">
               <span className="text-[#a0a0a0]">[{time}] </span>
               <span className={`font-bold ${color}`}>[{tag}] </span>
-              <span className="text-[#ffb000]">{item.headline}</span>
+              <span className="text-[#0077b6]">{item.headline}</span>
             </div>
           );
         })}

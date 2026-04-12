@@ -43,16 +43,15 @@ export default function RegisterPage() {
         throw new Error("Password must be at least 8 characters.");
       }
 
-      const formattedTicker = `$${tickerInput}`;
-
       await api.registerTeam({
         team_name: teamName,
-        ticker: formattedTicker,
+        ticker: tickerInput,
         email: email,
         password: password,
       });
 
       setSuccess(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Registration failed:", error);
       setErrorMsg(error.message || "Registration failed.");

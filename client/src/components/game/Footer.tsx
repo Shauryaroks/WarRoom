@@ -11,7 +11,7 @@ export function Footer() {
   const getChangeColor = (change: number) => {
     if (change > 0) return "text-green-500";
     if (change < 0) return "text-red-500";
-    return "text-[#ffb000]";
+    return "text-[#0077b6]";
   };
 
   const handleTickerClick = (symbol: string) => {
@@ -20,14 +20,14 @@ export function Footer() {
   };
 
   return (
-    <footer className="h-full w-full flex items-center overflow-hidden font-mono text-[13px] bg-[#0a0a0a] text-[#ffb000] border-t border-[#ffb000]">
+    <footer className="h-full w-full flex items-center overflow-hidden font-mono text-[13px] bg-[#0a0a0a] text-[#0077b6] border-t border-[#0077b6]">
       <div className="flex items-center whitespace-nowrap ticker-scroll hover:[animation-play-state:paused] w-max">
         {tickers.map((t, i) => {
           const changeColor = getChangeColor(t.change_24h);
           return (
             <React.Fragment key={i}>
               <div
-                className="flex items-center gap-2 cursor-pointer hover:bg-[#ffb000] hover:text-black px-3 py-1 transition-colors"
+                className="flex items-center gap-2 cursor-pointer hover:bg-[#0077b6] hover:text-black px-3 py-1 transition-colors"
                 onClick={() => handleTickerClick(t.ticker)}
               >
                 <span className="font-bold">${t.ticker}</span>
@@ -39,7 +39,7 @@ export function Footer() {
                   {Math.abs(t.change_24h).toFixed(1)}%
                 </span>
               </div>
-              <span className="text-[#ffb000] mx-1">|</span>
+              <span className="text-[#0077b6] mx-1">|</span>
             </React.Fragment>
           );
         })}
@@ -49,7 +49,7 @@ export function Footer() {
           return (
             <React.Fragment key={`dup-${i}`}>
               <div
-                className="flex items-center gap-2 cursor-pointer hover:bg-[#ffb000] hover:text-black px-3 py-1 transition-colors"
+                className="flex items-center gap-2 cursor-pointer hover:bg-[#0077b6] hover:text-black px-3 py-1 transition-colors"
                 onClick={() => handleTickerClick(t.ticker)}
               >
                 <span className="font-bold">${t.ticker}</span>
@@ -61,7 +61,7 @@ export function Footer() {
                   {Math.abs(t.change_24h).toFixed(1)}%
                 </span>
               </div>
-              <span className="text-[#ffb000] mx-1">|</span>
+              <span className="text-[#0077b6] mx-1">|</span>
             </React.Fragment>
           );
         })}

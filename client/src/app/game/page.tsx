@@ -37,7 +37,7 @@ function GameLayout() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#0a0a0a] text-[#ffb000] font-mono text-[13px] leading-tight overflow-hidden select-none">
+    <div className="h-screen w-screen flex flex-col bg-[#0a0a0a] text-[#0077b6] font-mono text-[13px] leading-tight overflow-hidden select-none">
       {/* HEADER BAR */}
       <div className="h-12 border-b border-[#2a2a2a] bg-[#0a0a0a] shrink-0">
         <HeaderBar

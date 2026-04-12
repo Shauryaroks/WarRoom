@@ -90,9 +90,9 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
   );
 
   return (
-    <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[#0a0a0a] text-[#ffb000] relative">
+    <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[#0a0a0a] text-[#0077b6] relative">
       {/* Toolbar */}
-      <div className="h-[40px] shrink-0 border-b border-[#ffb000] flex items-center px-4 gap-4 bg-[#0a0a0a] text-[#ffb000]">
+      <div className="h-[40px] shrink-0 border-b border-[#0077b6] flex items-center px-4 gap-4 bg-[#0a0a0a] text-[#0077b6]">
         <button className="hover:text-white uppercase">[TEMPLATE ▼]</button>
         <button
           onClick={() =>
@@ -124,7 +124,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
       <div className="flex-1 relative flex overflow-hidden group">
         {/* Line Numbers Gutter */}
         <div
-          className="w-[40px] shrink-0 border-r border-[#ffb000] bg-[#0a0a0a] text-[#ffb000] text-right py-[20px] px-2 select-none overflow-hidden opacity-50"
+          className="w-[40px] shrink-0 border-r border-[#0077b6] bg-[#0a0a0a] text-[#0077b6] text-right py-[20px] px-2 select-none overflow-hidden opacity-50"
           style={{ transform: `translateY(-${scrollTop}px)` }}
         >
           {lines.map((n) => (
@@ -141,14 +141,14 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           onChange={handleChange}
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           disabled={activeCooldown}
-          className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[#ffb000] focus:ring-0 text-[#ffb000] placeholder-opacity-50"
+          className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[#0077b6] focus:ring-0 text-[#0077b6] placeholder-opacity-50"
           placeholder=">_ ENTER STRATEGIC DIRECTIVE..."
           spellCheck={false}
         />
 
         {/* Character Counter */}
         <div
-          className={`absolute bottom-4 right-4 font-bold ${isMaxChars ? "text-red-500 animate-pulse" : isWarningChars ? "text-red-400" : "text-[#ffb000]"}`}
+          className={`absolute bottom-4 right-4 font-bold ${isMaxChars ? "text-red-500 animate-pulse" : isWarningChars ? "text-red-400" : "text-[#0077b6]"}`}
         >
           {charCount} / {maxChars}
         </div>
@@ -156,11 +156,11 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         {/* Cooldown Overlay */}
         {activeCooldown && (
           <div className="absolute inset-0 bg-[#0a0a0a]/90 flex items-center justify-center z-10">
-            <div className="border-2 border-[#ffb000] p-8 text-center bg-[#0a0a0a] animate-pulse">
-              <div className="text-[#ffb000] mb-4 text-[16px] tracking-widest">
+            <div className="border-2 border-[#0077b6] p-8 text-center bg-[#0a0a0a] animate-pulse">
+              <div className="text-[#0077b6] mb-4 text-[16px] tracking-widest">
                 [ BOARD REVIEWING DIRECTIVE ]
               </div>
-              <div className="text-[#ffb000] text-[48px] font-bold tracking-widest mb-4">
+              <div className="text-[#0077b6] text-[48px] font-bold tracking-widest mb-4">
                 ██ {formatTime(displayCooldown)} ██
               </div>
             </div>
@@ -169,14 +169,14 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
       </div>
 
       {/* Status Bar */}
-      <div className="h-[30px] shrink-0 border-t border-b border-[#ffb000] bg-[#0a0a0a] flex items-center px-4 justify-between text-[#ffb000] text-[11px] opacity-70">
+      <div className="h-[30px] shrink-0 border-t border-b border-[#0077b6] bg-[#0a0a0a] flex items-center px-4 justify-between text-[#0077b6] text-[11px] opacity-70">
         <span>READY</span>
         <span>|</span>
         <span>LAST SAVE: {new Date().toLocaleTimeString()}</span>
         <span>|</span>
         <span className="flex items-center gap-2">
           CONNECTION:{" "}
-          <span className="text-[#ffb000]">[████████░░] SECURE</span>
+          <span className="text-[#0077b6]">[████████░░] SECURE</span>
         </span>
       </div>
 
@@ -185,14 +185,14 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         {activeCooldown ? (
           <button
             disabled
-            className="w-full h-full bg-[#0a0a0a] text-[#ffb000] font-bold uppercase tracking-widest border-2 border-[#ffb000] opacity-50 cursor-not-allowed"
+            className="w-full h-full bg-[#0a0a0a] text-[#0077b6] font-bold uppercase tracking-widest border-2 border-[#0077b6] opacity-50 cursor-not-allowed"
           >
             COOLDOWN ACTIVE - {formatTime(displayCooldown)}
           </button>
         ) : isSubmitting ? (
           <button
             disabled
-            className="w-full h-full bg-[#ffb000] text-black font-bold uppercase tracking-widest animate-pulse"
+            className="w-full h-full bg-[#0077b6] text-black font-bold uppercase tracking-widest animate-pulse"
           >
             TRANSMITTING... ▓▒░
           </button>
@@ -200,7 +200,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           <button
             onClick={handleSubmit}
             disabled={!directive.trim()}
-            className="w-full h-full bg-[#0a0a0a] border-2 border-[#ffb000] text-[#ffb000] font-bold uppercase tracking-[0.1em] hover:bg-[#ffb000] hover:text-black active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full h-full bg-[#0a0a0a] border-2 border-[#0077b6] text-[#0077b6] font-bold uppercase tracking-[0.1em] hover:bg-[#0077b6] hover:text-black active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             [ SUBMIT TO BOARD ]
           </button>
