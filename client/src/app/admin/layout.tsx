@@ -11,7 +11,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_ADMIN_API_KEY) {
-      router.push("/login");
+      router.push("/auth/login");
     }
   }, [router]);
 

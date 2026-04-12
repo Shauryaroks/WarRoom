@@ -46,11 +46,13 @@ export default function LoginPage() {
         token: res.api_key,
       });
 
-      if (res.status === "PENDING_START" || res.status === "ACTIVE") {
+      if (res.status === "PENDING_START") {
+        router.push("/lobby");
+      } else if (res.status === "ACTIVE") {
         router.push("/game");
       } else {
         // Fallback for other statuses if needed
-        router.push("/game");
+        router.push("/lobby");
       }
     } catch (error: any) {
       console.error("Login failed:", error);
