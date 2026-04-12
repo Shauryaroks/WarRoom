@@ -31,7 +31,7 @@ function GameLayout() {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     const s = secs % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
   return (

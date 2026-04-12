@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 /**
- * The GameContext encapsulates UI-level states relevant specifically to the player's 
- * session that are not directly dictated by the server payload but affect user flow, 
+ * The GameContext encapsulates UI-level states relevant specifically to the player's
+ * session that are not directly dictated by the server payload but affect user flow,
  * such as which ticker is currently selected for trading, or whether certain modal overlays are open.
  */
 interface GameContextType {
@@ -22,7 +22,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 /**
  * Provides the GameContext state to its children.
- * 
+ *
  * @param {Object} props - React props.
  * @param {ReactNode} props.children - The children components to be wrapped.
  * @returns A context provider component.

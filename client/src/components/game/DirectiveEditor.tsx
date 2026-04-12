@@ -8,7 +8,7 @@ const STORAGE_KEY = "complex_directive_draft";
 /**
  * The DirectiveEditor component provides a terminal-like text editor for players
  * to draft and submit strategic directives to the AI board.
- * 
+ *
  * It features line numbers, character counting, local storage draft saving,
  * template insertion, and visual cooldown management.
  *

@@ -8,13 +8,15 @@ import { useWebSocket } from "@/contexts/WebSocketContext";
  * The LeftSidebar component serves as the player's primary ledger and dashboard.
  * It displays their current net worth, available cash, liquidity score, and
  * a real-time updating portfolio table.
- * 
+ *
  * Subscribes to the WebSocket context for live dossier updates.
  *
  * @returns The rendered ledger sidebar component.
  */
 export function LeftSidebar() {
-  const [activeTab, setActiveTab] = useState<"portfolio" | "market" | "history">("portfolio");
+  const [activeTab, setActiveTab] = useState<
+    "portfolio" | "market" | "history"
+  >("portfolio");
   const { setSelectedTicker, setIsTradeModalOpen } = useGameContext();
   const { dossier } = useWebSocket();
 
@@ -90,7 +92,8 @@ export function LeftSidebar() {
                       <td
                         className={`p-3 text-right tabular-nums ${h.unrealized_pnl > 0 ? "text-[#00c853]" : "text-[#ff3333]"}`}
                       >
-                        {h.unrealized_pnl > 0 ? "+" : ""}{h.unrealized_pnl}%{" "}
+                        {h.unrealized_pnl > 0 ? "+" : ""}
+                        {h.unrealized_pnl}%{" "}
                       </td>
                       <td className="p-3 text-center">
                         <button
@@ -127,7 +130,7 @@ export function LeftSidebar() {
         {activeTab === "history" && (
           <div className="flex flex-col">
             <div className="p-3 border-b border-[#1a1a1a] flex items-center gap-2 text-[#808080] italic">
-                History not implemented...
+              History not implemented...
             </div>
           </div>
         )}

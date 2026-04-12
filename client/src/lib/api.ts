@@ -36,7 +36,7 @@ const mockTeams: TeamSummary[] = [
     stock_price: 142.09,
     market_cap: 142090000,
     portfolio_id: "PORT_D2C_01",
-  }
+  },
 ];
 
 const directives: DirectiveWithFeedback[] = [];
@@ -74,23 +74,31 @@ export const api = {
         name: "BARBIE INC",
         ticker: "$BRBE",
         status: "ACTIVE",
-        portfolio_id: "PORT_D2C_01"
+        portfolio_id: "PORT_D2C_01",
       },
       financials: {
         cash: 1000000,
         stock_price: 142.09,
         market_cap: 142090000,
         liquidity: 1000000,
-        treasury_sale_limit_remaining: 10
+        treasury_sale_limit_remaining: 10,
       },
       portfolio: {
         holdings: [
-          { ticker: "$TECH", shares: 150, current_price: 104, current_value: 15600, cost_basis: 100, unrealized_pnl: 4, ownership_percentage: 0.1 }
+          {
+            ticker: "$TECH",
+            shares: 150,
+            current_price: 104,
+            current_value: 15600,
+            cost_basis: 100,
+            unrealized_pnl: 4,
+            ownership_percentage: 0.1,
+          },
         ],
         total_portfolio_value: 15600,
-        total_unrealized_pnl: 4
+        total_unrealized_pnl: 4,
       },
-      cooldown_status: { active: false }
+      cooldown_status: { active: false },
     };
     return TeamDossierSchema.parse(mockDossier);
   },
@@ -105,12 +113,12 @@ export const api = {
     await delay(300);
     return {};
   },
-  
+
   async rejectTeam(teamId: string): Promise<void> {
     console.log(teamId);
     await delay(200);
   },
-  
+
   async forceBankruptTeam(teamId: string): Promise<unknown> {
     console.log(teamId);
     await delay(200);
@@ -143,7 +151,15 @@ export const api = {
   async getMarketTickers(): Promise<TickerSnapshot[]> {
     await delay(50);
     return [
-      { ticker: "$BRBE", price: 95.5, change_24h: -2.1, change_absolute: -2.1, volume_24h: 5000000, market_cap: 95500000, status: "ACTIVE" }
+      {
+        ticker: "$BRBE",
+        price: 95.5,
+        change_24h: -2.1,
+        change_absolute: -2.1,
+        volume_24h: 5000000,
+        market_cap: 95500000,
+        status: "ACTIVE",
+      },
     ];
   },
 
@@ -152,7 +168,10 @@ export const api = {
     return [];
   },
 
-  async executeTrade(teamId: string, data: unknown): Promise<{success: boolean, transactionId: string}> {
+  async executeTrade(
+    teamId: string,
+    data: unknown,
+  ): Promise<{ success: boolean; transactionId: string }> {
     console.log(teamId, data);
     await delay(200);
     return { success: true, transactionId: "123" };
@@ -171,7 +190,11 @@ export const api = {
 
   async startGame(): Promise<GameState> {
     await delay(500);
-    gameState = { ...gameState, status: "ACTIVE", started_at: new Date().toISOString() };
+    gameState = {
+      ...gameState,
+      status: "ACTIVE",
+      started_at: new Date().toISOString(),
+    };
     return GameStateSchema.parse(gameState);
   },
 
@@ -234,7 +257,7 @@ export const api = {
         { type: "RAPID_TRADING", ticker: "$APEX", description: "High volume" },
       ],
     };
-  }
+  },
 };
 
 export default api;

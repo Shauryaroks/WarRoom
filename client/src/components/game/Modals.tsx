@@ -107,9 +107,10 @@ export function BoardFeedbackModal() {
           <div className="border-b border-[#2a2a2a]"></div>
 
           <p className="text-[#e0e0e0] italic leading-relaxed pl-4 border-l-2 border-[#505050]">
-            &quot;Your 15% price slash is bold, but you failed to address the rising
-            interest rate environment in your justification. The Board questions
-            your macro awareness. Execution proceeds with caution.&quot;
+            &quot;Your 15% price slash is bold, but you failed to address the
+            rising interest rate environment in your justification. The Board
+            questions your macro awareness. Execution proceeds with
+            caution.&quot;
           </p>
 
           <div className="border-b border-[#2a2a2a]"></div>

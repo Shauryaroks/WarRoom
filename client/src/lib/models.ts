@@ -185,14 +185,16 @@ export const LLMStatsSchema = z.object({
   total_cost_usd: z.number(),
   avg_latency_ms: z.number(),
   error_rate: z.number(),
-  by_model: z.array(
-    z.object({
-      model: z.string(),
-      requests: z.number(),
-      cost_usd: z.number(),
-      avg_latency_ms: z.number(),
-    })
-  ).optional(),
+  by_model: z
+    .array(
+      z.object({
+        model: z.string(),
+        requests: z.number(),
+        cost_usd: z.number(),
+        avg_latency_ms: z.number(),
+      }),
+    )
+    .optional(),
 });
 export type LLMStats = z.infer<typeof LLMStatsSchema>;
 
@@ -200,12 +202,18 @@ export const MarketStatsSchema = z.object({
   total_trades: z.number(),
   trades_last_hour: z.number(),
   volume_by_ticker: z.record(z.string(), z.number()),
-  anomaly_alerts: z.array(
-    z.object({
-      type: z.enum(["PRICE_DIVERGENCE", "RAPID_TRADING", "COLLUSION_PATTERN"]),
-      ticker: z.string(),
-      description: z.string(),
-    })
-  ).optional(),
+  anomaly_alerts: z
+    .array(
+      z.object({
+        type: z.enum([
+          "PRICE_DIVERGENCE",
+          "RAPID_TRADING",
+          "COLLUSION_PATTERN",
+        ]),
+        ticker: z.string(),
+        description: z.string(),
+      }),
+    )
+    .optional(),
 });
 export type MarketStats = z.infer<typeof MarketStatsSchema>;

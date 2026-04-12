@@ -91,13 +91,15 @@ export function SidePanel({
                   <div className="flex gap-2">
                     <span className="text-[#00c853] font-bold">S:</span>
                     <span className="text-zinc-400">
-                      {portfolios[selectedPortfolio as keyof typeof portfolios]?.S || "N/A"}
+                      {portfolios[selectedPortfolio as keyof typeof portfolios]
+                        ?.S || "N/A"}
                     </span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-[#ff3333] font-bold">W:</span>
                     <span className="text-zinc-400">
-                      {portfolios[selectedPortfolio as keyof typeof portfolios]?.W || "N/A"}
+                      {portfolios[selectedPortfolio as keyof typeof portfolios]
+                        ?.W || "N/A"}
                     </span>
                   </div>
                 </div>

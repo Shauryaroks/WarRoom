@@ -88,10 +88,14 @@ export default function AdminDashboard() {
   };
 
   const filteredTeams = teams.filter((t) => {
-    if (statusFilter !== "all" && t.status.toLowerCase() !== statusFilter) return false;
+    if (statusFilter !== "all" && t.status.toLowerCase() !== statusFilter)
+      return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      return t.name.toLowerCase().includes(query) || t.ticker.toLowerCase().includes(query);
+      return (
+        t.name.toLowerCase().includes(query) ||
+        t.ticker.toLowerCase().includes(query)
+      );
     }
     return true;
   });
@@ -126,9 +130,14 @@ export default function AdminDashboard() {
             <div>
               <div className="flex justify-between items-end mb-1">
                 <span className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif]">
-                  Avg Latency: {llm?.avg_latency_ms ? `${(llm.avg_latency_ms / 1000).toFixed(1)}s` : "0s"}
+                  Avg Latency:{" "}
+                  {llm?.avg_latency_ms
+                    ? `${(llm.avg_latency_ms / 1000).toFixed(1)}s`
+                    : "0s"}
                 </span>
-                <span className={`text-[12px] font-['Inter',sans-serif] ${!llm || llm.avg_latency_ms > 2000 ? "text-[#0077b6]" : "text-[#00c853]"}`}>
+                <span
+                  className={`text-[12px] font-['Inter',sans-serif] ${!llm || llm.avg_latency_ms > 2000 ? "text-[#0077b6]" : "text-[#00c853]"}`}
+                >
                   {!llm || llm.avg_latency_ms > 2000 ? "Warning" : "Good"}
                 </span>
               </div>
@@ -148,7 +157,9 @@ export default function AdminDashboard() {
                 Trades/hour
               </div>
               <div className="font-['JetBrains_Mono',monospace] text-[#e0e0e0] text-[14px] tabular-nums">
-                {market?.trades_last_hour ? formatNumber(market.trades_last_hour) : 0}
+                {market?.trades_last_hour
+                  ? formatNumber(market.trades_last_hour)
+                  : 0}
               </div>
             </div>
             <div>
@@ -203,7 +214,10 @@ export default function AdminDashboard() {
             <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider font-normal">
               Active Teams ({metrics?.active_teams || 0})
             </h2>
-            <button onClick={fetchData} className="text-[13px] text-[#9ca3af] hover:text-[#e5e5e5] font-['Inter',sans-serif] font-medium flex items-center gap-1 transition-colors">
+            <button
+              onClick={fetchData}
+              className="text-[13px] text-[#9ca3af] hover:text-[#e5e5e5] font-['Inter',sans-serif] font-medium flex items-center gap-1 transition-colors"
+            >
               <span className="material-symbols-outlined text-[16px]">
                 refresh
               </span>{" "}
@@ -224,10 +238,11 @@ export default function AdminDashboard() {
                 className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] pl-9 pr-3 text-[13px] text-[#e5e5e5] placeholder-[#6b7280] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors"
               />
             </div>
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors min-w-[140px]">
+              className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors min-w-[140px]"
+            >
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="cooldown">Cooldown</option>
@@ -292,7 +307,8 @@ export default function AdminDashboard() {
                               ◐
                             </span>
                           )}
-                          {(team.status === "BANKRUPT" || team.status === "ELIMINATED") && (
+                          {(team.status === "BANKRUPT" ||
+                            team.status === "ELIMINATED") && (
                             <span className="text-[#6b7280] text-[14px] mr-2 leading-none">
                               ○
                             </span>
@@ -346,7 +362,10 @@ export default function AdminDashboard() {
                 ))}
                 {filteredTeams.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500 font-['Inter',sans-serif]">
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-gray-500 font-['Inter',sans-serif]"
+                    >
                       No teams match criteria.
                     </td>
                   </tr>
@@ -403,7 +422,8 @@ export default function AdminDashboard() {
               <span
                 className={`text-[13px] font-['Inter',sans-serif] ${(metrics?.llm_queue_depth ?? 0) > 0 ? "text-[#9ca3af]" : "text-[#e5e5e5]"}`}
               >
-                No directives processing (queue: {metrics?.llm_queue_depth || 0})
+                No directives processing (queue: {metrics?.llm_queue_depth || 0}
+                )
               </span>
             </div>
 
@@ -443,9 +463,13 @@ export default function AdminDashboard() {
 
             <button
               onClick={handlePurgeAction}
-              disabled={purgeState === "PENDING" || purgeState === "COMPLETE" || purgeState === "PROCESSING"}
+              disabled={
+                purgeState === "PENDING" ||
+                purgeState === "COMPLETE" ||
+                purgeState === "PROCESSING"
+              }
               className={`w-full h-[48px] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 flex items-center justify-center uppercase
-                ${(purgeState === "PENDING" || purgeState === "PROCESSING") ? "bg-[#2a2a2a] text-[#6b7280] cursor-not-allowed" : ""}
+                ${purgeState === "PENDING" || purgeState === "PROCESSING" ? "bg-[#2a2a2a] text-[#6b7280] cursor-not-allowed" : ""}
                 ${purgeState === "READY" ? "bg-[#0077b6] text-[#0a0a0a] hover:bg-[#0077b6]/90 shadow-[0_0_15px_rgba(255,176,0,0.3)] cursor-pointer" : ""}
                 ${purgeState === "CONFIRM" ? "bg-[#ff3333] text-[#e5e5e5] hover:bg-[#ff3333]/90 shadow-[0_0_15px_rgba(255,51,51,0.4)] cursor-pointer" : ""}
                 ${purgeState === "COMPLETE" ? "bg-[#00c853] text-[#0a0a0a] cursor-not-allowed" : ""}

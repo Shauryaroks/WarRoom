@@ -75,7 +75,9 @@ export function HeaderBar({
           {isMarketConnected && isTeamConnected ? (
             <span className="text-[#00c853]">CONNECTED</span>
           ) : (
-            <span className="text-[#ff3333] animate-pulse">RECONNECTING...</span>
+            <span className="text-[#ff3333] animate-pulse">
+              RECONNECTING...
+            </span>
           )}
         </div>
       </div>
