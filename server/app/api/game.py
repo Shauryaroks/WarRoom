@@ -136,7 +136,7 @@ async def start_game(
 
     # Activate all PENDING teams that have been approved (have a portfolio assigned)
     stmt = select(Team).where(
-        Team.status == TeamStatus.PENDING,
+        Team.status.in_([TeamStatus.PENDING, TeamStatus.READY]),
         Team.portfolio_type != None,
     )
     result = await db.execute(stmt)

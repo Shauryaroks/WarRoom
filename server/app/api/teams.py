@@ -427,199 +427,26 @@ async def list_teams(
 # --- Portfolio templates ---
 
 
+PORTFOLIO_TEMPLATES = {
+    "PORT_TECH_01": {
+        "strengths": "Proprietary LLM architecture with 40% faster inference than competitors. PhD-heavy engineering team.",
+        "weaknesses": "Burn rate of $500k/month. No recurring revenue model yet. Single point of failure in cloud infrastructure.",
+        "opportunities": "Enterprise API licensing deals. Regulatory tailwinds favoring domestic AI providers.",
+        "threats": "Open-source models commoditizing the space. Big Tech incumbents with unlimited R&D budgets.",
+    },
+    "PORT_LEGACY_01": {
+        "strengths": "Vertically integrated supply chain. 50-year brand reputation. Pension fund fully funded.",
+        "weaknesses": "Unionized workforce resistant to automation. Legacy COBOL systems. High fixed costs.",
+        "opportunities": "Infrastructure bill driving steel demand. Carbon capture technology tax credits.",
+        "threats": "Chinese steel dumping. ESG divestment movements targeting heavy industry.",
+    },
+    "PORT_DISRUPT_01": {
+        "strengths": "Viral TikTok marketing channel with 2M followers. Zero inventory (dropship model).",
+        "weaknesses": "No supply chain control. Quality control issues. Founder-dependent leadership.",
+        "opportunities": "Celebrity collaboration pipeline. International expansion (EU markets).",
+        "threats": "Platform risk (TikTok algorithm changes). Copycat competitors with lower prices.",
+    },
+}
+
 def get_portfolio_template(portfolio_type: str) -> dict:
-    templates = {
-        "PORT_TECH_01": {
-            "strengths": "Proprietary LLM architecture with 40% faster inference than competitors. PhD-heavy engineering team.",
-            "weaknesses": "Burn rate of $500k/month. No recurring revenue model yet. Single point of failure in cloud infrastructure.",
-            "opportunities": "Enterprise API licensing deals. Regulatory tailwinds favoring domestic AI providers.",
-            "threats": "Open-source models commoditizing the space. Big Tech incumbents with unlimited R&D budgets.",
-        },
-        "PORT_LEGACY_01": {
-            "strengths": "Vertically integrated supply chain. 50-year brand reputation. Pension fund fully funded.",
-            "weaknesses": "Unionized workforce resistant to automation. Legacy COBOL systems. High fixed costs.",
-            "opportunities": "Infrastructure bill driving steel demand. Carbon capture technology tax credits.",
-            "threats": "Chinese steel dumping. ESG divestment movements targeting heavy industry.",
-        },
-        "PORT_DISRUPT_01": {
-            "strengths": "Viral TikTok marketing channel with 2M followers. Zero inventory (dropship model).",
-            "weaknesses": "No supply chain control. Quality control issues. Founder-dependent leadership.",
-            "opportunities": "Celebrity collaboration pipeline. International expansion (EU markets).",
-            "threats": "Platform risk (TikTok algorithm changes). Copycat competitors with lower prices.",
-        },
-    }
-    return templates.get(portfolio_type, templates["PORT_TECH_01"])
-
-
-# --- POST /teams/{team_id}/approve ---
-
-
-class ApproveTeamRequest(BaseModel):
-    portfolio_id: str = Field(default="PORT_TECH_01")
-    starting_cash: Optional[float] = 1000000.0
-
-
-class TeamApprovalResponse(BaseModel):
-    team_id: str
-    api_key: str
-    message: str
-
-
-@router.post("/{team_id}/approve", response_model=TeamApprovalResponse)
-async def approve_team(
-    team_id: str,
-    request: ApproveTeamRequest,
-    admin: bool = Depends(verify_admin_key),
-    db: AsyncSession = Depends(get_db),
-):
-    import uuid
-
-    try:
-        team_uuid = uuid.UUID(team_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid team ID")
-
-    team = await db.get(Team, team_uuid)
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    if team.status != TeamStatus.PENDING:
-        raise HTTPException(status_code=400, detail="Team not pending approval")
-
-    portfolio = get_portfolio_template(request.portfolio_id)
-
-    team.portfolio_type = request.portfolio_id
-    team.swot_strengths = portfolio["strengths"]
-    team.swot_weaknesses = portfolio["weaknesses"]
-    team.swot_opportunities = portfolio["opportunities"]
-    team.swot_threats = portfolio["threats"]
-
-    # Check if game is running — if so, activate immediately
-    settings = await db.get(GameState, 1)
-
-    if settings and settings.status == GameStatus.ACTIVE:
-        team.status = TeamStatus.ACTIVE
-        team.cash = (
-            Decimal(str(request.starting_cash))
-            if request.starting_cash
-            else (settings.starting_cash or Decimal("1000000"))
-        )
-        team.stock_price = settings.starting_price or Decimal("100")
-        team.shares_outstanding = settings.starting_shares or 1000000
-        team.public_float = team.shares_outstanding // 10
-        team.treasury_shares = team.shares_outstanding - team.public_float
-    else:
-        # Stay PENDING — will be activated when game starts
-        # But mark portfolio as assigned so we know they're approved
-        pass
-
-    await db.commit()
-    await db.refresh(team)
-
-    return TeamApprovalResponse(
-        team_id=str(team.id),
-        api_key=str(team.api_key),
-        message="Team approved and activated"
-        if team.status == TeamStatus.ACTIVE
-        else "Team approved, will activate on game start",
-    )
-
-
-# --- POST /teams/{team_id}/reject ---
-
-
-class RejectTeamRequest(BaseModel):
-    reason: str = ""
-
-
-@router.post("/{team_id}/reject")
-async def reject_team(
-    team_id: str,
-    request: RejectTeamRequest,
-    admin: bool = Depends(verify_admin_key),
-    db: AsyncSession = Depends(get_db),
-):
-    import uuid
-
-    try:
-        team_uuid = uuid.UUID(team_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid team ID")
-
-    team = await db.get(Team, team_uuid)
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    team.status = TeamStatus.REJECTED
-    team.rejection_reason = request.reason
-
-    await db.commit()
-
-    return {"message": "Team rejected", "team_id": team_id}
-
-
-# --- POST /teams/{team_id}/bankrupt ---
-
-
-class BankruptTeamRequest(BaseModel):
-    reason: str = Field(default="ADMIN_OVERRIDE")
-    public_message: Optional[str] = None
-
-
-@router.post("/{team_id}/bankrupt")
-async def force_bankrupt_team(
-    team_id: str,
-    request: BankruptTeamRequest,
-    admin: bool = Depends(verify_admin_key),
-    db: AsyncSession = Depends(get_db),
-):
-    """Force a team into bankruptcy (admin override)."""
-    import uuid
-
-    try:
-        team_uuid = uuid.UUID(team_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid team ID")
-
-    team = await db.get(Team, team_uuid)
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    if team.status == TeamStatus.ELIMINATED:
-        raise HTTPException(status_code=400, detail="Team already eliminated")
-
-    team.status = TeamStatus.ELIMINATED
-    team.eliminated_at = datetime.utcnow()
-    team.elimination_reason = request.reason
-    team.stock_price = Decimal("0")
-
-    # Zero out holdings of this team
-    holdings_stmt = select(StockHolding).where(StockHolding.target_team_id == team.id)
-    holdings_result = await db.execute(holdings_stmt)
-    affected_holdings = holdings_result.scalars().all()
-    for h in affected_holdings:
-        h.shares_owned = 0
-
-    await db.commit()
-
-    from app.websocket import manager
-
-    await manager.broadcast_system_event(
-        "BANKRUPTCY_DECLARATION",
-        {
-            "event_type": "ELIMINATION",
-            "message": f"{team.ticker} eliminated due to admin override",
-            "ticker": team.ticker,
-            "reason": request.reason,
-        },
-    )
-
-    return {
-        "message": f"Team {team.ticker} force-bankrupted",
-        "team_id": str(team.id),
-        "reason": request.reason,
-    }
-
-
-# Need this import for approve_team
-from app.models import GameState, GameStatus  # noqa: E402
+    return PORTFOLIO_TEMPLATES.get(portfolio_type, PORTFOLIO_TEMPLATES["PORT_TECH_01"])

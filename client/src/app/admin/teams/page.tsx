@@ -13,6 +13,8 @@ export default function TeamsPage() {
   const [selectedPortfolios, setSelectedPortfolios] = useState<
     Record<string, string>
   >({});
+  const [availablePortfolios, setAvailablePortfolios] = useState<string[]>([]);
+
 
   useEffect(() => {
     fetchData();
@@ -22,14 +24,32 @@ export default function TeamsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const fetchedTeams = await api.getTeams(filter.toLowerCase());
+      let fetchedTeams: TeamSummary[] = [];
+      let currentPorts = availablePortfolios;
+      try {
+        const ports = await api.adminGetPortfolios();
+        setAvailablePortfolios(ports);
+        currentPorts = ports;
+      } catch (err) {
+        console.error("Failed to fetch portfolios", err);
+      }
+
+      if (filter === "PENDING") {
+        const [pending, ready] = await Promise.all([
+          api.getTeams("pending"),
+          api.getTeams("ready")
+        ]);
+        fetchedTeams = [...pending, ...ready];
+      } else {
+        fetchedTeams = await api.getTeams(filter === "ALL" ? "" : filter.toLowerCase());
+      }
       setTeams(fetchedTeams);
 
       // Initialize selected portfolios for pending teams
       const initialPorts: Record<string, string> = {};
       fetchedTeams.forEach((t) => {
         if (t.status === "PENDING") {
-          initialPorts[t.team_id] = "PORT_TECH_01";
+          initialPorts[t.team_id] = currentPorts[0] || "PORT_TECH_01";
         }
       });
       setSelectedPortfolios((prev) => ({ ...initialPorts, ...prev }));
@@ -41,7 +61,7 @@ export default function TeamsPage() {
   };
 
   const handleApprove = async (teamId: string) => {
-    const portfolioId = selectedPortfolios[teamId] || "PORT_TECH_01";
+    const portfolioId = selectedPortfolios[teamId] || availablePortfolios[0] || "PORT_TECH_01";
     if (!portfolioId) return;
     try {
       await api.approveTeam(teamId, portfolioId);
@@ -89,14 +109,14 @@ export default function TeamsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {[
-            "ALL",
-            "PENDING",
-            "ACTIVE",
-            "COOLDOWN",
-            "BANKRUPT",
-            "ELIMINATED",
-          ].map((f) => (
+            {[
+              "ALL",
+              "PENDING",
+              "ACTIVE",
+              "COOLDOWN",
+              "BANKRUPT",
+              "ELIMINATED",
+            ].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -171,28 +191,28 @@ export default function TeamsPage() {
                             ? "bg-[#ff3333]/20 text-[#ff3333]"
                             : team.status === "COOLDOWN"
                               ? "bg-[#0077b6]/20 text-[#0077b6]"
-                              : "bg-[#2a2a2a] text-gray-400"
+                              : team.status === "READY"
+                                ? "bg-[#00c853]/10 text-[#00c853]"
+                                : "bg-[#2a2a2a] text-gray-400"
                       }`}
                     >
                       [{team.status}]
                     </span>
                   </td>
                   <td className="px-4 whitespace-nowrap text-gray-400 font-['JetBrains_Mono',monospace] text-sm tabular-nums hidden sm:table-cell">
-                    {team.status === "PENDING"
+                    {team.status === "PENDING" || team.status === "READY"
                       ? "---"
                       : formatCurrency(team.market_cap || 0)}
                   </td>
                   <td className="px-4 whitespace-nowrap text-gray-400 font-['JetBrains_Mono',monospace] text-sm tabular-nums hidden sm:table-cell">
-                    {team.status === "PENDING"
+                    {team.status === "PENDING" || team.status === "READY"
                       ? "---"
                       : formatCurrency(team.market_cap || 0)}
                   </td>
                   <td className="px-4 whitespace-nowrap text-right space-x-2">
                     {team.status === "PENDING" && (
                       <div className="flex justify-end items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="e.g. PORT_TECH_01"
+                        <select
                           className="bg-[#0a0a0a] border border-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-[#0077b6] font-['JetBrains_Mono',monospace] w-[130px]"
                           value={selectedPortfolios[team.team_id] || ""}
                           onChange={(e) =>
@@ -201,7 +221,12 @@ export default function TeamsPage() {
                               [team.team_id]: e.target.value,
                             })
                           }
-                        />
+                        >
+                          <option value="" disabled>Select Portfolio</option>
+                          {availablePortfolios.map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
                         <button
                           onClick={() => handleApprove(team.team_id)}
                           className="p-1.5 rounded bg-[#00c853]/10 text-[#00c853] hover:bg-[#00c853]/20 transition-colors"
@@ -221,6 +246,11 @@ export default function TeamsPage() {
                           </span>
                         </button>
                       </div>
+                    )}
+                    {team.status === "READY" && (
+                      <span className="text-[#00c853] font-['Inter',sans-serif] text-xs font-bold uppercase tracking-wide">
+                        Approved, Awaiting Start
+                      </span>
                     )}
                     {(team.status === "ACTIVE" ||
                       team.status === "COOLDOWN") && (

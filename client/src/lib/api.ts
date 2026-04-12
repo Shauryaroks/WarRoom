@@ -318,9 +318,12 @@ export const api = {
   },
 
   // --- Admin Game Control ---
-  async startGame(): Promise<Record<string, unknown>> {
+  async startGame(data: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
     try {
-      const res = await authFetch("/game/start", { method: "POST" });
+      const res = await authFetch("/game/start", { 
+        method: "POST",
+        body: JSON.stringify(data)
+      });
       return await res.json();
     } catch (error) {
       console.error("[API Error] startGame:", error);
@@ -334,6 +337,16 @@ export const api = {
       return await res.json();
     } catch (error) {
       console.error("[API Error] pauseGame:", error);
+      throw error;
+    }
+  },
+
+  async resumeGame(): Promise<Record<string, unknown>> {
+    try {
+      const res = await authFetch("/game/resume", { method: "POST" });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] resumeGame:", error);
       throw error;
     }
   },
@@ -365,6 +378,18 @@ export const api = {
   },
 
   // --- Admin Metrics ---
+  
+  async adminGetPortfolios(): Promise<string[]> {
+    try {
+      const res = await authFetch("/admin/portfolios");
+      const data = await res.json();
+      return data.portfolios || [];
+    } catch (error) {
+      console.error("[API Error] adminGetPortfolios:", error);
+      throw error;
+    }
+  },
+
   async adminGetMetrics(): Promise<AdminMetrics> {
     try {
       const res = await authFetch("/admin/metrics");

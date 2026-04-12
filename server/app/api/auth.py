@@ -43,12 +43,6 @@ async def get_current_team(
             detail="Invalid API key",
         )
 
-    if team.status == TeamStatus.REJECTED:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your registration was rejected",
-        )
-
     return team
 
 
@@ -146,10 +140,9 @@ async def login_team(
 
     status_str = team.status.value
     if team.status == TeamStatus.PENDING:
-        if getattr(team, "portfolio_type", None):
-            status_str = "PENDING_START"
-        else:
-            status_str = "PENDING_APPROVAL"
+        status_str = "PENDING_APPROVAL"
+    elif team.status == TeamStatus.READY:
+        status_str = "PENDING_START"
 
     return LoginResponse(
         api_key=str(team.api_key),

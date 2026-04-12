@@ -26,6 +26,7 @@ def utc_now():
 
 class TeamStatus(str, enum.Enum):
     PENDING = "PENDING"
+    READY = "READY"
     ACTIVE = "ACTIVE"
     COOLDOWN = "COOLDOWN"
     BANKRUPT = "BANKRUPT"

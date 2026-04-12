@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const TeamStatusSchema = z.enum([
   "PENDING",
+  "READY",
+  "REJECTED",
   "PENDING_START",
   "PENDING_PURGE",
   "ACTIVE",

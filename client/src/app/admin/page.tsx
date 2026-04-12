@@ -103,7 +103,40 @@ export default function AdminDashboard() {
   return (
     <div className="flex flex-col gap-4 max-w-7xl mx-auto pb-8 p-4">
       {/* Top Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Game Controls Card */}
+        <div className="bg-[#141414] border border-[#2a2a2a] rounded-[6px] p-4 flex flex-col justify-between">
+          <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider mb-4 font-normal">
+            Game Controls
+          </h2>
+          <div className="grid grid-cols-2 gap-2 mt-auto">
+            <button
+              onClick={() => api.startGame({}).then(fetchData).catch(console.error)}
+              className="bg-[#00c853]/10 hover:bg-[#00c853]/20 text-[#00c853] border border-[#00c853]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
+            >
+              START GAME
+            </button>
+            <button
+              onClick={() => api.endGame().then(fetchData).catch(console.error)}
+              className="bg-[#ff3333]/10 hover:bg-[#ff3333]/20 text-[#ff3333] border border-[#ff3333]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
+            >
+              END GAME
+            </button>
+            <button
+              onClick={() => api.pauseGame().then(fetchData).catch(console.error)}
+              className="bg-[#0077b6]/10 hover:bg-[#0077b6]/20 text-[#0077b6] border border-[#0077b6]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
+            >
+              PAUSE
+            </button>
+            <button
+              onClick={() => api.resumeGame().then(fetchData).catch(console.error)}
+              className="bg-[#00bcd4]/10 hover:bg-[#00bcd4]/20 text-[#00bcd4] border border-[#00bcd4]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
+            >
+              RESUME
+            </button>
+          </div>
+        </div>
+
         {/* LLM Session Costs Card */}
         <div className="bg-[#141414] border border-[#2a2a2a] rounded-[6px] p-4 flex flex-col justify-between">
           <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider mb-4 font-normal">
