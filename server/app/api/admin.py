@@ -97,7 +97,7 @@ async def get_llm_stats(
         "error_rate": float(failed / total_directives) if total_directives else 0.0,
         "by_model": [
             {
-                "model": gs.llm_model if gs else "anthropic/claude-3.5-sonnet",
+                "model": gs.llm_model if gs else "grok-3-mini",
                 "requests": total_directives or 0,
                 "cost_usd": float(gs.total_llm_cost) if gs else 0.0,
                 "avg_latency_ms": 0,

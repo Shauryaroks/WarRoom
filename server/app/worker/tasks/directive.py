@@ -21,8 +21,8 @@ from app.models import (
 )
 from app.worker import celery_app
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+GROK_API_KEY = os.getenv("GROK_API_KEY", "")
+GROK_BASE_URL = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -124,7 +124,8 @@ Evaluate the following strategic directive. Return JSON with:
 
     user_prompt = directive.content
 
-    if not OPENROUTER_API_KEY:
+    if not GROK_API_KEY:
+        # No API key configured — return deterministic stub
         return {
             "extraction_confidence": 0.8,
             "consistency_score": 0.7,
@@ -144,15 +145,15 @@ Evaluate the following strategic directive. Return JSON with:
         }
 
     gs = await db.get(GameState, 1)
-    model = gs.llm_model if gs else "anthropic/claude-3.5-sonnet"
+    model = gs.llm_model if gs else "grok-3-mini"
     max_tokens = gs.llm_max_tokens if gs else 2000
     temperature = gs.llm_temperature if gs else 0.7
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"{OPENROUTER_BASE_URL}/chat/completions",
+            f"{GROK_BASE_URL}/chat/completions",
             headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Authorization": f"Bearer {GROK_API_KEY}",
                 "Content-Type": "application/json",
             },
             json={

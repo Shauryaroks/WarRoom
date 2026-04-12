@@ -384,7 +384,7 @@ class GameState(Base):
 
     # LLM Configuration
     llm_model: Mapped[str] = mapped_column(
-        String(50), default="anthropic/claude-3.5-sonnet"
+        String(50), default="grok-3-mini"
     )
     llm_max_tokens: Mapped[int] = mapped_column(Integer, default=2000)
     llm_temperature: Mapped[float] = mapped_column(default=0.7)
