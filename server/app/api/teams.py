@@ -367,6 +367,7 @@ async def list_teams(
     known_statuses = {
         "ALL",
         "PENDING",
+        "READY",
         "ACTIVE",
         "COOLDOWN",
         "BANKRUPT",
