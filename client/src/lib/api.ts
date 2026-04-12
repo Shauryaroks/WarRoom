@@ -66,15 +66,10 @@ export const api = {
     password: string;
   }): Promise<{ message: string; registration_id: string }> {
     try {
-      // Strip $ prefix if present — backend adds it automatically
-      const cleanData = {
-        ...data,
-        ticker: data.ticker.replace(/^\$/, ""),
-      };
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cleanData),
+        body: JSON.stringify(data),
       });
       if (!res.ok) {
         let errMessage = res.statusText;
@@ -99,15 +94,10 @@ export const api = {
     ws_endpoint: string;
   }> {
     try {
-      // Strip $ prefix if present — backend adds it automatically
-      const cleanData = {
-        ...data,
-        ticker: data.ticker.replace(/^\$/, ""),
-      };
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cleanData),
+        body: JSON.stringify(data),
       });
       if (!res.ok) {
         let errMessage = res.statusText;
