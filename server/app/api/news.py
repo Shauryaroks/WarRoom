@@ -162,6 +162,26 @@ async def inject_global_news(
         sentiment_map.get(request.impact_type, 0.0) if request.impact_type else None
     )
 
+    if request.scheduled_for:
+        from app.worker.tasks.news import inject_scheduled_news
+
+        inject_scheduled_news.apply_async(
+            kwargs={
+                "headline": request.headline,
+                "content": request.content,
+                "source_type": "ADMIN_INJECTED",
+                "sentiment_score": float(sentiment) if sentiment is not None else None,
+                "affected_sectors": request.affected_sectors,
+                "affected_tickers": request.affected_tickers,
+            },
+            eta=request.scheduled_for,
+        )
+        return InjectNewsResponse(
+            news_id="scheduled",
+            broadcast_count=0,
+            scheduled=True,
+        )
+
     news = MarketNews(
         headline=request.headline,
         content=request.content,
@@ -202,8 +222,6 @@ async def inject_global_news(
         "relevance_decay": 1.0,  # freshly created
     }
     await manager.broadcast_news(news_broadcast)
-
-    # TODO: Implement scheduled_for — queue news for future publication
 
     return InjectNewsResponse(
         news_id=str(news.id),

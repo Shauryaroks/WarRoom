@@ -671,7 +671,19 @@ async def generate_public_news(db: AsyncSession, directive: Directive, team: Tea
     )
     db.add(news)
     await db.commit()
-    # TODO: Broadcast news via Redis pub/sub (worker runs in separate process from FastAPI)
+    await db.refresh(news)
+
+    from app.worker.celery_app import redis_client
+
+    if redis_client:
+        payload = {
+            "type": "news_alert",
+            "headline": news.headline,
+            "source": news.source_type,
+            "ticker": team.ticker,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        await redis_client.publish("market_events", json.dumps(payload))
 
 
 # ---------------------------------------------------------------------------

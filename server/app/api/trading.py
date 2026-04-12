@@ -85,17 +85,17 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
             detail="Cannot buy own stock",
         )
 
+    if order.shares > target.public_float:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="FLOAT_EXHAUSTED",
+        )
+
     max_per_txn = target.public_float // 10  # 10% of float
     if order.shares > max_per_txn and max_per_txn > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"VOLUME_CAP_EXCEEDED: max {max_per_txn} shares per transaction (10% of float)",
-        )
-
-    if order.shares > target.public_float:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="FLOAT_EXHAUSTED",
         )
 
     total_cost = Decimal(order.shares) * target.stock_price
@@ -115,7 +115,7 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
     result = await db.execute(stmt)
     holding = result.scalar_one_or_none()
 
-    max_ownership = target.shares_outstanding * 0.25
+    max_ownership = int(target.shares_outstanding * 0.25)
     current_owned = holding.shares_owned if holding else 0
 
     if current_owned + order.shares > max_ownership:

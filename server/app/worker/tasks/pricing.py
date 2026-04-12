@@ -169,8 +169,20 @@ async def record_price_history(db: AsyncSession, team: Team, price: Decimal):
 
 async def broadcast_price_update(team: Team, price: Decimal):
     """Broadcast price update via Redis Pub/Sub."""
-    # TODO: Broadcast price updates via Redis pub/sub (worker runs in separate process from FastAPI)
-    pass
+    from app.worker.celery_app import redis_client
+    import json
+
+    if not redis_client:
+        return
+
+    payload = {
+        "type": "price_update",
+        "ticker": team.ticker,
+        "price": float(price),
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+    await redis_client.publish("market_events", json.dumps(payload))
 
 
 @celery_app.task

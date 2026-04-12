@@ -95,6 +95,7 @@ async def get_game_state(
 class StartGameRequest(BaseModel):
     scheduled_duration_hours: int = 6
     initial_news_items: Optional[list[str]] = None
+    scheduled_news_items: Optional[list[dict]] = None
 
 
 class GameControlResponse(BaseModel):
@@ -149,7 +150,6 @@ async def start_game(
         team.public_float = team.shares_outstanding // 10
         team.treasury_shares = team.shares_outstanding - team.public_float
 
-    # Seed initial news items
     if request.initial_news_items:
         from app.models import MarketNews
 
@@ -168,12 +168,6 @@ async def start_game(
             "Analysts predict volatile conditions ahead for all sectors",
             "Central bank signals steady monetary policy for the quarter",
             "Global supply chain disruptions continue to impact valuations",
-            "Investor confidence rises on strong economic indicators",
-            "Regulatory changes expected to reshape competitive landscape",
-            "Technology sector leads early gains in opening trades",
-            "Commodity prices stabilize after weeks of fluctuation",
-            "Merger and acquisition activity expected to accelerate",
-            "Market liquidity reaches new highs as participants increase",
         ]
         for headline in default_headlines:
             news = MarketNews(
@@ -182,6 +176,48 @@ async def start_game(
                 source_team_id=None,
             )
             db.add(news)
+
+    # Schedule future news items
+    from app.worker.tasks.news import inject_scheduled_news
+    from datetime import timedelta
+
+    if request.scheduled_news_items:
+        for i, item in enumerate(request.scheduled_news_items):
+            delay_minutes = item.get("delay_minutes", (i + 1) * 5)
+            eta = datetime.utcnow() + timedelta(minutes=delay_minutes)
+            inject_scheduled_news.apply_async(
+                kwargs={
+                    "headline": item.get("headline", "Scheduled market update"),
+                    "content": item.get("content"),
+                    "source_type": item.get("source_type", "GLOBAL"),
+                    "sentiment_score": item.get("sentiment_score"),
+                    "affected_sectors": item.get("affected_sectors"),
+                    "affected_tickers": item.get("affected_tickers"),
+                },
+                eta=eta,
+            )
+    else:
+        default_future_headlines = [
+            "Investor confidence rises on strong economic indicators",
+            "Regulatory changes expected to reshape competitive landscape",
+            "Technology sector leads early gains in mid-day trades",
+            "Commodity prices stabilize after weeks of fluctuation",
+            "Merger and acquisition activity expected to accelerate",
+            "Market liquidity reaches new highs as participants increase",
+        ]
+        for i, headline in enumerate(default_future_headlines):
+            eta = datetime.utcnow() + timedelta(minutes=(i + 1) * 15)
+            inject_scheduled_news.apply_async(
+                kwargs={
+                    "headline": headline,
+                    "content": None,
+                    "source_type": "GLOBAL",
+                    "sentiment_score": None,
+                    "affected_sectors": None,
+                    "affected_tickers": None,
+                },
+                eta=eta,
+            )
 
     await db.commit()
     await db.refresh(gs)

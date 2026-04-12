@@ -12,6 +12,7 @@ celery_app = Celery(
         "app.worker.tasks.directive",
         "app.worker.tasks.pricing",
         "app.worker.tasks.bankruptcy",
+        "app.worker.tasks.news",
     ],
 )
 

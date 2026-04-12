@@ -112,7 +112,7 @@ class PriceHistoryResponse(BaseModel):
 @router.get("/history/{ticker}", response_model=PriceHistoryResponse)
 async def get_price_history(
     ticker: str,
-    interval: str = Query("5m", pattern=r"^(1m|5m|15m|1h)$"),
+    interval: str = Query("5m", pattern=r"^(1m|5m|15m|1h|1d)$"),
     limit: int = Query(100, le=500),
     db: AsyncSession = Depends(get_db),
 ):
@@ -129,32 +129,33 @@ async def get_price_history(
     if not target:
         raise HTTPException(status_code=404, detail="Ticker not found")
 
-    stmt = (
-        select(PriceHistory)
-        .where(PriceHistory.team_id == target.id)
-        .order_by(PriceHistory.calculated_at.desc())
-        .limit(limit)
-    )
-    result = await db.execute(stmt)
-    history = result.scalars().all()
-
     INTERVAL_SECONDS = {
         "1m": 60,
         "5m": 300,
         "15m": 900,
         "1h": 3600,
+        "1d": 86400,
     }
-
-    # history is newest-first from DB, reverse for chronological
-    chronological = list(reversed(history))
-
     interval_secs = INTERVAL_SECONDS.get(interval, 300)
+    cutoff_time = datetime.utcnow() - timedelta(seconds=interval_secs * limit)
+
+    stmt = (
+        select(PriceHistory)
+        .where(PriceHistory.team_id == target.id)
+        .where(PriceHistory.calculated_at >= cutoff_time)
+        .order_by(PriceHistory.calculated_at.asc())
+    )
+    result = await db.execute(stmt)
+    history = result.scalars().all()
+
     interval_mins = interval_secs // 60
 
     buckets = defaultdict(list)
-    for h in chronological:
+    for h in history:
         ts = h.calculated_at
-        if interval_secs >= 3600:
+        if interval_secs >= 86400:
+            bucket_ts = ts.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif interval_secs >= 3600:
             bucket_ts = ts.replace(minute=0, second=0, microsecond=0)
         else:
             bucket_minute = (ts.minute // interval_mins) * interval_mins
@@ -162,7 +163,7 @@ async def get_price_history(
         buckets[bucket_ts].append(float(h.price))
 
     data_points = []
-    for bucket_ts in sorted(buckets.keys()):
+    for bucket_ts in sorted(buckets.keys())[-limit:]:
         prices = buckets[bucket_ts]
         data_points.append(
             PricePoint(
