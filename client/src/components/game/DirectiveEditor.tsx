@@ -42,6 +42,14 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
     }
   };
 
+  // Use both dossier cooldown status and local countdown
+  const activeCooldown =
+    dossier?.cooldown_status?.active || cooldownRemaining > 0;
+  const displayCooldown = Math.max(
+    cooldownRemaining,
+    dossier?.cooldown_status?.seconds_remaining || 0,
+  );
+
   const handleSubmit = async () => {
     if (!directive.trim() || isSubmitting || activeCooldown) return;
 
@@ -80,14 +88,6 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
 
   const isWarningChars = charCount >= 1800;
   const isMaxChars = charCount >= maxChars;
-
-  // Use both dossier cooldown status and local countdown
-  const activeCooldown =
-    dossier?.cooldown_status?.active || cooldownRemaining > 0;
-  const displayCooldown = Math.max(
-    cooldownRemaining,
-    dossier?.cooldown_status?.seconds_remaining || 0,
-  );
 
   return (
     <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[#0a0a0a] text-[#0077b6] relative">

@@ -29,7 +29,7 @@ export default function LoginPage() {
     setPendingApproval(false);
 
     try {
-      const formattedTicker = `$${tickerInput}`;
+      const formattedTicker = tickerInput;
       const res = await api.login({ ticker: formattedTicker, password });
 
       if (res.status === "PENDING_APPROVAL") {

@@ -36,7 +36,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
   // State 1: Pre-Game Lobby
   if (
     gameState?.status === "SETUP" &&
-    dossier?.profile?.status === "PENDING_START"
+    (dossier?.profile?.status === "PENDING_START" || dossier?.profile?.status === "READY")
   ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] text-[#0077b6] font-mono p-8 text-center relative overflow-hidden">

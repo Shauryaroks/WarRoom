@@ -24,6 +24,13 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const currentCandleRef = useRef<{
+    time: Time;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+  } | null>(null);
 
   const { marketTickers } = useWebSocket();
 
@@ -117,34 +124,37 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
     };
   }, [ticker]);
 
-  // Handle live updates
+  // Handle live updates — track OHLC within each 5-minute bucket
   useEffect(() => {
     if (!seriesRef.current || !marketTickers || marketTickers.length === 0) return;
 
-    // Find the latest price for this ticker from marketTickers
     const updatedTicker = marketTickers.find(
       (t: any) => t.ticker === ticker
     );
     if (!updatedTicker) return;
 
-    // We only have the current price, not the full OHLC for the current candle.
-    // For a real app, the WS might broadcast candle updates or we'd manage the candle locally.
-    // Here we'll just update the last candle's close if we have data.
     const price = updatedTicker.price;
-    const now = new Date();
-    now.setSeconds(0, 0); // floor to minute or whatever interval
-    const time = Math.floor(now.getTime() / 1000) as Time;
+    const BUCKET_SECONDS = 5 * 60; // 5-minute buckets
+    const bucketTime = (Math.floor(Date.now() / 1000 / BUCKET_SECONDS) * BUCKET_SECONDS) as Time;
 
-    // Workaround: lightweight charts data.update() requires open, high, low, close.
-    // We can't easily retrieve the *last* candle data synchronously without keeping track of it.
-    // A simplified update:
-    seriesRef.current.update({
-      time, // This might just append or overwrite if time matches
-      open: price, // Ideal would be the actual open
-      high: price,
-      low: price,
-      close: price,
-    });
+    const current = currentCandleRef.current;
+    if (current && current.time === bucketTime) {
+      // Same bucket — update OHLC
+      current.high = Math.max(current.high, price);
+      current.low = Math.min(current.low, price);
+      current.close = price;
+    } else {
+      // New bucket — start fresh candle
+      currentCandleRef.current = {
+        time: bucketTime,
+        open: price,
+        high: price,
+        low: price,
+        close: price,
+      };
+    }
+
+    seriesRef.current.update(currentCandleRef.current!);
   }, [marketTickers, ticker]);
 
   return (

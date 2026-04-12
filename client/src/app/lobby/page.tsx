@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { TeamSummary } from "@/lib/models";
 import { useWebSocket, WebSocketProvider } from "@/contexts/WebSocketContext";
+import { GameProvider } from "@/contexts/GameContext";
 
 function LobbyContent() {
   const router = useRouter();
@@ -85,5 +86,15 @@ function LobbyContent() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LobbyPage() {
+  return (
+    <GameProvider>
+      <WebSocketProvider>
+        <LobbyContent />
+      </WebSocketProvider>
+    </GameProvider>
   );
 }

@@ -63,15 +63,15 @@ export const DirectiveSummarySchema = z.object({
   headline: z.string(),
   feedback: z.string(),
   submitted_at: z.string(),
-  status: z.enum(["PROCESSING", "COMPLETED", "FAILED"]),
+  status: z.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]),
 });
 export type DirectiveSummary = z.infer<typeof DirectiveSummarySchema>;
 
 export const CooldownStatusSchema = z.object({
   active: z.boolean(),
-  started_at: z.string().optional(),
-  ends_at: z.string().optional(),
-  seconds_remaining: z.number().optional(),
+  started_at: z.string().nullable().optional(),
+  ends_at: z.string().nullable().optional(),
+  seconds_remaining: z.number().nullable().optional(),
 });
 export type CooldownStatus = z.infer<typeof CooldownStatusSchema>;
 
@@ -113,7 +113,7 @@ export const TeamSummarySchema = z.object({
   status: TeamStatusSchema,
   stock_price: z.number(),
   market_cap: z.number(),
-  portfolio_id: z.string(),
+  portfolio_id: z.string().nullable(),
   eliminated_at: z.string().nullable().optional(),
   rank_at_elimination: z.number().nullable().optional(),
 });
@@ -141,7 +141,7 @@ export const TickerSnapshotSchema = z.object({
   change_absolute: z.number(),
   volume_24h: z.number(),
   market_cap: z.number(),
-  status: z.enum(["ACTIVE", "COOLDOWN", "HALTED", "ELIMINATED"]),
+  status: z.enum(["ACTIVE", "COOLDOWN", "HALTED", "ELIMINATED", "BANKRUPT"]),
 });
 export type TickerSnapshot = z.infer<typeof TickerSnapshotSchema>;
 

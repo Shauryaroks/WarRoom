@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { api } from "@/lib/api";
 
 export default function MarketPage() {
   const [headline, setHeadline] = useState("");
@@ -9,20 +10,36 @@ export default function MarketPage() {
   const [targetTicker, setTargetTicker] = useState("");
   const [schedule, setSchedule] = useState("IMMEDIATE");
   const [scheduleMins, setScheduleMins] = useState("5");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleInjectNews = (e: React.FormEvent) => {
+  const handleInjectNews = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Injecting news:", {
-      headline,
-      impactType,
-      sectors,
-      targetTicker,
-      schedule,
-    });
-    alert("News event injected successfully.");
-    setHeadline("");
-    setTargetTicker("");
-    setSectors([]);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await api.injectNews({
+        headline,
+        affected_sectors: impactType === "SECTOR" ? sectors : undefined,
+        affected_tickers:
+          impactType === "TARGETED" && targetTicker
+            ? [`$${targetTicker}`]
+            : undefined,
+        scheduled_for:
+          schedule === "DELAYED"
+            ? new Date(
+                Date.now() + parseInt(scheduleMins) * 60000,
+              ).toISOString()
+            : undefined,
+      });
+      setHeadline("");
+      setTargetTicker("");
+      setSectors([]);
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to inject news");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleSector = (sector: string) => {
@@ -224,11 +241,18 @@ export default function MarketPage() {
             </div>
           </div>
 
+          {submitError && (
+            <div className="text-red-500 text-[12px] border border-red-500/30 rounded-[4px] px-3 py-2 mt-2">
+              {submitError}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full h-[48px] bg-[#0077b6] hover:bg-[#0077b6]/90 text-[#0a0a0a] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 mt-4 shadow-[0_0_15px_rgba(255,176,0,0.2)] uppercase"
+            disabled={isSubmitting}
+            className="w-full h-[48px] bg-[#0077b6] hover:bg-[#0077b6]/90 text-[#0a0a0a] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 mt-4 shadow-[0_0_15px_rgba(255,176,0,0.2)] uppercase disabled:opacity-50"
           >
-            BROADCAST TO ALL TEAMS
+            {isSubmitting ? "BROADCASTING..." : "BROADCAST TO ALL TEAMS"}
           </button>
         </form>
       </div>
