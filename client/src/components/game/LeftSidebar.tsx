@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
+import { CandlestickChart } from "./CandlestickChart";
 
 export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState<
@@ -187,8 +188,17 @@ export function LeftSidebar() {
         )}
 
         {activeTab === "market" && (
-          <div className="p-4 text-[#0077b6] italic">
-            &gt; MARKET VIEW OFFLINE
+          <div className="flex-1 flex flex-col p-4 bg-[#0a0a0a]">
+            <div className="mb-2 text-[#0077b6] flex justify-between">
+              <span>&gt; MARKET DATA {dossier?.profile.ticker}</span>
+            </div>
+            {dossier?.profile.ticker ? (
+              <div className="flex-1 border border-[#0077b6] p-2">
+                <CandlestickChart ticker={dossier.profile.ticker} />
+              </div>
+            ) : (
+              <div className="text-red-500 italic">&gt; NO TICKER SELECTED</div>
+            )}
           </div>
         )}
 

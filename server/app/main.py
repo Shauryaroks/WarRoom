@@ -7,6 +7,7 @@ import time
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from app.database import AsyncSessionLocal
 from app.api import auth, trading, directive, market, admin, teams, game
@@ -36,7 +37,7 @@ logging.getLogger("uvicorn.access").addFilter(_HealthFilter())
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Log every non-health request with method, path, status, duration, and body preview."""
+    """Log every non-health request and its response in structured JSON format."""
 
     SKIP_PATHS = {"/health", "/health/db", "/health/redis", "/"}
 
@@ -45,50 +46,96 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         start = time.time()
-
-        # Read body for POST/PUT/PATCH (cache it so the route can still read it)
-        body_preview = ""
+        
+        # --- 1. Parse Request Body ---
+        req_body_dict = None
+        req_body_str = None
         if request.method in ("POST", "PUT", "PATCH"):
             try:
                 body_bytes = await request.body()
-                body_str = body_bytes.decode("utf-8", errors="replace")
-                # Truncate large bodies, mask passwords
-                if len(body_str) > 500:
-                    body_str = body_str[:500] + "...(truncated)"
-                if "password" in body_str.lower():
+                req_body_str = body_bytes.decode("utf-8", errors="replace")
+                
+                if req_body_str:
                     try:
-                        body_dict = json.loads(body_str)
-                        for k in list(body_dict.keys()):
+                        req_body_dict = json.loads(req_body_str)
+                        # Mask password
+                        for k in list(req_body_dict.keys()):
                             if "password" in k.lower():
-                                body_dict[k] = "***"
-                        body_str = json.dumps(body_dict)
-                    except (json.JSONDecodeError, TypeError):
-                        pass
-                body_preview = f" body={body_str}"
+                                req_body_dict[k] = "***"
+                    except json.JSONDecodeError:
+                        if len(req_body_str) > 500:
+                            req_body_str = req_body_str[:500] + "...(truncated)"
             except Exception:
-                body_preview = " body=(unreadable)"
+                req_body_str = "(unreadable)"
 
-        # Who is calling
+        # --- 2. Extract Auth ---
         api_key = request.headers.get("X-API-Key", "")
         admin_key = "admin" if request.headers.get("X-Admin-Key") else ""
-        auth_tag = (
-            f" auth=admin"
-            if admin_key
-            else (f" key=...{api_key[-8:]}" if len(api_key) > 8 else "")
-        )
+        auth_tag = "admin" if admin_key else (f"...{api_key[-8:]}" if len(api_key) > 8 else "anonymous")
 
+        # --- 3. Call Next ---
         response = await call_next(request)
+        
+        # --- 4. Parse Response Body ---
+        res_body_dict = None
+        res_body_str = None
+        
+        # Only attempt to read body if it's application/json to avoid breaking streams/SSE
+        content_type = response.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                response_body_chunks = []
+                async for chunk in response.body_iterator:
+                    response_body_chunks.append(chunk)
+                response_body = b"".join(response_body_chunks)
+                
+                # Reconstruct response so client still gets it
+                response = Response(
+                    content=response_body,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.media_type
+                )
+                
+                res_body_str = response_body.decode("utf-8", errors="replace")
+                if res_body_str:
+                    try:
+                        res_body_dict = json.loads(res_body_str)
+                        # Optionally mask tokens in response
+                        for k in list(res_body_dict.keys()):
+                            if "api_key" in k.lower() or "token" in k.lower():
+                                res_body_dict[k] = "***"
+                    except json.JSONDecodeError:
+                        if len(res_body_str) > 500:
+                            res_body_str = res_body_str[:500] + "...(truncated)"
+            except Exception:
+                res_body_str = "(unreadable)"
+
         duration_ms = int((time.time() - start) * 1000)
 
-        logger.info(
-            "%s %s → %d (%dms)%s%s",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-            auth_tag,
-            body_preview,
-        )
+        # --- 5. Log Structured JSON ---
+        log_data = {
+            "event": "api_request",
+            "method": request.method,
+            "path": request.url.path,
+            "query": str(request.query_params),
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+            "auth": auth_tag,
+            "client_ip": request.client.host if request.client else None,
+        }
+        
+        if req_body_dict is not None:
+            log_data["request_body"] = req_body_dict
+        elif req_body_str:
+            log_data["request_body_raw"] = req_body_str
+            
+        if res_body_dict is not None:
+            log_data["response_body"] = res_body_dict
+        elif res_body_str:
+            log_data["response_body_raw"] = res_body_str
+
+        logger.info(json.dumps(log_data))
 
         return response
 

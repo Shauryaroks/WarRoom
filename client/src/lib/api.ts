@@ -273,6 +273,16 @@ export const api = {
     }
   },
 
+  async getMarketHistory(ticker: string, interval: string = "5m", limit: number = 100): Promise<any> {
+    try {
+      const res = await authFetch(`/market/history/${encodeURIComponent(ticker)}?interval=${interval}&limit=${limit}`);
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getMarketHistory:", error);
+      throw error;
+    }
+  },
+
   async executeTrade(data: {
     action: "buy" | "sell";
     target_ticker: string;

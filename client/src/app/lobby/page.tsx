@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { TeamSummary } from "@/lib/models";
-import { useWebSocket } from "@/contexts/WebSocketContext";
+import { useWebSocket, WebSocketProvider } from "@/contexts/WebSocketContext";
 
-export default function LobbyPage() {
+function LobbyContent() {
   const router = useRouter();
   const [players, setPlayers] = useState<TeamSummary[]>([]);
   const { gameState } = useWebSocket();
