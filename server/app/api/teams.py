@@ -170,10 +170,13 @@ async def get_current_team_dossier(
     if last_dir:
         last_directive = DirectiveSummary(
             id=str(last_dir.id),
-            headline=last_dir.news_headline or (last_dir.content[:100] if last_dir.content else ""),
+            headline=last_dir.news_headline
+            or (last_dir.content[:100] if last_dir.content else ""),
             feedback=last_dir.board_feedback or "",
             submitted_at=last_dir.created_at.isoformat() if last_dir.created_at else "",
-            status=last_dir.status.value if hasattr(last_dir.status, 'value') else str(last_dir.status),
+            status=last_dir.status.value
+            if hasattr(last_dir.status, "value")
+            else str(last_dir.status),
         )
 
     # Cooldown
@@ -321,7 +324,7 @@ async def get_team_directives(
                 headline=d.news_headline or (d.content[:100] if d.content else ""),
                 feedback=d.board_feedback or "",
                 submitted_at=d.created_at.isoformat() if d.created_at else "",
-                status=d.status.value if hasattr(d.status, 'value') else str(d.status),
+                status=d.status.value if hasattr(d.status, "value") else str(d.status),
                 raw_markdown=d.content or "",
                 character_count=len(d.content) if d.content else 0,
                 extraction_confidence=d.extraction_confidence,
@@ -364,9 +367,7 @@ async def list_teams(
             pass
     else:
         # Public: only show active/cooldown teams
-        stmt = stmt.where(
-            Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN])
-        )
+        stmt = stmt.where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]))
 
     if filter:
         stmt = stmt.where(
@@ -494,7 +495,9 @@ async def approve_team(
     return TeamApprovalResponse(
         team_id=str(team.id),
         api_key=str(team.api_key),
-        message="Team approved and activated" if team.status == TeamStatus.ACTIVE else "Team approved, will activate on game start",
+        message="Team approved and activated"
+        if team.status == TeamStatus.ACTIVE
+        else "Team approved, will activate on game start",
     )
 
 
@@ -577,12 +580,15 @@ async def force_bankrupt_team(
 
     from app.websocket import manager
 
-    await manager.broadcast_system_event("BANKRUPTCY_DECLARATION", {
-        "event_type": "ELIMINATION",
-        "message": f"{team.ticker} eliminated due to admin override",
-        "ticker": team.ticker,
-        "reason": request.reason,
-    })
+    await manager.broadcast_system_event(
+        "BANKRUPTCY_DECLARATION",
+        {
+            "event_type": "ELIMINATION",
+            "message": f"{team.ticker} eliminated due to admin override",
+            "ticker": team.ticker,
+            "reason": request.reason,
+        },
+    )
 
     return {
         "message": f"Team {team.ticker} force-bankrupted",

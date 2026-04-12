@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-04-12
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -43,20 +44,38 @@ def _add_column_if_missing(table: str, column: sa.Column):
 def upgrade() -> None:
     # ── Enums (checkfirst=True handles existing) ──
     teamstatus = postgresql.ENUM(
-        "PENDING", "ACTIVE", "COOLDOWN", "BANKRUPT", "ELIMINATED", "REJECTED",
-        name="teamstatus", create_type=False,
+        "PENDING",
+        "ACTIVE",
+        "COOLDOWN",
+        "BANKRUPT",
+        "ELIMINATED",
+        "REJECTED",
+        name="teamstatus",
+        create_type=False,
     )
     gamestatus = postgresql.ENUM(
-        "SETUP", "ACTIVE", "PAUSED", "FINISHED",
-        name="gamestatus", create_type=False,
+        "SETUP",
+        "ACTIVE",
+        "PAUSED",
+        "FINISHED",
+        name="gamestatus",
+        create_type=False,
     )
     transactiontype = postgresql.ENUM(
-        "BUY", "SELL", "TREASURY_SALE", "BANKRUPTCY_LIQUIDATION",
-        name="transactiontype", create_type=False,
+        "BUY",
+        "SELL",
+        "TREASURY_SALE",
+        "BANKRUPTCY_LIQUIDATION",
+        name="transactiontype",
+        create_type=False,
     )
     directivestatus = postgresql.ENUM(
-        "PENDING", "PROCESSING", "COMPLETED", "FAILED",
-        name="directivestatus", create_type=False,
+        "PENDING",
+        "PROCESSING",
+        "COMPLETED",
+        "FAILED",
+        name="directivestatus",
+        create_type=False,
     )
 
     teamstatus.create(op.get_bind(), checkfirst=True)
@@ -102,7 +121,12 @@ def upgrade() -> None:
         op.create_table(
             "directives",
             sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-            sa.Column("team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+            sa.Column(
+                "team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=False,
+            ),
             sa.Column("content", sa.Text, nullable=False),
             sa.Column("confidence_rating", sa.Float, nullable=True),
             sa.Column("status", directivestatus, nullable=False),
@@ -123,31 +147,64 @@ def upgrade() -> None:
         )
     else:
         # Add new columns to existing directives table
-        _add_column_if_missing("directives", sa.Column("latency_ms", sa.Integer, nullable=True))
-        _add_column_if_missing("directives", sa.Column("estimated_cost", sa.Numeric(10, 6), nullable=True))
+        _add_column_if_missing(
+            "directives", sa.Column("latency_ms", sa.Integer, nullable=True)
+        )
+        _add_column_if_missing(
+            "directives", sa.Column("estimated_cost", sa.Numeric(10, 6), nullable=True)
+        )
 
     # ── stock_holdings ──
     if not _table_exists("stock_holdings"):
         op.create_table(
             "stock_holdings",
             sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-            sa.Column("owner_team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
-            sa.Column("target_team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+            sa.Column(
+                "owner_team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=False,
+            ),
+            sa.Column(
+                "target_team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=False,
+            ),
             sa.Column("shares_owned", sa.Integer, server_default="0"),
             sa.Column("total_cost_basis", sa.Numeric(15, 2), server_default="0"),
             sa.Column("created_at", sa.DateTime, nullable=False),
             sa.Column("updated_at", sa.DateTime, nullable=False),
         )
-        op.create_index("ix_stock_holdings_owner_target", "stock_holdings", ["owner_team_id", "target_team_id"])
+        op.create_index(
+            "ix_stock_holdings_owner_target",
+            "stock_holdings",
+            ["owner_team_id", "target_team_id"],
+        )
 
     # ── transactions ──
     if not _table_exists("transactions"):
         op.create_table(
             "transactions",
             sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-            sa.Column("buyer_team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=True),
-            sa.Column("seller_team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=True),
-            sa.Column("target_team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+            sa.Column(
+                "buyer_team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=True,
+            ),
+            sa.Column(
+                "seller_team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=True,
+            ),
+            sa.Column(
+                "target_team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=False,
+            ),
             sa.Column("shares", sa.Integer, nullable=False),
             sa.Column("price_per_share", sa.Numeric(10, 2), nullable=False),
             sa.Column("total_value", sa.Numeric(15, 2), nullable=False),
@@ -160,7 +217,12 @@ def upgrade() -> None:
         op.create_table(
             "cash_ledger",
             sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-            sa.Column("team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+            sa.Column(
+                "team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=False,
+            ),
             sa.Column("entry_type", sa.String(50), nullable=False),
             sa.Column("amount", sa.Numeric(15, 2), nullable=False),
             sa.Column("balance_after", sa.Numeric(15, 2), nullable=False),
@@ -175,7 +237,12 @@ def upgrade() -> None:
         op.create_table(
             "price_history",
             sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-            sa.Column("team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+            sa.Column(
+                "team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=False,
+            ),
             sa.Column("price", sa.Numeric(10, 2), nullable=False),
             sa.Column("market_cap", sa.Numeric(15, 2), nullable=False),
             sa.Column("vibe_multiplier", sa.Numeric(5, 2), nullable=True),
@@ -195,7 +262,12 @@ def upgrade() -> None:
             sa.Column("headline", sa.String(120), nullable=False),
             sa.Column("content", sa.Text, nullable=True),
             sa.Column("source_type", sa.String(20), server_default="'SYSTEM'"),
-            sa.Column("source_team_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=True),
+            sa.Column(
+                "source_team_id",
+                postgresql.UUID(as_uuid=True),
+                sa.ForeignKey("teams.id"),
+                nullable=True,
+            ),
             sa.Column("sentiment_score", sa.Numeric(3, 2), nullable=True),
             sa.Column("affected_sectors", sa.Text, nullable=True),
             sa.Column("affected_tickers", sa.Text, nullable=True),
@@ -217,27 +289,77 @@ def upgrade() -> None:
             sa.Column("last_purge_at", sa.DateTime, nullable=True),
             sa.Column("next_purge_at", sa.DateTime, nullable=True),
             sa.Column("teams_remaining", sa.Integer, nullable=True),
-            sa.Column("purge_min_teams", sa.Integer, nullable=False, server_default="6"),
-            sa.Column("llm_queue_depth", sa.Integer, nullable=False, server_default="0"),
-            sa.Column("total_llm_cost", sa.Numeric(10, 2), nullable=False, server_default="0"),
-            sa.Column("cooldown_minutes", sa.Integer, nullable=False, server_default="10"),
-            sa.Column("tam_per_cycle", sa.Numeric(15, 2), nullable=False, server_default="50000000"),
-            sa.Column("starting_cash", sa.Numeric(15, 2), nullable=False, server_default="1000000"),
-            sa.Column("starting_price", sa.Numeric(10, 2), nullable=False, server_default="100"),
-            sa.Column("starting_shares", sa.Integer, nullable=False, server_default="1000000"),
-            sa.Column("llm_model", sa.String(50), nullable=False, server_default="'grok-3-mini'"),
-            sa.Column("llm_max_tokens", sa.Integer, nullable=False, server_default="2000"),
-            sa.Column("llm_temperature", sa.Float, nullable=False, server_default="0.7"),
+            sa.Column(
+                "purge_min_teams", sa.Integer, nullable=False, server_default="6"
+            ),
+            sa.Column(
+                "llm_queue_depth", sa.Integer, nullable=False, server_default="0"
+            ),
+            sa.Column(
+                "total_llm_cost", sa.Numeric(10, 2), nullable=False, server_default="0"
+            ),
+            sa.Column(
+                "cooldown_minutes", sa.Integer, nullable=False, server_default="10"
+            ),
+            sa.Column(
+                "tam_per_cycle",
+                sa.Numeric(15, 2),
+                nullable=False,
+                server_default="50000000",
+            ),
+            sa.Column(
+                "starting_cash",
+                sa.Numeric(15, 2),
+                nullable=False,
+                server_default="1000000",
+            ),
+            sa.Column(
+                "starting_price",
+                sa.Numeric(10, 2),
+                nullable=False,
+                server_default="100",
+            ),
+            sa.Column(
+                "starting_shares", sa.Integer, nullable=False, server_default="1000000"
+            ),
+            sa.Column(
+                "llm_model",
+                sa.String(50),
+                nullable=False,
+                server_default="'grok-3-mini'",
+            ),
+            sa.Column(
+                "llm_max_tokens", sa.Integer, nullable=False, server_default="2000"
+            ),
+            sa.Column(
+                "llm_temperature", sa.Float, nullable=False, server_default="0.7"
+            ),
             sa.Column("sentiment_map", sa.Text, nullable=True),
-            sa.Column("aggregate_market_cap_at_purge", sa.Numeric(15, 2), nullable=True),
+            sa.Column(
+                "aggregate_market_cap_at_purge", sa.Numeric(15, 2), nullable=True
+            ),
             sa.Column("updated_at", sa.DateTime, nullable=False),
         )
     else:
         # Add new columns to existing game_state table
-        _add_column_if_missing("game_state", sa.Column("next_purge_at", sa.DateTime, nullable=True))
-        _add_column_if_missing("game_state", sa.Column("purge_min_teams", sa.Integer, nullable=False, server_default="6"))
-        _add_column_if_missing("game_state", sa.Column("sentiment_map", sa.Text, nullable=True))
-        _add_column_if_missing("game_state", sa.Column("aggregate_market_cap_at_purge", sa.Numeric(15, 2), nullable=True))
+        _add_column_if_missing(
+            "game_state", sa.Column("next_purge_at", sa.DateTime, nullable=True)
+        )
+        _add_column_if_missing(
+            "game_state",
+            sa.Column(
+                "purge_min_teams", sa.Integer, nullable=False, server_default="6"
+            ),
+        )
+        _add_column_if_missing(
+            "game_state", sa.Column("sentiment_map", sa.Text, nullable=True)
+        )
+        _add_column_if_missing(
+            "game_state",
+            sa.Column(
+                "aggregate_market_cap_at_purge", sa.Numeric(15, 2), nullable=True
+            ),
+        )
 
 
 def downgrade() -> None:

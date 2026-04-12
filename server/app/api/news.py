@@ -55,6 +55,7 @@ async def get_news(
 
     if before_id:
         import uuid
+
         try:
             before_uuid = uuid.UUID(before_id)
             before_item = await db.get(MarketNews, before_uuid)
@@ -106,7 +107,9 @@ async def get_news(
                 content=item.content,
                 source_type=item.source_type or "SYSTEM",
                 source_ticker=source_ticker,
-                sentiment_score=float(item.sentiment_score) if item.sentiment_score else None,
+                sentiment_score=float(item.sentiment_score)
+                if item.sentiment_score
+                else None,
                 affected_sectors=affected_sectors,
                 affected_tickers=affected_tickers,
                 created_at=item.created_at.isoformat(),
@@ -155,7 +158,9 @@ async def inject_global_news(
         except (json.JSONDecodeError, TypeError):
             pass
 
-    sentiment = sentiment_map.get(request.impact_type, 0.0) if request.impact_type else None
+    sentiment = (
+        sentiment_map.get(request.impact_type, 0.0) if request.impact_type else None
+    )
 
     news = MarketNews(
         headline=request.headline,
@@ -163,8 +168,12 @@ async def inject_global_news(
         source_type="ADMIN_INJECTED",
         source_team_id=None,
         sentiment_score=Decimal(str(sentiment)) if sentiment is not None else None,
-        affected_sectors=json.dumps(request.affected_sectors) if request.affected_sectors else None,
-        affected_tickers=json.dumps(request.affected_tickers) if request.affected_tickers else None,
+        affected_sectors=json.dumps(request.affected_sectors)
+        if request.affected_sectors
+        else None,
+        affected_tickers=json.dumps(request.affected_tickers)
+        if request.affected_tickers
+        else None,
     )
     db.add(news)
     await db.commit()
@@ -180,9 +189,15 @@ async def inject_global_news(
         "content": news.content,
         "source_type": news.source_type,
         "source_ticker": source_ticker,
-        "sentiment_score": float(news.sentiment_score) if news.sentiment_score else None,
-        "affected_sectors": json.loads(news.affected_sectors) if news.affected_sectors else None,
-        "affected_tickers": json.loads(news.affected_tickers) if news.affected_tickers else None,
+        "sentiment_score": float(news.sentiment_score)
+        if news.sentiment_score
+        else None,
+        "affected_sectors": json.loads(news.affected_sectors)
+        if news.affected_sectors
+        else None,
+        "affected_tickers": json.loads(news.affected_tickers)
+        if news.affected_tickers
+        else None,
         "created_at": news.created_at.isoformat(),
         "relevance_decay": 1.0,  # freshly created
     }

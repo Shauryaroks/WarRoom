@@ -70,7 +70,9 @@ async def _process_directive_async(task_self, directive_id: str):
                 directive.estimated_cost = Decimal("0.000")  # Free model
                 gs = await db.get(GameState, 1)
                 if gs:
-                    gs.total_llm_cost = (gs.total_llm_cost or Decimal("0")) + Decimal("0.000")
+                    gs.total_llm_cost = (gs.total_llm_cost or Decimal("0")) + Decimal(
+                        "0.000"
+                    )
 
             directive.extraction_confidence = result.get("extraction_confidence", 0.5)
             directive.consistency_score = result.get("consistency_score", 0.5)
@@ -167,7 +169,9 @@ async def _build_holdings_context(db: AsyncSession, team: Team) -> str:
         target = await db.get(Team, h.target_team_id)
         if target:
             value = float(h.shares_owned * target.stock_price)
-            lines.append(f"  {target.ticker}: {h.shares_owned} shares @ ${target.stock_price:.2f} (value: ${value:,.0f})")
+            lines.append(
+                f"  {target.ticker}: {h.shares_owned} shares @ ${target.stock_price:.2f} (value: ${value:,.0f})"
+            )
 
     return "\n".join(lines) if lines else "  No external holdings."
 
@@ -191,13 +195,23 @@ async def _build_directive_history_context(db: AsyncSession, team: Team) -> str:
 
     lines = []
     for d in history:
-        age_min = int((datetime.utcnow() - d.completed_at).total_seconds() / 60) if d.completed_at else 0
-        headline = d.news_headline or (d.content[:80] + "..." if d.content and len(d.content) > 80 else d.content or "")
+        age_min = (
+            int((datetime.utcnow() - d.completed_at).total_seconds() / 60)
+            if d.completed_at
+            else 0
+        )
+        headline = d.news_headline or (
+            d.content[:80] + "..."
+            if d.content and len(d.content) > 80
+            else d.content or ""
+        )
         feedback = d.board_feedback or "No feedback"
         lines.append(f"  [{age_min}min ago] {headline}")
         lines.append(f"    Board feedback: {feedback}")
         if d.extraction_confidence:
-            lines.append(f"    Confidence: {d.extraction_confidence:.1f}, Consistency: {d.consistency_score:.1f}")
+            lines.append(
+                f"    Confidence: {d.extraction_confidence:.1f}, Consistency: {d.consistency_score:.1f}"
+            )
 
     return "\n".join(lines)
 
@@ -335,8 +349,13 @@ def _validate_and_clamp_result(result: dict, team: Team) -> dict:
     """
 
     # Clamp scores to 0.0-1.0
-    for key in ["extraction_confidence", "consistency_score", "macro_sensitivity_score",
-                "aggression_score", "innovation_score"]:
+    for key in [
+        "extraction_confidence",
+        "consistency_score",
+        "macro_sensitivity_score",
+        "aggression_score",
+        "innovation_score",
+    ]:
         val = result.get(key)
         if val is None or not isinstance(val, (int, float)):
             result[key] = 0.5
@@ -349,7 +368,10 @@ def _validate_and_clamp_result(result: dict, team: Team) -> dict:
     )
 
     # Validate board_feedback
-    if not isinstance(result.get("board_feedback"), str) or not result["board_feedback"].strip():
+    if (
+        not isinstance(result.get("board_feedback"), str)
+        or not result["board_feedback"].strip()
+    ):
         result["board_feedback"] = "The Board has reviewed your directive."
 
     # Validate news_headline
@@ -369,7 +391,9 @@ def _validate_and_clamp_result(result: dict, team: Team) -> dict:
     clamped_fi = {
         "cash_delta": _clamp(fi.get("cash_delta", 0), -MAX_CASH_DELTA, MAX_CASH_DELTA),
         "revenue_delta": _clamp(fi.get("revenue_delta", 0), 0, MAX_REVENUE),
-        "net_profit_delta": _clamp(fi.get("net_profit_delta", 0), -MAX_CASH_DELTA, MAX_CASH_DELTA),
+        "net_profit_delta": _clamp(
+            fi.get("net_profit_delta", 0), -MAX_CASH_DELTA, MAX_CASH_DELTA
+        ),
         "marketing_cost": _clamp(fi.get("marketing_cost", 0), 0, MAX_SPEND),
         "rd_spend": _clamp(fi.get("rd_spend", 0), 0, MAX_SPEND),
     }
@@ -383,7 +407,11 @@ def _validate_and_clamp_result(result: dict, team: Team) -> dict:
         clamped_fi["rd_spend"] = round(clamped_fi["rd_spend"] * ratio)
 
     # Recalculate cash_delta from components if the LLM's number doesn't add up
-    expected_delta = clamped_fi["revenue_delta"] - clamped_fi["marketing_cost"] - clamped_fi["rd_spend"]
+    expected_delta = (
+        clamped_fi["revenue_delta"]
+        - clamped_fi["marketing_cost"]
+        - clamped_fi["rd_spend"]
+    )
     clamped_fi["net_profit_delta"] = round(expected_delta)
     clamped_fi["cash_delta"] = round(expected_delta)
 
@@ -510,7 +538,9 @@ async def _call_llm(
         )
 
         if response.status_code != 200:
-            raise RuntimeError(f"OpenRouter returned {response.status_code}: {response.text[:200]}")
+            raise RuntimeError(
+                f"OpenRouter returned {response.status_code}: {response.text[:200]}"
+            )
 
         data = response.json()
         content = data["choices"][0]["message"]["content"]
@@ -587,7 +617,9 @@ async def apply_financial_impact(db: AsyncSession, team: Team, directive: Direct
         cash_change = (impact["cash_delta"] or 0) * penalty
     else:
         net_profit = (impact.get("net_profit_delta", 0) or 0) * penalty
-        marketing = (impact.get("marketing_cost", 0) or impact.get("marketing_spend", 0) or 0) * penalty
+        marketing = (
+            impact.get("marketing_cost", 0) or impact.get("marketing_spend", 0) or 0
+        ) * penalty
         rd = (impact.get("rd_spend", 0) or 0) * penalty
         cash_change = net_profit - marketing - rd
 

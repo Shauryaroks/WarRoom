@@ -49,11 +49,7 @@ async def _build_market_burst(db) -> dict:
     now = datetime.utcnow()
 
     # --- news (last 20) ---
-    news_stmt = (
-        select(MarketNews)
-        .order_by(MarketNews.created_at.desc())
-        .limit(20)
-    )
+    news_stmt = select(MarketNews).order_by(MarketNews.created_at.desc()).limit(20)
     news_result = await db.execute(news_stmt)
     news_items = news_result.scalars().all()
 
@@ -68,20 +64,32 @@ async def _build_market_burst(db) -> dict:
 
     news_list = []
     for item in news_items:
-        age_minutes = (now - item.created_at).total_seconds() / 60.0 if item.created_at else 0
-        source_ticker = ticker_map.get(item.source_team_id) if item.source_team_id else None
-        news_list.append({
-            "id": str(item.id),
-            "headline": item.headline,
-            "content": item.content,
-            "source_type": item.source_type or "SYSTEM",
-            "source_ticker": source_ticker,
-            "sentiment_score": float(item.sentiment_score) if item.sentiment_score else None,
-            "affected_sectors": json.loads(item.affected_sectors) if item.affected_sectors else None,
-            "affected_tickers": json.loads(item.affected_tickers) if item.affected_tickers else None,
-            "created_at": item.created_at.isoformat() if item.created_at else None,
-            "relevance_decay": round(max(0.0, 1.0 - (age_minutes / 20.0)), 4),
-        })
+        age_minutes = (
+            (now - item.created_at).total_seconds() / 60.0 if item.created_at else 0
+        )
+        source_ticker = (
+            ticker_map.get(item.source_team_id) if item.source_team_id else None
+        )
+        news_list.append(
+            {
+                "id": str(item.id),
+                "headline": item.headline,
+                "content": item.content,
+                "source_type": item.source_type or "SYSTEM",
+                "source_ticker": source_ticker,
+                "sentiment_score": float(item.sentiment_score)
+                if item.sentiment_score
+                else None,
+                "affected_sectors": json.loads(item.affected_sectors)
+                if item.affected_sectors
+                else None,
+                "affected_tickers": json.loads(item.affected_tickers)
+                if item.affected_tickers
+                else None,
+                "created_at": item.created_at.isoformat() if item.created_at else None,
+                "relevance_decay": round(max(0.0, 1.0 - (age_minutes / 20.0)), 4),
+            }
+        )
 
     # --- tickers (all active/cooldown/bankrupt teams) ---
     teams_stmt = select(Team).where(
@@ -115,15 +123,17 @@ async def _build_market_burst(db) -> dict:
             if prev_price != 0:
                 change_pct = (change_abs / prev_price) * 100.0
 
-        tickers_list.append({
-            "ticker": team.ticker,
-            "price": float(team.stock_price),
-            "change_24h": round(change_pct, 4),
-            "change_absolute": round(change_abs, 4),
-            "volume_24h": team.public_float,
-            "market_cap": float(team.shares_outstanding) * float(team.stock_price),
-            "status": team.status.value,
-        })
+        tickers_list.append(
+            {
+                "ticker": team.ticker,
+                "price": float(team.stock_price),
+                "change_24h": round(change_pct, 4),
+                "change_absolute": round(change_abs, 4),
+                "volume_24h": team.public_float,
+                "market_cap": float(team.shares_outstanding) * float(team.stock_price),
+                "status": team.status.value,
+            }
+        )
 
     # --- game_state ---
     gs = await db.get(GameState, 1)
@@ -133,7 +143,9 @@ async def _build_market_burst(db) -> dict:
             "status": gs.status.value,
             "server_time": datetime.utcnow().isoformat(),
             "started_at": gs.started_at.isoformat() if gs.started_at else None,
-            "elapsed_seconds": int((now - gs.started_at).total_seconds()) if gs.started_at else None,
+            "elapsed_seconds": int((now - gs.started_at).total_seconds())
+            if gs.started_at
+            else None,
             "next_purge_at": gs.next_purge_at.isoformat() if gs.next_purge_at else None,
             "current_round": gs.current_round,
             "teams_remaining": teams_remaining_count,
@@ -172,18 +184,24 @@ async def _build_team_dossier(db, team: "Team") -> dict:
         if not target:
             continue
         current_value = float(h.shares_owned * target.stock_price)
-        ownership_pct = (h.shares_owned / target.shares_outstanding) * 100 if target.shares_outstanding else 0
+        ownership_pct = (
+            (h.shares_owned / target.shares_outstanding) * 100
+            if target.shares_outstanding
+            else 0
+        )
         cost_basis = float(h.total_cost_basis or 0)
 
-        holdings_list.append({
-            "ticker": target.ticker,
-            "shares": h.shares_owned,
-            "current_price": float(target.stock_price),
-            "current_value": current_value,
-            "cost_basis": cost_basis,
-            "unrealized_pnl": current_value - cost_basis,
-            "ownership_percentage": float(ownership_pct),
-        })
+        holdings_list.append(
+            {
+                "ticker": target.ticker,
+                "shares": h.shares_owned,
+                "current_price": float(target.stock_price),
+                "current_value": current_value,
+                "cost_basis": cost_basis,
+                "unrealized_pnl": current_value - cost_basis,
+                "ownership_percentage": float(ownership_pct),
+            }
+        )
         total_portfolio_value += current_value
         total_cost_basis += cost_basis
 
@@ -232,10 +250,15 @@ async def _build_team_dossier(db, team: "Team") -> dict:
     if last_dir:
         last_directive = {
             "id": str(last_dir.id),
-            "headline": last_dir.news_headline or (last_dir.content[:100] if last_dir.content else ""),
+            "headline": last_dir.news_headline
+            or (last_dir.content[:100] if last_dir.content else ""),
             "feedback": last_dir.board_feedback or "",
-            "submitted_at": last_dir.created_at.isoformat() if last_dir.created_at else "",
-            "status": last_dir.status.value if hasattr(last_dir.status, "value") else str(last_dir.status),
+            "submitted_at": last_dir.created_at.isoformat()
+            if last_dir.created_at
+            else "",
+            "status": last_dir.status.value
+            if hasattr(last_dir.status, "value")
+            else str(last_dir.status),
         }
 
     # Cooldown
@@ -291,7 +314,9 @@ class ConnectionManager:
         except Exception:
             pass
 
-    async def _send_to_set(self, connections: Set[WebSocket], msg: dict) -> Set[WebSocket]:
+    async def _send_to_set(
+        self, connections: Set[WebSocket], msg: dict
+    ) -> Set[WebSocket]:
         """Send to a set of connections, return set of dead ones."""
         dead: Set[WebSocket] = set()
         msg["sequence_id"] = self._next_seq()
@@ -398,7 +423,9 @@ class ConnectionManager:
         async with self._lock:
             # Try as api_key first
             if team_id_or_api_key in self._team_connections:
-                dead = await self._send_to_set(self._team_connections[team_id_or_api_key], message)
+                dead = await self._send_to_set(
+                    self._team_connections[team_id_or_api_key], message
+                )
                 self._team_connections[team_id_or_api_key] -= dead
                 return
 
@@ -484,7 +511,9 @@ class ConnectionManager:
         }
         await self.send_to_team(api_key, msg)
 
-    async def send_portfolio_update(self, api_key: str, financials: dict, portfolio: dict):
+    async def send_portfolio_update(
+        self, api_key: str, financials: dict, portfolio: dict
+    ):
         msg = {
             "type": "portfolio_update",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -507,7 +536,9 @@ class ConnectionManager:
 
     # ---- sync_request handler ----
 
-    async def _handle_sync_request(self, websocket: WebSocket, feed: str, api_key: str = None):
+    async def _handle_sync_request(
+        self, websocket: WebSocket, feed: str, api_key: str = None
+    ):
         """Re-send the current burst_sync."""
         try:
             async with AsyncSessionLocal() as db:
@@ -564,10 +595,13 @@ async def handle_market_ws(websocket: WebSocket):
 
             msg_type = message.get("type")
             if msg_type == "ping":
-                await manager._send(websocket, {
-                    "type": "pong",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                })
+                await manager._send(
+                    websocket,
+                    {
+                        "type": "pong",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
             elif msg_type == "sync_request":
                 await manager._handle_sync_request(websocket, "market")
     except WebSocketDisconnect:
@@ -591,10 +625,13 @@ async def handle_team_ws(websocket: WebSocket, api_key: str):
 
             msg_type = message.get("type")
             if msg_type == "ping":
-                await manager._send(websocket, {
-                    "type": "pong",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                })
+                await manager._send(
+                    websocket,
+                    {
+                        "type": "pong",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
             elif msg_type == "sync_request":
                 await manager._handle_sync_request(websocket, "team", api_key)
     except WebSocketDisconnect:

@@ -168,14 +168,17 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
 
     from app.websocket import manager
 
-    await manager.send_trade_confirmation(str(team.api_key), {
-        "order_id": str(transaction.id),
-        "side": "BUY",
-        "target_ticker": target.ticker,
-        "shares": order.shares,
-        "execution_price": float(target.stock_price),
-        "total_value": float(total_cost),
-    })
+    await manager.send_trade_confirmation(
+        str(team.api_key),
+        {
+            "order_id": str(transaction.id),
+            "side": "BUY",
+            "target_ticker": target.ticker,
+            "shares": order.shares,
+            "execution_price": float(target.stock_price),
+            "total_value": float(total_cost),
+        },
+    )
 
     holdings_list = await _get_holdings(team, db)
 
@@ -249,14 +252,17 @@ async def _execute_sell(
 
     from app.websocket import manager
 
-    await manager.send_trade_confirmation(str(team.api_key), {
-        "order_id": str(transaction.id),
-        "side": "SELL",
-        "target_ticker": target.ticker,
-        "shares": order.shares,
-        "execution_price": float(target.stock_price),
-        "total_value": float(total_proceeds),
-    })
+    await manager.send_trade_confirmation(
+        str(team.api_key),
+        {
+            "order_id": str(transaction.id),
+            "side": "SELL",
+            "target_ticker": target.ticker,
+            "shares": order.shares,
+            "execution_price": float(target.stock_price),
+            "total_value": float(total_proceeds),
+        },
+    )
 
     holdings_list = await _get_holdings(team, db)
 

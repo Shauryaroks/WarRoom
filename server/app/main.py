@@ -21,6 +21,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
+
 # Silence uvicorn access logs for health checks
 class _HealthFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
@@ -28,6 +29,7 @@ class _HealthFilter(logging.Filter):
         if "/health" in msg and ("GET /health" in msg or "GET /health/" in msg):
             return False
         return True
+
 
 logging.getLogger("uvicorn.access").addFilter(_HealthFilter())
 
@@ -68,7 +70,11 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Who is calling
         api_key = request.headers.get("X-API-Key", "")
         admin_key = "admin" if request.headers.get("X-Admin-Key") else ""
-        auth_tag = f" auth=admin" if admin_key else (f" key=...{api_key[-8:]}" if len(api_key) > 8 else "")
+        auth_tag = (
+            f" auth=admin"
+            if admin_key
+            else (f" key=...{api_key[-8:]}" if len(api_key) > 8 else "")
+        )
 
         response = await call_next(request)
         duration_ms = int((time.time() - start) * 1000)

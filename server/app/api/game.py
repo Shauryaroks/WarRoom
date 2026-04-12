@@ -30,8 +30,12 @@ def _build_game_state_payload(gs):
         "status": gs.status.value,
         "server_time": now.isoformat(),
         "started_at": gs.started_at.isoformat() if gs.started_at else None,
-        "elapsed_seconds": int((now - gs.started_at).total_seconds()) if gs.started_at else None,
-        "next_purge_at": gs.next_purge_at.isoformat() if getattr(gs, 'next_purge_at', None) else None,
+        "elapsed_seconds": int((now - gs.started_at).total_seconds())
+        if gs.started_at
+        else None,
+        "next_purge_at": gs.next_purge_at.isoformat()
+        if getattr(gs, "next_purge_at", None)
+        else None,
         "current_round": gs.current_round,
         "teams_remaining": gs.teams_remaining,
         "total_llm_cost_usd": float(gs.total_llm_cost or 0),
@@ -148,6 +152,7 @@ async def start_game(
     # Seed initial news items
     if request.initial_news_items:
         from app.models import MarketNews
+
         for headline in request.initial_news_items:
             news = MarketNews(
                 headline=headline[:120],
@@ -157,6 +162,7 @@ async def start_game(
             db.add(news)
     else:
         from app.models import MarketNews
+
         default_headlines = [
             "Markets open with cautious optimism as new trading session begins",
             "Analysts predict volatile conditions ahead for all sectors",
@@ -180,9 +186,12 @@ async def start_game(
     await db.commit()
     await db.refresh(gs)
 
-    await manager.broadcast_system_event("GAME_STARTED", {
-        "game_state": _build_game_state_payload(gs),
-    })
+    await manager.broadcast_system_event(
+        "GAME_STARTED",
+        {
+            "game_state": _build_game_state_payload(gs),
+        },
+    )
 
     return GameControlResponse(
         message="Game started",
@@ -227,9 +236,12 @@ async def pause_game(
     await db.commit()
     await db.refresh(gs)
 
-    await manager.broadcast_system_event("GAME_PAUSED", {
-        "game_state": _build_game_state_payload(gs),
-    })
+    await manager.broadcast_system_event(
+        "GAME_PAUSED",
+        {
+            "game_state": _build_game_state_payload(gs),
+        },
+    )
 
     return {
         "paused_at": gs.paused_at.isoformat(),
@@ -257,9 +269,12 @@ async def resume_game(
     await db.commit()
     await db.refresh(gs)
 
-    await manager.broadcast_system_event("GAME_RESUMED", {
-        "game_state": _build_game_state_payload(gs),
-    })
+    await manager.broadcast_system_event(
+        "GAME_RESUMED",
+        {
+            "game_state": _build_game_state_payload(gs),
+        },
+    )
 
     return {"message": "Game resumed"}
 
@@ -279,9 +294,12 @@ async def end_game(
 
     if gs:
         await db.refresh(gs)
-        await manager.broadcast_system_event("GAME_ENDED", {
-            "game_state": _build_game_state_payload(gs),
-        })
+        await manager.broadcast_system_event(
+            "GAME_ENDED",
+            {
+                "game_state": _build_game_state_payload(gs),
+            },
+        )
 
     return {"message": "Game ended, scores locked"}
 
@@ -345,9 +363,7 @@ async def initiate_market_purge(
         gs = await db.get(GameState, 1)
 
     # Get active teams
-    stmt = select(Team).where(
-        Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN])
-    )
+    stmt = select(Team).where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]))
     result = await db.execute(stmt)
     active_teams = result.scalars().all()
 
@@ -452,14 +468,17 @@ async def initiate_market_purge(
     # Override teams_remaining with the freshly computed count
     game_state_payload["teams_remaining"] = survivor_count
 
-    await manager.broadcast_system_event("PURGE_COMPLETE", {
-        "event_type": "PURGE_COMPLETE",
-        "message": f"Market Purge Complete. {survivor_count} teams remain.",
-        "eliminated_tickers": eliminated_ids,
-        "survivor_count": survivor_count,
-        "new_treasury_limits": new_treasury_limit,
-        "game_state": game_state_payload,
-    })
+    await manager.broadcast_system_event(
+        "PURGE_COMPLETE",
+        {
+            "event_type": "PURGE_COMPLETE",
+            "message": f"Market Purge Complete. {survivor_count} teams remain.",
+            "eliminated_tickers": eliminated_ids,
+            "survivor_count": survivor_count,
+            "new_treasury_limits": new_treasury_limit,
+            "game_state": game_state_payload,
+        },
+    )
 
     return PurgeResponse(
         purge_id=str(uuid.uuid4()),

@@ -111,7 +111,11 @@ async def get_llm_stats(
     gs = await db.get(GameState, 1)
 
     gs_cost = float(gs.total_llm_cost) if gs else 0.0
-    total_cost = gs_cost if gs_cost > 0 else (float(total_directive_cost) if total_directive_cost else 0.0)
+    total_cost = (
+        gs_cost
+        if gs_cost > 0
+        else (float(total_directive_cost) if total_directive_cost else 0.0)
+    )
     avg_latency = int(avg_lat) if avg_lat else 0
 
     return {
@@ -121,7 +125,9 @@ async def get_llm_stats(
         "error_rate": float(failed / total_directives) if total_directives else 0.0,
         "by_model": [
             {
-                "model": gs.llm_model if gs else "nvidia/nemotron-3-super-120b-a12b:free",
+                "model": gs.llm_model
+                if gs
+                else "nvidia/nemotron-3-super-120b-a12b:free",
                 "requests": total_directives or 0,
                 "cost_usd": total_cost,
                 "avg_latency_ms": avg_latency,
@@ -226,9 +232,7 @@ async def list_pending_teams(
     db: AsyncSession = Depends(get_db),
 ):
     stmt = (
-        select(Team)
-        .where(Team.status == TeamStatus.PENDING)
-        .order_by(Team.created_at)
+        select(Team).where(Team.status == TeamStatus.PENDING).order_by(Team.created_at)
     )
     result = await db.execute(stmt)
     teams = result.scalars().all()
@@ -286,7 +290,11 @@ async def update_settings(
     if request.llm_model is not None:
         gs.llm_model = request.llm_model
     if request.next_purge_at is not None:
-        gs.next_purge_at = datetime.fromisoformat(request.next_purge_at) if request.next_purge_at else None
+        gs.next_purge_at = (
+            datetime.fromisoformat(request.next_purge_at)
+            if request.next_purge_at
+            else None
+        )
     if request.purge_min_teams is not None:
         gs.purge_min_teams = request.purge_min_teams
     if request.sentiment_map is not None:

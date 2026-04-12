@@ -199,9 +199,7 @@ class SectorsResponse(BaseModel):
 
 @router.get("/sectors", response_model=SectorsResponse)
 async def get_sector_heatmap(db: AsyncSession = Depends(get_db)):
-    stmt = select(Team).where(
-        Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN])
-    )
+    stmt = select(Team).where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]))
     result = await db.execute(stmt)
     teams = result.scalars().all()
 
@@ -221,11 +219,14 @@ async def get_sector_heatmap(db: AsyncSession = Depends(get_db)):
 
     sectors = []
     for portfolio_type, team_list in sector_teams.items():
-        sector_info = SECTOR_MAP.get(portfolio_type, {
-            "name": portfolio_type,
-            "code": "OTHER",
-            "color": "#888888",
-        })
+        sector_info = SECTOR_MAP.get(
+            portfolio_type,
+            {
+                "name": portfolio_type,
+                "code": "OTHER",
+                "color": "#888888",
+            },
+        )
 
         total_cap = sum(float(t.stock_price * t.shares_outstanding) for t in team_list)
 
@@ -248,13 +249,15 @@ async def get_sector_heatmap(db: AsyncSession = Depends(get_db)):
 
         avg_change = total_change / teams_with_change if teams_with_change > 0 else 0.0
 
-        sectors.append(SectorInfo(
-            name=sector_info["name"],
-            avg_change_percent=round(avg_change, 2),
-            total_market_cap=total_cap,
-            team_count=len(team_list),
-            color=sector_info["color"],
-        ))
+        sectors.append(
+            SectorInfo(
+                name=sector_info["name"],
+                avg_change_percent=round(avg_change, 2),
+                total_market_cap=total_cap,
+                team_count=len(team_list),
+                color=sector_info["color"],
+            )
+        )
 
     return SectorsResponse(sectors=sectors)
 

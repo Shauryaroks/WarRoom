@@ -88,6 +88,7 @@ async def submit_directive(
 
     # Dispatch to worker
     from app.worker.tasks.directive import process_directive
+
     process_directive.delay(str(directive.id))
 
     return SubmitDirectiveResponse(
@@ -128,7 +129,9 @@ async def get_directive_history(
                 "content": d.content[:200] + "..."
                 if len(d.content) > 200
                 else d.content,
-                "status": d.status.value if hasattr(d.status, 'value') else str(d.status),
+                "status": d.status.value
+                if hasattr(d.status, "value")
+                else str(d.status),
                 "board_feedback": d.board_feedback,
                 "created_at": d.created_at.isoformat(),
                 "completed_at": d.completed_at.isoformat() if d.completed_at else None,
@@ -192,7 +195,9 @@ async def get_directive(
     return DirectiveDetailResponse(
         id=str(directive.id),
         content=directive.content,
-        status=directive.status.value if hasattr(directive.status, 'value') else str(directive.status),
+        status=directive.status.value
+        if hasattr(directive.status, "value")
+        else str(directive.status),
         board_feedback=directive.board_feedback,
         news_headline=directive.news_headline,
         extraction_confidence=directive.extraction_confidence,
