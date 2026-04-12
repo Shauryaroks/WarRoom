@@ -13,250 +13,352 @@ import {
   GameStateSchema,
 } from "./models";
 
-// const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/api/v1";
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+async function authFetch(endpoint: string, options: RequestInit = {}) {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("complex_api_key")
+      : null;
+  const headers = new Headers(options.headers || {});
 
-function createMockUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
+  if (token) {
+    headers.set("X-API-Key", token);
+  }
+
+  if (process.env.NEXT_PUBLIC_ADMIN_API_KEY) {
+    headers.set("X-Admin-Key", process.env.NEXT_PUBLIC_ADMIN_API_KEY);
+  }
+
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
   });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData?.detail || errorData?.message || errorMessage;
+    } catch {
+      // Ignore JSON parse error if response is not JSON
+    }
+    throw new Error(`API Error ${response.status}: ${errorMessage}`);
+  }
+
+  return response;
 }
-
-const mockTeams: TeamSummary[] = [
-  {
-    team_id: createMockUUID(),
-    name: "BARBIE INC",
-    ticker: "$BRBE",
-    status: "ACTIVE",
-    stock_price: 142.09,
-    market_cap: 142090000,
-    portfolio_id: "PORT_D2C_01",
-  },
-];
-
-const directives: DirectiveWithFeedback[] = [];
-const newsItems: NewsItem[] = [];
-let gameState: GameState = {
-  status: "ACTIVE",
-  server_time: new Date().toISOString(),
-  elapsed_seconds: 15797,
-  next_purge_at: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
-  current_round: 2,
-  teams_remaining: 42,
-};
 
 export const api = {
-  async getGameState(): Promise<GameState> {
-    await delay(100);
-    return GameStateSchema.parse(gameState);
+  // --- Auth ---
+  async registerTeam(data: {
+    name: string;
+    ticker: string;
+    portfolio_id: string;
+  }): Promise<{ api_key: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        let errMessage = res.statusText;
+        try {
+          const err = await res.json();
+          errMessage = err?.detail || errMessage;
+        } catch {}
+        throw new Error(`Registration failed: ${errMessage}`);
+      }
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] registerTeam:", error);
+      throw error;
+    }
   },
 
+  async login(ticker: string): Promise<{ api_key: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticker }),
+      });
+      if (!res.ok) {
+        let errMessage = res.statusText;
+        try {
+          const err = await res.json();
+          errMessage = err?.detail || errMessage;
+        } catch {}
+        throw new Error(`Login failed: ${errMessage}`);
+      }
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] login:", error);
+      throw error;
+    }
+  },
+
+  // --- Game State ---
+  async getGameState(): Promise<GameState> {
+    try {
+      const res = await authFetch("/game/state");
+      const data = await res.json();
+      return GameStateSchema.parse(data);
+    } catch (error) {
+      console.error("[API Error] getGameState:", error);
+      throw error;
+    }
+  },
+
+  // --- Teams ---
   async getTeams(filter?: string): Promise<TeamSummary[]> {
-    await delay(100);
-    return filter ? mockTeams : mockTeams;
+    try {
+      const url = filter
+        ? `/teams?filter=${encodeURIComponent(filter)}`
+        : "/teams";
+      const res = await authFetch(url);
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getTeams:", error);
+      throw error;
+    }
   },
 
   async getTeamByTicker(ticker: string): Promise<TeamSummary | null> {
-    await delay(50);
-    return mockTeams.find((t) => t.ticker === ticker) || null;
+    try {
+      const url = `/teams?ticker=${encodeURIComponent(ticker)}`;
+      const res = await authFetch(url);
+      const teams = await res.json();
+      return teams.length > 0 ? teams[0] : null;
+    } catch (error) {
+      console.error("[API Error] getTeamByTicker:", error);
+      throw error;
+    }
   },
 
   async getMyTeamDossier(): Promise<TeamDossier> {
-    await delay(100);
-    const mockDossier: TeamDossier = {
-      profile: {
-        team_id: createMockUUID(),
-        name: "BARBIE INC",
-        ticker: "$BRBE",
-        status: "ACTIVE",
-        portfolio_id: "PORT_D2C_01",
-      },
-      financials: {
-        cash: 1000000,
-        stock_price: 142.09,
-        market_cap: 142090000,
-        liquidity: 1000000,
-        treasury_sale_limit_remaining: 10,
-      },
-      portfolio: {
-        holdings: [
-          {
-            ticker: "$TECH",
-            shares: 150,
-            current_price: 104,
-            current_value: 15600,
-            cost_basis: 100,
-            unrealized_pnl: 4,
-            ownership_percentage: 0.1,
-          },
-        ],
-        total_portfolio_value: 15600,
-        total_unrealized_pnl: 4,
-      },
-      cooldown_status: { active: false },
-    };
-    return TeamDossierSchema.parse(mockDossier);
+    try {
+      const res = await authFetch("/teams/me/dossier");
+      const data = await res.json();
+      return TeamDossierSchema.parse(data);
+    } catch (error) {
+      console.error("[API Error] getMyTeamDossier:", error);
+      throw error;
+    }
   },
 
   async getPendingTeams(): Promise<TeamSummary[]> {
-    await delay(100);
-    return mockTeams.filter((t) => t.status === "PENDING");
+    try {
+      const res = await authFetch("/teams/pending");
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getPendingTeams:", error);
+      throw error;
+    }
   },
 
   async approveTeam(teamId: string, portfolioId: string): Promise<unknown> {
-    console.log(teamId, portfolioId);
-    await delay(300);
-    return {};
+    try {
+      const res = await authFetch(`/teams/${teamId}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ portfolio_id: portfolioId }),
+      });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] approveTeam:", error);
+      throw error;
+    }
   },
 
   async rejectTeam(teamId: string): Promise<void> {
-    console.log(teamId);
-    await delay(200);
+    try {
+      await authFetch(`/teams/${teamId}/reject`, { method: "POST" });
+    } catch (error) {
+      console.error("[API Error] rejectTeam:", error);
+      throw error;
+    }
   },
 
   async forceBankruptTeam(teamId: string): Promise<unknown> {
-    console.log(teamId);
-    await delay(200);
-    return {};
+    try {
+      const res = await authFetch(`/teams/${teamId}/bankrupt`, {
+        method: "POST",
+      });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] forceBankruptTeam:", error);
+      throw error;
+    }
   },
 
+  // --- Directives ---
   async submitDirective(
     teamId: string,
     data: unknown,
   ): Promise<DirectiveWithFeedback> {
-    console.log(teamId, data);
-    await delay(500);
-    const directive: DirectiveWithFeedback = {
-      id: createMockUUID(),
-      headline: "Directive Submitted",
-      feedback: "The board is reviewing.",
-      submitted_at: new Date().toISOString(),
-      status: "COMPLETED",
-    };
-    directives.push(directive);
-    return DirectiveWithFeedbackSchema.parse(directive);
+    try {
+      // teamId might be inferred from auth, but we pass it anyway
+      const res = await authFetch(`/directives`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      return DirectiveWithFeedbackSchema.parse(result);
+    } catch (error) {
+      console.error("[API Error] submitDirective:", error);
+      throw error;
+    }
   },
 
   async getDirectives(teamId: string): Promise<DirectiveWithFeedback[]> {
-    console.log(teamId);
-    await delay(100);
-    return directives;
+    try {
+      const res = await authFetch(`/directives`);
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getDirectives:", error);
+      throw error;
+    }
   },
 
+  // --- Market ---
   async getMarketTickers(): Promise<TickerSnapshot[]> {
-    await delay(50);
-    return [
-      {
-        ticker: "$BRBE",
-        price: 95.5,
-        change_24h: -2.1,
-        change_absolute: -2.1,
-        volume_24h: 5000000,
-        market_cap: 95500000,
-        status: "ACTIVE",
-      },
-    ];
+    try {
+      const res = await authFetch("/market/tickers");
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getMarketTickers:", error);
+      throw error;
+    }
   },
 
   async getSectorHeatmap(): Promise<unknown[]> {
-    await delay(50);
-    return [];
+    try {
+      const res = await authFetch("/market/heatmap");
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getSectorHeatmap:", error);
+      throw error;
+    }
   },
 
   async executeTrade(
     teamId: string,
     data: unknown,
   ): Promise<{ success: boolean; transactionId: string }> {
-    console.log(teamId, data);
-    await delay(200);
-    return { success: true, transactionId: "123" };
+    try {
+      const res = await authFetch(`/market/trade`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] executeTrade:", error);
+      throw error;
+    }
   },
 
+  // --- News ---
   async getNewsItems(limit = 20): Promise<NewsItem[]> {
-    await delay(50);
-    return newsItems.slice(0, limit);
+    try {
+      const res = await authFetch(`/market/news?limit=${limit}`);
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getNewsItems:", error);
+      throw error;
+    }
   },
 
   async injectNews(data: unknown): Promise<unknown> {
-    console.log(data);
-    await delay(200);
-    return {};
+    try {
+      const res = await authFetch(`/market/news/inject`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] injectNews:", error);
+      throw error;
+    }
   },
 
+  // --- Admin Game Control ---
   async startGame(): Promise<GameState> {
-    await delay(500);
-    gameState = {
-      ...gameState,
-      status: "ACTIVE",
-      started_at: new Date().toISOString(),
-    };
-    return GameStateSchema.parse(gameState);
+    try {
+      const res = await authFetch("/game/start", { method: "POST" });
+      const data = await res.json();
+      return GameStateSchema.parse(data);
+    } catch (error) {
+      console.error("[API Error] startGame:", error);
+      throw error;
+    }
   },
 
   async pauseGame(): Promise<GameState> {
-    await delay(300);
-    gameState = { ...gameState, status: "PAUSED" };
-    return GameStateSchema.parse(gameState);
+    try {
+      const res = await authFetch("/game/pause", { method: "POST" });
+      const data = await res.json();
+      return GameStateSchema.parse(data);
+    } catch (error) {
+      console.error("[API Error] pauseGame:", error);
+      throw error;
+    }
   },
 
   async endGame(): Promise<GameState> {
-    await delay(500);
-    gameState = { ...gameState, status: "FINISHED" };
-    return GameStateSchema.parse(gameState);
+    try {
+      const res = await authFetch("/game/end", { method: "POST" });
+      const data = await res.json();
+      return GameStateSchema.parse(data);
+    } catch (error) {
+      console.error("[API Error] endGame:", error);
+      throw error;
+    }
   },
 
   async initiatePurge(): Promise<{ eliminated: string[]; survivors: number }> {
-    await delay(1000);
-    return { eliminated: [], survivors: 42 };
+    try {
+      const res = await authFetch("/game/purge", { method: "POST" });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] initiatePurge:", error);
+      throw error;
+    }
   },
 
+  // --- Admin Metrics ---
   async adminGetMetrics(): Promise<AdminMetrics> {
-    await delay(100);
-    return {
-      active_teams: 42,
-      total_teams: 50,
-      teams_by_status: { ACTIVE: 42 },
-      aggregate_liquidity: 4200000000,
-      avg_market_cap: 350000000,
-      market_cap_change_24h: 2.4,
-      llm_queue_depth: 3,
-      session_cost_usd: 4.23,
-    };
+    try {
+      const res = await authFetch("/admin/metrics");
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] adminGetMetrics:", error);
+      throw error;
+    }
   },
 
   async adminGetLLMStats(): Promise<LLMStats> {
-    await delay(50);
-    return {
-      total_requests: 1240,
-      total_cost_usd: 4.23,
-      avg_latency_ms: 1200,
-      error_rate: 0.05,
-      by_model: [
-        {
-          model: "claude-3-haiku",
-          requests: 1240,
-          cost_usd: 4.23,
-          avg_latency_ms: 1200,
-        },
-      ],
-    };
+    try {
+      const res = await authFetch("/admin/metrics/llm");
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] adminGetLLMStats:", error);
+      throw error;
+    }
   },
 
   async adminGetMarketStats(): Promise<MarketStats> {
-    await delay(50);
-    return {
-      total_trades: 4200,
-      trades_last_hour: 350,
-      volume_by_ticker: { $APEX: 1500000, $BRBE: 1200000 },
-      anomaly_alerts: [
-        { type: "RAPID_TRADING", ticker: "$APEX", description: "High volume" },
-      ],
-    };
+    try {
+      const res = await authFetch("/admin/metrics/market");
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] adminGetMarketStats:", error);
+      throw error;
+    }
   },
 };
 

@@ -2,20 +2,40 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Mock login
-    setTimeout(() => {
-      router.push("/lobby");
-    }, 1000);
+
+    try {
+      // The API uses 'ticker' for login
+      const res = await api.login(username);
+
+      // Mocking user object since we don't have a /users/me endpoint yet
+      login({
+        id: "mock-id-" + Date.now(),
+        teamName: username,
+        ticker: username,
+        role: username.toLowerCase() === "admin" ? "admin" : "player",
+        token: res.api_key,
+      });
+
+      router.push("/game");
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Login failed. Check console for details.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,7 +53,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-wider text-gray-400 block">
-              Operator_ID
+              Operator_ID / Ticker
             </label>
             <input
               type="text"

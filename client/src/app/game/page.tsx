@@ -10,6 +10,7 @@ import {
   RightSidebar,
   Footer,
 } from "@/components/game";
+import { GameGuard } from "@/components/game/GameGuard";
 import { TradeModal, BoardFeedbackModal } from "@/components/game/Modals";
 
 /**
@@ -24,7 +25,7 @@ function GameLayout() {
   const { user } = useAuth();
   const ticker = user?.ticker || "$BRBE";
   const { isTradeModalOpen, isFeedbackModalOpen } = useGameContext();
-  const { gameState, isMarketConnected, isTeamConnected } = useWebSocket();
+  const { gameState, isMarketConnected, isTeamConnected, globalAnnouncement } = useWebSocket();
 
   const formatSeconds = (secs?: number) => {
     if (!secs) return "00:00:00";
@@ -89,6 +90,20 @@ function GameLayout() {
 
       {isTradeModalOpen && <TradeModal />}
       {isFeedbackModalOpen && <BoardFeedbackModal />}
+      {globalAnnouncement && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center justify-center border-2 border-red-500 bg-black p-8 shadow-[0_0_30px_rgba(239,68,68,0.5)]">
+            <h1 className="text-4xl font-bold tracking-[0.2em] text-red-500 animate-pulse mb-4">
+              {globalAnnouncement.type === "PURGE"
+                ? "SYSTEM PURGE ALERT"
+                : "BANKRUPTCY ALERT"}
+            </h1>
+            <p className="text-xl text-red-400 font-mono text-center max-w-2xl">
+              {globalAnnouncement.message}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -103,7 +118,9 @@ export default function GamePage() {
   return (
     <GameProvider>
       <WebSocketProvider>
-        <GameLayout />
+        <GameGuard>
+          <GameLayout />
+        </GameGuard>
       </WebSocketProvider>
     </GameProvider>
   );

@@ -12,6 +12,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGameContext } from "@/contexts/GameContext";
 import { NewsItem, TickerSnapshot, GameState, TeamDossier } from "@/lib/models";
 
+export interface BankruptcyWarning {
+  cash_balance: number;
+  grace_period_seconds: number;
+}
+
 interface WebSocketContextType {
   isMarketConnected: boolean;
   isTeamConnected: boolean;
@@ -19,6 +24,8 @@ interface WebSocketContextType {
   marketTickers: TickerSnapshot[];
   gameState: GameState | null;
   dossier: TeamDossier | null;
+  bankruptcyWarning: BankruptcyWarning | null;
+  globalAnnouncement: { message: string; type: "PURGE" | "BANKRUPTCY" } | null;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
@@ -47,6 +54,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [marketTickers, setMarketTickers] = useState<TickerSnapshot[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [dossier, setDossier] = useState<TeamDossier | null>(null);
+  const [bankruptcyWarning, setBankruptcyWarning] =
+    useState<BankruptcyWarning | null>(null);
+  const [globalAnnouncement, setGlobalAnnouncement] = useState<{
+    message: string;
+    type: "PURGE" | "BANKRUPTCY";
+  } | null>(null);
 
   const marketWsRef = useRef<WebSocket | null>(null);
   const teamWsRef = useRef<WebSocket | null>(null);
@@ -110,8 +123,44 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               return updated;
             });
             break;
+          case "HALT":
+            setMarketTickers((prev) => {
+              const updated = [...prev];
+              const idx = updated.findIndex(
+                (t) => t.ticker === data.payload.ticker,
+              );
+              if (idx >= 0) {
+                updated[idx] = { ...updated[idx], status: "HALTED" };
+              }
+              return updated;
+            });
+            break;
+          case "PURGE_COMPLETE":
+            console.log("Market Purge Complete:", data.payload);
+            setGlobalAnnouncement({
+              message: `PURGE PROTOCOL COMPLETE. ELIMINATED: ${data.payload.eliminated?.join(", ") || "NONE"}`,
+              type: "PURGE",
+            });
+            if (data.payload.eliminated && Array.isArray(data.payload.eliminated)) {
+              setMarketTickers((prev) => {
+                return prev.map((t) => 
+                  data.payload.eliminated.includes(t.ticker) ? { ...t, status: "HALTED" } : t
+                );
+              });
+            }
+            // Clear announcement after 5 seconds
+            setTimeout(() => setGlobalAnnouncement(null), 5000);
+            break;
           case "system_event":
             // E.g. purge
+            if (data.payload?.event_type === "BANKRUPTCY_DECLARATION") {
+              console.log("System Event: Bankruptcy Declaration", data.payload);
+              setGlobalAnnouncement({
+                message: `BANKRUPTCY DECLARED: TEAM ${data.payload.team_id}`,
+                type: "BANKRUPTCY",
+              });
+              setTimeout(() => setGlobalAnnouncement(null), 5000);
+            }
             if (data.payload?.game_state) {
               setGameState(data.payload.game_state);
             }
@@ -135,12 +184,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   };
 
   const connectTeam = () => {
-    if (!user?.id) return;
+    const apiKey = typeof window !== "undefined" ? localStorage.getItem("complex_api_key") : null;
+    if (!apiKey) return;
     if (teamWsRef.current?.readyState === WebSocket.OPEN) return;
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-    // using user.id as api_key for now, or token
-    const ws = new WebSocket(`${wsUrl}/ws/team/${user.id}`);
+    // using api_key from localStorage
+    const ws = new WebSocket(`${wsUrl}/ws/team/${apiKey}`);
 
     ws.onopen = () => {
       setIsTeamConnected(true);
@@ -177,11 +227,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               );
             }
             break;
+          case "bankruptcy_alert":
+            console.log("Bankruptcy Alert:", data.payload);
+            setBankruptcyWarning(data.payload);
+            break;
           case "directive_complete":
-            // Show modal or toast, maybe trigger REST fetch for history
+            console.log("Directive complete:", data.payload);
             break;
           case "trade_confirmation":
-            // Toast or notification
+            console.log("Trade confirmation:", data.payload);
             break;
         }
       } catch (err) {
@@ -212,7 +266,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user?.id) {
+    if (typeof window !== "undefined" && localStorage.getItem("complex_api_key")) {
       connectTeam();
     }
     return () => {
@@ -231,6 +285,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         marketTickers,
         gameState,
         dossier,
+        bankruptcyWarning,
+        globalAnnouncement,
       }}
     >
       {children}
