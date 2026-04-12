@@ -11,6 +11,9 @@ import {
   MarketStats,
   GameState,
   GameStateSchema,
+  OrderResponse,
+  SubmitDirectiveResponse,
+  PurgeResponse,
 } from "./models";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/api/v1";
@@ -56,10 +59,11 @@ async function authFetch(endpoint: string, options: RequestInit = {}) {
 export const api = {
   // --- Auth ---
   async registerTeam(data: {
-    name: string;
+    team_name: string;
     ticker: string;
-    portfolio_id: string;
-  }): Promise<{ api_key: string }> {
+    email: string;
+    password: string;
+  }): Promise<{ message: string; registration_id: string }> {
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
@@ -81,12 +85,18 @@ export const api = {
     }
   },
 
-  async login(ticker: string): Promise<{ api_key: string }> {
+  async login(data: { ticker: string; password: string }): Promise<{
+    api_key: string;
+    team_name: string;
+    ticker: string;
+    status: string;
+    ws_endpoint: string;
+  }> {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) {
         let errMessage = res.statusText;
@@ -122,7 +132,8 @@ export const api = {
         ? `/teams?filter=${encodeURIComponent(filter)}`
         : "/teams";
       const res = await authFetch(url);
-      return await res.json();
+      const data = await res.json();
+      return data.teams || [];
     } catch (error) {
       console.error("[API Error] getTeams:", error);
       throw error;
@@ -133,7 +144,8 @@ export const api = {
     try {
       const url = `/teams?ticker=${encodeURIComponent(ticker)}`;
       const res = await authFetch(url);
-      const teams = await res.json();
+      const data = await res.json();
+      const teams = data.teams || [];
       return teams.length > 0 ? teams[0] : null;
     } catch (error) {
       console.error("[API Error] getTeamByTicker:", error);
@@ -143,7 +155,7 @@ export const api = {
 
   async getMyTeamDossier(): Promise<TeamDossier> {
     try {
-      const res = await authFetch("/teams/me/dossier");
+      const res = await authFetch("/teams/me");
       const data = await res.json();
       return TeamDossierSchema.parse(data);
     } catch (error) {
@@ -154,8 +166,9 @@ export const api = {
 
   async getPendingTeams(): Promise<TeamSummary[]> {
     try {
-      const res = await authFetch("/teams/pending");
-      return await res.json();
+      const res = await authFetch("/admin/teams/pending");
+      const data = await res.json();
+      return data.teams || [];
     } catch (error) {
       console.error("[API Error] getPendingTeams:", error);
       throw error;
@@ -175,19 +188,23 @@ export const api = {
     }
   },
 
-  async rejectTeam(teamId: string): Promise<void> {
+  async rejectTeam(teamId: string, reason: string = "Admin Rejection"): Promise<void> {
     try {
-      await authFetch(`/teams/${teamId}/reject`, { method: "POST" });
+      await authFetch(`/teams/${teamId}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
     } catch (error) {
       console.error("[API Error] rejectTeam:", error);
       throw error;
     }
   },
 
-  async forceBankruptTeam(teamId: string): Promise<unknown> {
+  async forceBankruptTeam(teamId: string, reason: string = "Admin Override"): Promise<unknown> {
     try {
       const res = await authFetch(`/teams/${teamId}/bankrupt`, {
         method: "POST",
+        body: JSON.stringify({ reason }),
       });
       return await res.json();
     } catch (error) {
@@ -198,26 +215,23 @@ export const api = {
 
   // --- Directives ---
   async submitDirective(
-    teamId: string,
-    data: unknown,
-  ): Promise<DirectiveWithFeedback> {
+    data: { directive_markdown: string; player_confidence_rating?: number }
+  ): Promise<SubmitDirectiveResponse> {
     try {
-      // teamId might be inferred from auth, but we pass it anyway
       const res = await authFetch(`/directives`, {
         method: "POST",
         body: JSON.stringify(data),
       });
-      const result = await res.json();
-      return DirectiveWithFeedbackSchema.parse(result);
+      return await res.json();
     } catch (error) {
       console.error("[API Error] submitDirective:", error);
       throw error;
     }
   },
 
-  async getDirectives(teamId: string): Promise<DirectiveWithFeedback[]> {
+  async getDirectives(): Promise<{ directives: DirectiveWithFeedback[]; total_count: number }> {
     try {
-      const res = await authFetch(`/directives`);
+      const res = await authFetch(`/teams/me/directives`);
       return await res.json();
     } catch (error) {
       console.error("[API Error] getDirectives:", error);
@@ -229,7 +243,8 @@ export const api = {
   async getMarketTickers(): Promise<TickerSnapshot[]> {
     try {
       const res = await authFetch("/market/tickers");
-      return await res.json();
+      const data = await res.json();
+      return data.tickers || [];
     } catch (error) {
       console.error("[API Error] getMarketTickers:", error);
       throw error;
@@ -238,8 +253,9 @@ export const api = {
 
   async getSectorHeatmap(): Promise<unknown[]> {
     try {
-      const res = await authFetch("/market/heatmap");
-      return await res.json();
+      const res = await authFetch("/market/sectors");
+      const data = await res.json();
+      return data.sectors || [];
     } catch (error) {
       console.error("[API Error] getSectorHeatmap:", error);
       throw error;
@@ -247,11 +263,10 @@ export const api = {
   },
 
   async executeTrade(
-    teamId: string,
-    data: unknown,
-  ): Promise<{ success: boolean; transactionId: string }> {
+    data: { action: "buy" | "sell"; target_ticker: string; shares: number; order_type: "MARKET" | "LIMIT" }
+  ): Promise<OrderResponse> {
     try {
-      const res = await authFetch(`/market/trade`, {
+      const res = await authFetch(`/orders`, {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -263,9 +278,9 @@ export const api = {
   },
 
   // --- News ---
-  async getNewsItems(limit = 20): Promise<NewsItem[]> {
+  async getNewsItems(limit = 20): Promise<{ items: NewsItem[]; has_more: boolean }> {
     try {
-      const res = await authFetch(`/market/news?limit=${limit}`);
+      const res = await authFetch(`/news?limit=${limit}`);
       return await res.json();
     } catch (error) {
       console.error("[API Error] getNewsItems:", error);
@@ -275,7 +290,7 @@ export const api = {
 
   async injectNews(data: unknown): Promise<unknown> {
     try {
-      const res = await authFetch(`/market/news/inject`, {
+      const res = await authFetch(`/news/inject`, {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -287,42 +302,42 @@ export const api = {
   },
 
   // --- Admin Game Control ---
-  async startGame(): Promise<GameState> {
+  async startGame(): Promise<Record<string, unknown>> {
     try {
       const res = await authFetch("/game/start", { method: "POST" });
-      const data = await res.json();
-      return GameStateSchema.parse(data);
+      return await res.json();
     } catch (error) {
       console.error("[API Error] startGame:", error);
       throw error;
     }
   },
 
-  async pauseGame(): Promise<GameState> {
+  async pauseGame(): Promise<Record<string, unknown>> {
     try {
       const res = await authFetch("/game/pause", { method: "POST" });
-      const data = await res.json();
-      return GameStateSchema.parse(data);
+      return await res.json();
     } catch (error) {
       console.error("[API Error] pauseGame:", error);
       throw error;
     }
   },
 
-  async endGame(): Promise<GameState> {
+  async endGame(): Promise<Record<string, unknown>> {
     try {
       const res = await authFetch("/game/end", { method: "POST" });
-      const data = await res.json();
-      return GameStateSchema.parse(data);
+      return await res.json();
     } catch (error) {
       console.error("[API Error] endGame:", error);
       throw error;
     }
   },
 
-  async initiatePurge(): Promise<{ eliminated: string[]; survivors: number }> {
+  async initiatePurge(data: { confirmation: "PURGE"; force: boolean }): Promise<PurgeResponse> {
     try {
-      const res = await authFetch("/game/purge", { method: "POST" });
+      const res = await authFetch("/game/purge", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       return await res.json();
     } catch (error) {
       console.error("[API Error] initiatePurge:", error);
@@ -343,7 +358,7 @@ export const api = {
 
   async adminGetLLMStats(): Promise<LLMStats> {
     try {
-      const res = await authFetch("/admin/metrics/llm");
+      const res = await authFetch("/admin/llm-stats");
       return await res.json();
     } catch (error) {
       console.error("[API Error] adminGetLLMStats:", error);
@@ -353,7 +368,7 @@ export const api = {
 
   async adminGetMarketStats(): Promise<MarketStats> {
     try {
-      const res = await authFetch("/admin/metrics/market");
+      const res = await authFetch("/admin/market-stats");
       return await res.json();
     } catch (error) {
       console.error("[API Error] adminGetMarketStats:", error);

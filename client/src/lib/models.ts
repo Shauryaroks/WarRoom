@@ -217,3 +217,34 @@ export const MarketStatsSchema = z.object({
     .optional(),
 });
 export type MarketStats = z.infer<typeof MarketStatsSchema>;
+
+export const OrderResponseSchema = z.object({
+  order_id: z.string(),
+  status: z.string(),
+  filled_shares: z.number(),
+  remaining_shares: z.number(),
+  execution_price: z.number(),
+  total_value: z.number(),
+  updated_cash: z.number(),
+  updated_holdings: z.array(z.any()), // We can leave it loosely typed for now
+});
+export type OrderResponse = z.infer<typeof OrderResponseSchema>;
+
+export const SubmitDirectiveResponseSchema = z.object({
+  submission_id: z.string(),
+  status: z.string(),
+  cooldown_until: z.string(),
+  seconds_remaining: z.number(),
+  message: z.string(),
+});
+export type SubmitDirectiveResponse = z.infer<typeof SubmitDirectiveResponseSchema>;
+
+export const PurgeResponseSchema = z.object({
+  purge_id: z.string().optional(),
+  status: z.string(),
+  eliminated_teams: z.array(z.string()).optional(),
+  surviving_teams: z.number().optional(),
+  new_treasury_limits: z.number().optional(),
+});
+export type PurgeResponse = z.infer<typeof PurgeResponseSchema>;
+

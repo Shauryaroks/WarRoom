@@ -65,7 +65,7 @@ export default function AdminDashboard() {
     } else if (purgeState === "CONFIRM" && countdown === 0) {
       setPurgeState("PROCESSING");
       try {
-        await api.initiatePurge();
+        await api.initiatePurge({ confirmation: "PURGE", force: false });
         setPurgeState("COMPLETE");
         fetchData();
       } catch (err) {

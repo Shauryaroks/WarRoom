@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       // The API uses 'ticker' for login
-      const res = await api.login(username);
+      const res = await api.login({ ticker: username, password });
 
       // Mocking user object since we don't have a /users/me endpoint yet
       login({
