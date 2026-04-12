@@ -185,6 +185,10 @@ class Directive(Base):
     # Execution penalty
     execution_penalty: Mapped[float] = mapped_column(default=1.0)
 
+    # LLM call tracking
+    latency_ms: Mapped[int] = mapped_column(Integer, nullable=True)
+    estimated_cost: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
@@ -361,7 +365,9 @@ class GameState(Base):
     # Purge tracking
     current_round: Mapped[int] = mapped_column(Integer, default=0)
     last_purge_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    next_purge_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     teams_remaining: Mapped[int] = mapped_column(Integer, nullable=True)
+    purge_min_teams: Mapped[int] = mapped_column(Integer, default=6)
 
     # LLM tracking
     llm_queue_depth: Mapped[int] = mapped_column(Integer, default=0)
@@ -388,6 +394,16 @@ class GameState(Base):
     )
     llm_max_tokens: Mapped[int] = mapped_column(Integer, default=2000)
     llm_temperature: Mapped[float] = mapped_column(default=0.7)
+
+    # News sentiment mapping (JSON: {"macro_bullish": 0.6, ...})
+    sentiment_map: Mapped[str] = mapped_column(
+        Text, nullable=True
+    )  # JSON, if null use defaults
+
+    # Market cap tracking for admin metrics
+    aggregate_market_cap_at_purge: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=utc_now, onupdate=utc_now

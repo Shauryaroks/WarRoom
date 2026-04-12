@@ -8,7 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import verify_admin_key
 from app.database import get_db
-from app.models import MarketNews, Team
+from app.models import GameState, MarketNews, Team
+
+DEFAULT_SENTIMENT_MAP = {
+    "macro_bullish": 0.6,
+    "macro_bearish": -0.6,
+    "sector_specific": 0.0,
+    "neutral": 0.0,
+}
 
 router = APIRouter(prefix="/news", tags=["news"])
 
@@ -65,6 +72,7 @@ async def get_news(
 
     import json
 
+    now = datetime.utcnow()
     items = []
     for item in news_items:
         source_ticker = None
@@ -87,6 +95,10 @@ async def get_news(
             except (json.JSONDecodeError, TypeError):
                 pass
 
+        # Dynamic relevance decay: active window is 20 minutes
+        age_minutes = (now - item.created_at).total_seconds() / 60.0
+        decay = max(0.0, round(1.0 - (age_minutes / 20.0), 2))
+
         items.append(
             NewsItem(
                 id=str(item.id),
@@ -98,7 +110,7 @@ async def get_news(
                 affected_sectors=affected_sectors,
                 affected_tickers=affected_tickers,
                 created_at=item.created_at.isoformat(),
-                relevance_decay=float(item.relevance_decay) if item.relevance_decay else None,
+                relevance_decay=decay,
             )
         )
 
@@ -132,12 +144,25 @@ async def inject_global_news(
     db: AsyncSession = Depends(get_db),
 ):
     import json
+    from decimal import Decimal
+
+    # Resolve sentiment score from impact_type
+    gs = await db.get(GameState, 1)
+    sentiment_map = DEFAULT_SENTIMENT_MAP
+    if gs and gs.sentiment_map:
+        try:
+            sentiment_map = json.loads(gs.sentiment_map)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    sentiment = sentiment_map.get(request.impact_type, 0.0) if request.impact_type else None
 
     news = MarketNews(
         headline=request.headline,
         content=request.content,
         source_type="ADMIN_INJECTED",
         source_team_id=None,
+        sentiment_score=Decimal(str(sentiment)) if sentiment is not None else None,
         affected_sectors=json.dumps(request.affected_sectors) if request.affected_sectors else None,
         affected_tickers=json.dumps(request.affected_tickers) if request.affected_tickers else None,
     )
@@ -145,7 +170,24 @@ async def inject_global_news(
     await db.commit()
     await db.refresh(news)
 
-    # TODO: Broadcast news via WebSocket to all connected clients
+    # Broadcast news to all connected WebSocket clients
+    from app.websocket import manager
+
+    source_ticker = None  # admin-injected has no source team
+    news_broadcast = {
+        "id": str(news.id),
+        "headline": news.headline,
+        "content": news.content,
+        "source_type": news.source_type,
+        "source_ticker": source_ticker,
+        "sentiment_score": float(news.sentiment_score) if news.sentiment_score else None,
+        "affected_sectors": json.loads(news.affected_sectors) if news.affected_sectors else None,
+        "affected_tickers": json.loads(news.affected_tickers) if news.affected_tickers else None,
+        "created_at": news.created_at.isoformat(),
+        "relevance_decay": 1.0,  # freshly created
+    }
+    await manager.broadcast_news(news_broadcast)
+
     # TODO: Implement scheduled_for — queue news for future publication
 
     return InjectNewsResponse(

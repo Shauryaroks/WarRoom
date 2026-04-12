@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -26,7 +27,6 @@ router = APIRouter(prefix="/market", tags=["market"])
 
 class TickerSnapshot(BaseModel):
     ticker: str
-    name: str
     price: float
     change_24h: Optional[float]
     change_absolute: Optional[float]
@@ -69,16 +69,19 @@ async def get_market_tickers(db: AsyncSession = Depends(get_db)):
                 change_24h = float((new_price - old_price) / old_price * 100)
                 change_absolute = float(new_price - old_price)
 
+        display_status = team.status.value
+        if team.status == TeamStatus.BANKRUPT:
+            display_status = "ELIMINATED"
+
         tickers.append(
             TickerSnapshot(
                 ticker=team.ticker,
-                name=team.name,
                 price=float(team.stock_price),
                 change_24h=change_24h,
                 change_absolute=change_absolute,
                 volume_24h=team.public_float,
                 market_cap=float(team.shares_outstanding) * float(team.stock_price),
-                status=team.status.value,
+                status=display_status,
             )
         )
 
@@ -135,19 +138,40 @@ async def get_price_history(
     result = await db.execute(stmt)
     history = result.scalars().all()
 
-    # TODO: Aggregate price history into proper OHLCV candlesticks based on interval.
-    # Currently returns raw price points as close-only candles.
+    INTERVAL_SECONDS = {
+        "1m": 60,
+        "5m": 300,
+        "15m": 900,
+        "1h": 3600,
+    }
+
+    # history is newest-first from DB, reverse for chronological
+    chronological = list(reversed(history))
+
+    interval_secs = INTERVAL_SECONDS.get(interval, 300)
+    interval_mins = interval_secs // 60
+
+    buckets = defaultdict(list)
+    for h in chronological:
+        ts = h.calculated_at
+        if interval_secs >= 3600:
+            bucket_ts = ts.replace(minute=0, second=0, microsecond=0)
+        else:
+            bucket_minute = (ts.minute // interval_mins) * interval_mins
+            bucket_ts = ts.replace(minute=bucket_minute, second=0, microsecond=0)
+        buckets[bucket_ts].append(float(h.price))
+
     data_points = []
-    for h in reversed(history):  # oldest first
-        price = float(h.price)
+    for bucket_ts in sorted(buckets.keys()):
+        prices = buckets[bucket_ts]
         data_points.append(
             PricePoint(
-                timestamp=h.calculated_at.isoformat(),
-                open=price,
-                high=price,
-                low=price,
-                close=price,
-                volume=0,
+                timestamp=bucket_ts.isoformat(),
+                open=prices[0],
+                high=max(prices),
+                low=min(prices),
+                close=prices[-1],
+                volume=len(prices),
             )
         )
 
@@ -175,27 +199,64 @@ class SectorsResponse(BaseModel):
 
 @router.get("/sectors", response_model=SectorsResponse)
 async def get_sector_heatmap(db: AsyncSession = Depends(get_db)):
-    # TODO: Implement real sector grouping based on portfolio type.
-    # Currently returns a placeholder with all teams grouped as one sector.
     stmt = select(Team).where(
         Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN])
     )
     result = await db.execute(stmt)
     teams = result.scalars().all()
 
-    total_cap = sum(float(t.stock_price * t.shares_outstanding) for t in teams)
+    SECTOR_MAP = {
+        "PORT_TECH_01": {"name": "Technology", "code": "TECH", "color": "#00ff41"},
+        "PORT_LEGACY_01": {"name": "Engineering", "code": "ENG", "color": "#ff6600"},
+        "PORT_DISRUPT_01": {"name": "Consumer", "code": "CONS", "color": "#ff00ff"},
+    }
 
-    return SectorsResponse(
-        sectors=[
-            SectorInfo(
-                name="ALL",
-                avg_change_percent=0.0,
-                total_market_cap=total_cap,
-                team_count=len(teams),
-                color="#00ff00",
+    # Group teams by sector
+    sector_teams = {}
+    for t in teams:
+        sector_key = t.portfolio_type or "UNKNOWN"
+        if sector_key not in sector_teams:
+            sector_teams[sector_key] = []
+        sector_teams[sector_key].append(t)
+
+    sectors = []
+    for portfolio_type, team_list in sector_teams.items():
+        sector_info = SECTOR_MAP.get(portfolio_type, {
+            "name": portfolio_type,
+            "code": "OTHER",
+            "color": "#888888",
+        })
+
+        total_cap = sum(float(t.stock_price * t.shares_outstanding) for t in team_list)
+
+        # Calculate avg change from last 2 price history entries per team
+        total_change = 0.0
+        teams_with_change = 0
+        for t in team_list:
+            ph_stmt = (
+                select(PriceHistory)
+                .where(PriceHistory.team_id == t.id)
+                .order_by(PriceHistory.calculated_at.desc())
+                .limit(2)
             )
-        ]
-    )
+            ph_result = await db.execute(ph_stmt)
+            ph = ph_result.scalars().all()
+            if len(ph) >= 2 and ph[1].price > 0:
+                change = float((ph[0].price - ph[1].price) / ph[1].price * 100)
+                total_change += change
+                teams_with_change += 1
+
+        avg_change = total_change / teams_with_change if teams_with_change > 0 else 0.0
+
+        sectors.append(SectorInfo(
+            name=sector_info["name"],
+            avg_change_percent=round(avg_change, 2),
+            total_market_cap=total_cap,
+            team_count=len(team_list),
+            color=sector_info["color"],
+        ))
+
+    return SectorsResponse(sectors=sectors)
 
 
 # --- GET /market/ticker/{ticker} (detail) ---

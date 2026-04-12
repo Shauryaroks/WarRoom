@@ -85,6 +85,13 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
             detail="Cannot buy own stock",
         )
 
+    max_per_txn = target.public_float // 10  # 10% of float
+    if order.shares > max_per_txn and max_per_txn > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"VOLUME_CAP_EXCEEDED: max {max_per_txn} shares per transaction (10% of float)",
+        )
+
     if order.shares > target.public_float:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -159,6 +166,17 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
     await db.commit()
     await db.refresh(team)
 
+    from app.websocket import manager
+
+    await manager.send_trade_confirmation(str(team.api_key), {
+        "order_id": str(transaction.id),
+        "side": "BUY",
+        "target_ticker": target.ticker,
+        "shares": order.shares,
+        "execution_price": float(target.stock_price),
+        "total_value": float(total_cost),
+    })
+
     holdings_list = await _get_holdings(team, db)
 
     return OrderResponse(
@@ -228,6 +246,17 @@ async def _execute_sell(
 
     await db.commit()
     await db.refresh(team)
+
+    from app.websocket import manager
+
+    await manager.send_trade_confirmation(str(team.api_key), {
+        "order_id": str(transaction.id),
+        "side": "SELL",
+        "target_ticker": target.ticker,
+        "shares": order.shares,
+        "execution_price": float(target.stock_price),
+        "total_value": float(total_proceeds),
+    })
 
     holdings_list = await _get_holdings(team, db)
 
@@ -336,6 +365,13 @@ async def sell_treasury_stock(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot trade in current status",
+        )
+
+    max_per_txn = (team.shares_outstanding * 5) // 100  # 5% per transaction
+    if request.shares > max_per_txn:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"TREASURY_TXN_CAP_EXCEEDED: max {max_per_txn} shares per transaction (5% of outstanding)",
         )
 
     max_sale = (team.shares_outstanding * team.dilution_cap_percent) // 100

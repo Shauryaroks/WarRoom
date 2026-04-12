@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -13,6 +14,13 @@ config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Override sqlalchemy.url from environment variable if set
+# This makes the same alembic config work in Docker (DATABASE_URL=...@db:5432/...)
+# and locally (DATABASE_URL=...@localhost:5432/...)
+db_url = os.getenv("DATABASE_URL", "")
+if db_url:
+    config.set_main_option("sqlalchemy.url", db_url)
 
 target_metadata = Base.metadata
 

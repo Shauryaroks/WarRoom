@@ -1,13 +1,14 @@
 import asyncio
 import json
 import os
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -16,6 +17,7 @@ from app.models import (
     Directive,
     GameState,
     MarketNews,
+    StockHolding,
     Team,
     TeamStatus,
 )
@@ -45,7 +47,18 @@ async def _process_directive_async(task_self, directive_id: str):
         await db.commit()
 
         try:
+            start_time = time.time()
             result = await evaluate_directive(db, team, directive)
+            elapsed_ms = int((time.time() - start_time) * 1000)
+
+            # Track latency and cost only for real LLM calls
+            used_llm = bool(os.getenv("GROK_API_KEY", ""))
+            directive.latency_ms = elapsed_ms
+            if used_llm:
+                directive.estimated_cost = Decimal("0.006")
+                gs = await db.get(GameState, 1)
+                if gs:
+                    gs.total_llm_cost = (gs.total_llm_cost or Decimal("0")) + Decimal("0.006")
 
             directive.extraction_confidence = result.get("extraction_confidence", 0.5)
             directive.consistency_score = result.get("consistency_score", 0.5)
@@ -91,6 +104,50 @@ async def evaluate_directive(
     db: AsyncSession, team: Team, directive: Directive
 ) -> dict[str, Any]:
     """Call LLM to evaluate the directive."""
+
+    # Gather news context (last 20 items)
+    news_stmt = select(MarketNews).order_by(MarketNews.created_at.desc()).limit(20)
+    news_result = await db.execute(news_stmt)
+    recent_news = news_result.scalars().all()
+
+    now = datetime.utcnow()
+    news_lines = []
+    for n in recent_news:
+        age_min = int((now - n.created_at).total_seconds() / 60)
+        news_lines.append(f"[T-{age_min}] {n.headline}")
+    news_context = "\n".join(news_lines) if news_lines else "No recent news."
+
+    # Gather competitor prices (top 10 by market cap)
+    competitors_stmt = (
+        select(Team)
+        .where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]))
+        .where(Team.id != team.id)
+        .order_by((Team.stock_price * Team.shares_outstanding).desc())
+        .limit(10)
+    )
+    competitors_result = await db.execute(competitors_stmt)
+    competitors = competitors_result.scalars().all()
+
+    comp_lines = []
+    for c in competitors:
+        comp_lines.append(f"  {c.ticker}: ${c.stock_price}")
+    comp_context = "\n".join(comp_lines) if comp_lines else "No competitors."
+
+    # Gather team's current holdings
+    holdings_stmt = select(StockHolding).where(
+        StockHolding.owner_team_id == team.id,
+        StockHolding.shares_owned > 0,
+    )
+    holdings_result = await db.execute(holdings_stmt)
+    holdings = holdings_result.scalars().all()
+
+    hold_lines = []
+    for h in holdings:
+        target = await db.get(Team, h.target_team_id)
+        if target:
+            hold_lines.append(f"  {target.ticker}: {h.shares_owned} shares @ ${target.stock_price}")
+    holdings_context = "\n".join(hold_lines) if hold_lines else "No external holdings."
+
     system_prompt = f"""You are the Board of Directors for {team.name} (ticker: {team.ticker}).
 
 The company's strategic profile:
@@ -104,6 +161,15 @@ Current financial state:
 - Stock Price: ${team.stock_price}
 - Public Float: {team.public_float:,} shares
 
+Recent Market News:
+{news_context}
+
+Competitor Prices (Top 10 by Market Cap):
+{comp_context}
+
+Current Holdings:
+{holdings_context}
+
 Evaluate the following strategic directive. Return JSON with:
 - extraction_confidence (0.0-1.0): How clear is the strategy?
 - consistency_score (0.0-1.0): Does this align with SWOT profile?
@@ -114,11 +180,11 @@ Evaluate the following strategic directive. Return JSON with:
 - board_feedback: Narrative critique (1-2 sentences)
 - news_headline: Public headline summarizing this action (brief, 1 sentence)
 - financial_impact: {{
+    "cash_delta": number,
     "revenue_delta": number,
-    "cost_delta": number,
-    "marketing_spend": number,
-    "rd_spend": number,
-    "net_profit_delta": number
+    "net_profit_delta": number,
+    "marketing_cost": number,
+    "rd_spend": number
 }}
 """
 
@@ -181,13 +247,15 @@ async def apply_financial_impact(db: AsyncSession, team: Team, directive: Direct
     impact = json.loads(directive.financial_impact or "{}")
     penalty = directive.execution_penalty
 
-    revenue_delta = (impact.get("revenue_delta", 0) or 0) * penalty
-    cost_delta = (impact.get("cost_delta", 0) or 0) * penalty
-    marketing_spend = (impact.get("marketing_spend", 0) or 0) * penalty
-    rd_spend = (impact.get("rd_spend", 0) or 0) * penalty
-    net_profit_delta = (impact.get("net_profit_delta", 0) or 0) * penalty
+    # Prefer cash_delta if present (new spec), otherwise compute from components
+    if "cash_delta" in impact and impact["cash_delta"]:
+        cash_change = (impact["cash_delta"] or 0) * penalty
+    else:
+        net_profit = (impact.get("net_profit_delta", 0) or 0) * penalty
+        marketing = (impact.get("marketing_cost", 0) or impact.get("marketing_spend", 0) or 0) * penalty
+        rd = (impact.get("rd_spend", 0) or 0) * penalty
+        cash_change = net_profit - marketing - rd
 
-    cash_change = net_profit_delta - marketing_spend - rd_spend
     team.cash += Decimal(str(cash_change))
 
     await db.flush()
@@ -216,6 +284,7 @@ async def generate_public_news(db: AsyncSession, directive: Directive, team: Tea
     )
     db.add(news)
     await db.commit()
+    # TODO: Broadcast news via Redis pub/sub (worker runs in separate process from FastAPI)
 
 
 @celery_app.task

@@ -575,7 +575,14 @@ async def force_bankrupt_team(
 
     await db.commit()
 
-    # TODO: Broadcast bankruptcy event via WebSocket
+    from app.websocket import manager
+
+    await manager.broadcast_system_event("BANKRUPTCY_DECLARATION", {
+        "event_type": "ELIMINATION",
+        "message": f"{team.ticker} eliminated due to admin override",
+        "ticker": team.ticker,
+        "reason": request.reason,
+    })
 
     return {
         "message": f"Team {team.ticker} force-bankrupted",

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
@@ -57,13 +58,19 @@ async def get_admin_metrics(
 
     gs = await db.get(GameState, 1)
 
+    # Calculate market cap change since last purge
+    market_cap_change = 0.0
+    if gs and gs.aggregate_market_cap_at_purge and gs.aggregate_market_cap_at_purge > 0:
+        change = total_market_cap - float(gs.aggregate_market_cap_at_purge)
+        market_cap_change = (change / float(gs.aggregate_market_cap_at_purge)) * 100
+
     return {
         "active_teams": len(active_teams),
         "total_teams": len(all_teams),
         "teams_by_status": teams_by_status,
         "aggregate_liquidity": aggregate_liquidity,
         "avg_market_cap": avg_market_cap,
-        "market_cap_change_24h": 0.0,  # TODO: Calculate from price history
+        "market_cap_change_24h": market_cap_change,
         "llm_queue_depth": gs.llm_queue_depth if gs else 0,
         "session_cost_usd": float(gs.total_llm_cost) if gs else 0.0,
     }
@@ -78,8 +85,6 @@ async def get_llm_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """LLM performance and cost breakdown."""
-    # TODO: Implement real LLM stats tracking.
-    # Need to record per-request latency, cost, and error status in a dedicated table.
     total_directives = await db.scalar(select(func.count(Directive.id)))
     completed = await db.scalar(
         select(func.count(Directive.id)).where(Directive.status == "COMPLETED")
@@ -88,19 +93,38 @@ async def get_llm_stats(
         select(func.count(Directive.id)).where(Directive.status == "FAILED")
     )
 
+    # Average latency from completed directives with latency data
+    avg_lat = await db.scalar(
+        select(func.avg(Directive.latency_ms)).where(
+            Directive.latency_ms != None,
+            Directive.status == "COMPLETED",
+        )
+    )
+
+    # Total cost from directive-level tracking
+    total_directive_cost = await db.scalar(
+        select(func.sum(Directive.estimated_cost)).where(
+            Directive.estimated_cost != None
+        )
+    )
+
     gs = await db.get(GameState, 1)
+
+    gs_cost = float(gs.total_llm_cost) if gs else 0.0
+    total_cost = gs_cost if gs_cost > 0 else (float(total_directive_cost) if total_directive_cost else 0.0)
+    avg_latency = int(avg_lat) if avg_lat else 0
 
     return {
         "total_requests": total_directives or 0,
-        "total_cost_usd": float(gs.total_llm_cost) if gs else 0.0,
-        "avg_latency_ms": 0,  # TODO: Track per-request latency
+        "total_cost_usd": total_cost,
+        "avg_latency_ms": avg_latency,
         "error_rate": float(failed / total_directives) if total_directives else 0.0,
         "by_model": [
             {
                 "model": gs.llm_model if gs else "grok-3-mini",
                 "requests": total_directives or 0,
-                "cost_usd": float(gs.total_llm_cost) if gs else 0.0,
-                "avg_latency_ms": 0,
+                "cost_usd": total_cost,
+                "avg_latency_ms": avg_latency,
             }
         ],
     }
@@ -127,13 +151,28 @@ async def get_market_stats(
         or 0
     )
 
-    # TODO: Implement proper volume-by-ticker aggregation
-    # TODO: Implement anomaly detection (price divergence, rapid trading, collusion patterns)
+    gs = await db.get(GameState, 1)
+
+    # Volume by ticker since last purge (or all time if no purge)
+    vol_cutoff = gs.last_purge_at if gs and gs.last_purge_at else None
+
+    vol_stmt = select(
+        Team.ticker,
+        func.sum(Transaction.shares),
+    ).join(Team, Transaction.target_team_id == Team.id)
+
+    if vol_cutoff:
+        vol_stmt = vol_stmt.where(Transaction.executed_at >= vol_cutoff)
+
+    vol_stmt = vol_stmt.group_by(Team.ticker)
+
+    vol_result = await db.execute(vol_stmt)
+    volume_by_ticker = {row[0]: row[1] for row in vol_result.all()}
 
     return {
         "total_trades": total_trades,
         "trades_last_hour": trades_last_hour,
-        "volume_by_ticker": {},
+        "volume_by_ticker": volume_by_ticker,
         "anomaly_alerts": [],
     }
 
@@ -218,6 +257,9 @@ class UpdateSettingsRequest(BaseModel):
     starting_price: Optional[Decimal] = None
     starting_shares: Optional[int] = None
     llm_model: Optional[str] = None
+    next_purge_at: Optional[str] = None  # ISO datetime string
+    purge_min_teams: Optional[int] = None
+    sentiment_map: Optional[dict] = None  # {"macro_bullish": 0.6, ...}
 
 
 @router.post("/settings")
@@ -243,6 +285,12 @@ async def update_settings(
         gs.starting_shares = request.starting_shares
     if request.llm_model is not None:
         gs.llm_model = request.llm_model
+    if request.next_purge_at is not None:
+        gs.next_purge_at = datetime.fromisoformat(request.next_purge_at) if request.next_purge_at else None
+    if request.purge_min_teams is not None:
+        gs.purge_min_teams = request.purge_min_teams
+    if request.sentiment_map is not None:
+        gs.sentiment_map = json.dumps(request.sentiment_map)
 
     await db.commit()
 
@@ -267,6 +315,9 @@ async def get_settings(
         "starting_price": float(gs.starting_price),
         "starting_shares": gs.starting_shares,
         "llm_model": gs.llm_model,
+        "next_purge_at": gs.next_purge_at.isoformat() if gs.next_purge_at else None,
+        "purge_min_teams": gs.purge_min_teams,
+        "sentiment_map": json.loads(gs.sentiment_map) if gs.sentiment_map else None,
     }
 
 

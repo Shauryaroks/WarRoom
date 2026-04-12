@@ -169,7 +169,7 @@ async def record_price_history(db: AsyncSession, team: Team, price: Decimal):
 
 async def broadcast_price_update(team: Team, price: Decimal):
     """Broadcast price update via Redis Pub/Sub."""
-    # TODO: Implement WebSocket broadcast through Redis pub/sub
+    # TODO: Broadcast price updates via Redis pub/sub (worker runs in separate process from FastAPI)
     pass
 
 

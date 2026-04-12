@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 from decimal import Decimal
 
@@ -18,7 +18,25 @@ from app.models import (
     TeamStatus,
 )
 
+from app.websocket import manager
+
 router = APIRouter(prefix="/game", tags=["game"])
+
+
+def _build_game_state_payload(gs):
+    """Build a game_state dict for WebSocket broadcast."""
+    now = datetime.utcnow()
+    return {
+        "status": gs.status.value,
+        "server_time": now.isoformat(),
+        "started_at": gs.started_at.isoformat() if gs.started_at else None,
+        "elapsed_seconds": int((now - gs.started_at).total_seconds()) if gs.started_at else None,
+        "next_purge_at": gs.next_purge_at.isoformat() if getattr(gs, 'next_purge_at', None) else None,
+        "current_round": gs.current_round,
+        "teams_remaining": gs.teams_remaining,
+        "total_llm_cost_usd": float(gs.total_llm_cost or 0),
+        "llm_queue_depth": gs.llm_queue_depth or 0,
+    }
 
 
 class GameStateResponse(BaseModel):
@@ -55,10 +73,7 @@ async def get_game_state(
     if gs.started_at:
         elapsed_seconds = int((now - gs.started_at).total_seconds())
 
-    # TODO: Make next_purge_at configurable or admin-scheduled
-    next_purge = None
-    if gs.last_purge_at:
-        next_purge = (gs.last_purge_at + timedelta(hours=1, minutes=30)).isoformat()
+    next_purge = gs.next_purge_at.isoformat() if gs.next_purge_at else None
 
     return GameStateResponse(
         status=gs.status.value,
@@ -130,7 +145,44 @@ async def start_game(
         team.public_float = team.shares_outstanding // 10
         team.treasury_shares = team.shares_outstanding - team.public_float
 
+    # Seed initial news items
+    if request.initial_news_items:
+        from app.models import MarketNews
+        for headline in request.initial_news_items:
+            news = MarketNews(
+                headline=headline[:120],
+                source_type="GLOBAL",
+                source_team_id=None,
+            )
+            db.add(news)
+    else:
+        from app.models import MarketNews
+        default_headlines = [
+            "Markets open with cautious optimism as new trading session begins",
+            "Analysts predict volatile conditions ahead for all sectors",
+            "Central bank signals steady monetary policy for the quarter",
+            "Global supply chain disruptions continue to impact valuations",
+            "Investor confidence rises on strong economic indicators",
+            "Regulatory changes expected to reshape competitive landscape",
+            "Technology sector leads early gains in opening trades",
+            "Commodity prices stabilize after weeks of fluctuation",
+            "Merger and acquisition activity expected to accelerate",
+            "Market liquidity reaches new highs as participants increase",
+        ]
+        for headline in default_headlines:
+            news = MarketNews(
+                headline=headline[:120],
+                source_type="GLOBAL",
+                source_team_id=None,
+            )
+            db.add(news)
+
     await db.commit()
+    await db.refresh(gs)
+
+    await manager.broadcast_system_event("GAME_STARTED", {
+        "game_state": _build_game_state_payload(gs),
+    })
 
     return GameControlResponse(
         message="Game started",
@@ -173,6 +225,11 @@ async def pause_game(
     gs.paused_at = datetime.utcnow()
 
     await db.commit()
+    await db.refresh(gs)
+
+    await manager.broadcast_system_event("GAME_PAUSED", {
+        "game_state": _build_game_state_payload(gs),
+    })
 
     return {
         "paused_at": gs.paused_at.isoformat(),
@@ -198,6 +255,11 @@ async def resume_game(
     gs.paused_at = None
 
     await db.commit()
+    await db.refresh(gs)
+
+    await manager.broadcast_system_event("GAME_RESUMED", {
+        "game_state": _build_game_state_payload(gs),
+    })
 
     return {"message": "Game resumed"}
 
@@ -214,6 +276,12 @@ async def end_game(
         gs.finished_at = datetime.utcnow()
 
     await db.commit()
+
+    if gs:
+        await db.refresh(gs)
+        await manager.broadcast_system_event("GAME_ENDED", {
+            "game_state": _build_game_state_payload(gs),
+        })
 
     return {"message": "Game ended, scores locked"}
 
@@ -234,8 +302,9 @@ class PurgeResponse(BaseModel):
     new_treasury_limits: float
 
 
-async def calculate_strategic_score(db: AsyncSession, team: Team) -> float:
-    """Strategic Score = (0.5 * Market Cap) + (0.5 * Liquidity)
+async def _calculate_raw_scores(db: AsyncSession, team: Team) -> tuple[float, float]:
+    """Calculate raw market cap and liquidity for a team.
+    Returns (market_cap, liquidity).
     Liquidity = Cash + (Portfolio Value * 0.5)
     """
     market_cap = float(team.stock_price * team.shares_outstanding)
@@ -257,8 +326,7 @@ async def calculate_strategic_score(db: AsyncSession, team: Team) -> float:
             portfolio_value += float(h.shares_owned * target.stock_price)
 
     liquidity = float(team.cash) + (portfolio_value * 0.5)
-    strategic_score = (0.5 * market_cap) + (0.5 * liquidity)
-    return strategic_score
+    return market_cap, liquidity
 
 
 @router.post("/purge", response_model=PurgeResponse)
@@ -283,8 +351,8 @@ async def initiate_market_purge(
     result = await db.execute(stmt)
     active_teams = result.scalars().all()
 
-    # TODO: Make minimum team threshold configurable
-    if len(active_teams) <= 6 and not request.force:
+    min_teams = gs.purge_min_teams if gs else 6
+    if len(active_teams) <= min_teams and not request.force:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot purge to fewer than 3 teams without force flag",
@@ -303,11 +371,30 @@ async def initiate_market_purge(
             detail=f"{pending_count} directives still processing",
         )
 
-    # Calculate strategic scores and rank
-    scored_teams = []
+    # Calculate raw scores for all teams
+    team_data = []  # (team, market_cap, liquidity)
     for team in active_teams:
-        score = await calculate_strategic_score(db, team)
-        scored_teams.append((team, score))
+        mc, liq = await _calculate_raw_scores(db, team)
+        team_data.append((team, mc, liq))
+
+    # Find max values for normalization
+    max_mc = max((mc for _, mc, _ in team_data), default=1.0)
+    max_liq = max((liq for _, _, liq in team_data), default=1.0)
+    # Avoid division by zero
+    if max_mc == 0:
+        max_mc = 1.0
+    if max_liq == 0:
+        max_liq = 1.0
+
+    # Record aggregate market cap at purge time
+    total_mc = sum(mc for _, mc, _ in team_data)
+    gs.aggregate_market_cap_at_purge = Decimal(str(total_mc))
+
+    # Normalize scores: SS_i = 0.5 * (MC_i / max(MC)) + 0.5 * (L_i / max(L))
+    scored_teams = []
+    for team, mc, liq in team_data:
+        normalized_score = 0.5 * (mc / max_mc) + 0.5 * (liq / max_liq)
+        scored_teams.append((team, normalized_score))
 
     # Sort by strategic score descending (highest = best)
     scored_teams.sort(key=lambda x: x[1], reverse=True)
@@ -359,8 +446,20 @@ async def initiate_market_purge(
     gs.teams_remaining = survivor_count
 
     await db.commit()
+    await db.refresh(gs)
 
-    # TODO: Broadcast purge event via WebSocket
+    game_state_payload = _build_game_state_payload(gs)
+    # Override teams_remaining with the freshly computed count
+    game_state_payload["teams_remaining"] = survivor_count
+
+    await manager.broadcast_system_event("PURGE_COMPLETE", {
+        "event_type": "PURGE_COMPLETE",
+        "message": f"Market Purge Complete. {survivor_count} teams remain.",
+        "eliminated_tickers": eliminated_ids,
+        "survivor_count": survivor_count,
+        "new_treasury_limits": new_treasury_limit,
+        "game_state": game_state_payload,
+    })
 
     return PurgeResponse(
         purge_id=str(uuid.uuid4()),

@@ -1,21 +1,20 @@
 from contextlib import asynccontextmanager
 import os
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import engine, Base, AsyncSessionLocal
+from app.database import AsyncSessionLocal
 from app.api import auth, trading, directive, market, admin, teams, game
 from app.api import news
 from app.models import GameState, GameStatus
-from app.websocket import manager
+from app.websocket import manager, handle_market_ws, handle_team_ws
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+    # Tables are managed by Alembic migrations (alembic upgrade head runs before app starts).
+    # Seed default GameState if it doesn't exist.
     async with AsyncSessionLocal() as db:
         gs = await db.get(GameState, 1)
         if not gs:
@@ -92,34 +91,14 @@ async def health_redis():
         return {"status": "error", "redis": "disconnected", "error": str(e)}
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, team_id: str = None):
-    from datetime import datetime, timezone
-    import json
+@app.websocket("/ws/market")
+async def ws_market(websocket: WebSocket):
+    await handle_market_ws(websocket)
 
-    await manager.connect(websocket, team_id)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            message = json.loads(data)
 
-            if message.get("type") == "ping":
-                await manager.send_personal_message(
-                    {
-                        "type": "pong",
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                    websocket,
-                )
-            elif message.get("type") == "subscribe":
-                channel = message.get("channel")
-                if channel:
-                    await manager.connect(websocket, channel.replace("team:", ""))
-
-    except WebSocketDisconnect:
-        await manager.disconnect(websocket, team_id)
-    except Exception:
-        await manager.disconnect(websocket, team_id)
+@app.websocket("/ws/team/{api_key}")
+async def ws_team(websocket: WebSocket, api_key: str):
+    await handle_team_ws(websocket, api_key)
 
 
 if __name__ == "__main__":
