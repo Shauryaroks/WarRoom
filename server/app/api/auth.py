@@ -144,10 +144,17 @@ async def login_team(
             detail="Invalid ticker or password",
         )
 
+    status_str = team.status.value
+    if team.status == TeamStatus.PENDING:
+        if getattr(team, "portfolio_type", None):
+            status_str = "PENDING_START"
+        else:
+            status_str = "PENDING_APPROVAL"
+
     return LoginResponse(
         api_key=str(team.api_key),
         team_name=team.name,
         ticker=team.ticker,
-        status=team.status.value,
+        status=status_str,
         ws_endpoint=f"/ws/team/{team.api_key}",
     )

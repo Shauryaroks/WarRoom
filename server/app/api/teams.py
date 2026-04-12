@@ -363,7 +363,15 @@ async def list_teams(
     raw_status = (status_filter or status or "").strip().upper()
     # "filter" param: if it looks like a status name, use it as status; otherwise treat as text search
     filter_val = (filter or "").strip()
-    known_statuses = {"ALL", "PENDING", "ACTIVE", "COOLDOWN", "BANKRUPT", "ELIMINATED", "REJECTED"}
+    known_statuses = {
+        "ALL",
+        "PENDING",
+        "ACTIVE",
+        "COOLDOWN",
+        "BANKRUPT",
+        "ELIMINATED",
+        "REJECTED",
+    }
     if not raw_status and filter_val.upper() in known_statuses:
         raw_status = filter_val.upper()
         filter_val = ""
@@ -386,7 +394,8 @@ async def list_teams(
 
     if text_search:
         stmt = stmt.where(
-            (Team.name.ilike(f"%{text_search}%")) | (Team.ticker.ilike(f"%{text_search}%"))
+            (Team.name.ilike(f"%{text_search}%"))
+            | (Team.ticker.ilike(f"%{text_search}%"))
         )
 
     result = await db.execute(stmt)

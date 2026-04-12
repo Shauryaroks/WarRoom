@@ -27,7 +27,7 @@ class _HealthFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
         # Silence health checks and Caddy root polls
-        if "GET /health" in msg or 'GET / ' in msg or '"GET / HTTP' in msg:
+        if "GET /health" in msg or "GET / " in msg or '"GET / HTTP' in msg:
             return False
         return True
 
