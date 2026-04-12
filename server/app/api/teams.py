@@ -430,6 +430,155 @@ async def list_teams(
     }
 
 
+# --- POST /teams/{team_id}/approve ---
+
+
+class ApproveRequest(BaseModel):
+    portfolio_id: str
+
+
+@router.post("/{team_id}/approve")
+async def approve_team(
+    team_id: str,
+    request: ApproveRequest,
+    admin: bool = Depends(verify_admin_key),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+
+    try:
+        team_uuid = _uuid.UUID(team_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await db.get(Team, team_uuid)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.status != TeamStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Team is {team.status.value}, not PENDING",
+        )
+
+    template = get_portfolio_template(request.portfolio_id)
+    team.portfolio_type = request.portfolio_id
+    team.swot_strengths = template["strengths"]
+    team.swot_weaknesses = template["weaknesses"]
+    team.swot_opportunities = template["opportunities"]
+    team.swot_threats = template["threats"]
+    team.status = TeamStatus.READY
+
+    await db.commit()
+
+    return {
+        "message": "Team approved",
+        "team_id": str(team.id),
+        "status": team.status.value,
+        "portfolio_id": team.portfolio_type,
+    }
+
+
+# --- POST /teams/{team_id}/reject ---
+
+
+class RejectRequest(BaseModel):
+    reason: str = "Admin Rejection"
+
+
+@router.post("/{team_id}/reject")
+async def reject_team(
+    team_id: str,
+    request: RejectRequest,
+    admin: bool = Depends(verify_admin_key),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+
+    try:
+        team_uuid = _uuid.UUID(team_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await db.get(Team, team_uuid)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.status not in [TeamStatus.PENDING, TeamStatus.READY]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Team is {team.status.value}, cannot reject",
+        )
+
+    team.status = TeamStatus.REJECTED
+    team.rejection_reason = request.reason
+
+    await db.commit()
+
+    return {
+        "message": "Team rejected",
+        "team_id": str(team.id),
+        "reason": request.reason,
+    }
+
+
+# --- POST /teams/{team_id}/bankrupt ---
+
+
+class BankruptRequest(BaseModel):
+    reason: str = "Admin Override"
+
+
+@router.post("/{team_id}/bankrupt")
+async def force_bankrupt_team(
+    team_id: str,
+    request: BankruptRequest,
+    admin: bool = Depends(verify_admin_key),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+
+    try:
+        team_uuid = _uuid.UUID(team_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await db.get(Team, team_uuid)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.status not in [TeamStatus.ACTIVE, TeamStatus.COOLDOWN]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Team is {team.status.value}, cannot bankrupt",
+        )
+
+    now = datetime.now(timezone.utc)
+    team.status = TeamStatus.BANKRUPT
+    team.bankrupt_since = now
+    team.elimination_reason = request.reason
+
+    await db.commit()
+
+    # Broadcast bankruptcy event via WebSocket
+    from app.websocket import manager
+
+    await manager.broadcast_system_event(
+        "BANKRUPTCY_DECLARATION",
+        {
+            "team_id": str(team.id),
+            "ticker": team.ticker,
+            "reason": request.reason,
+        },
+    )
+
+    return {
+        "message": "Team declared bankrupt",
+        "team_id": str(team.id),
+        "ticker": team.ticker,
+    }
+
+
 # --- Portfolio templates ---
 
 
