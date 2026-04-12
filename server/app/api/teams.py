@@ -355,23 +355,38 @@ class TeamSummary(BaseModel):
 async def list_teams(
     status_filter: Optional[str] = None,
     filter: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
+    # Accept status from multiple param names (frontend sends "filter", spec uses "status_filter")
+    raw_status = (status_filter or status or "").strip().upper()
+    # "filter" param: if it looks like a status name, use it as status; otherwise treat as text search
+    filter_val = (filter or "").strip()
+    known_statuses = {"ALL", "PENDING", "ACTIVE", "COOLDOWN", "BANKRUPT", "ELIMINATED", "REJECTED"}
+    if not raw_status and filter_val.upper() in known_statuses:
+        raw_status = filter_val.upper()
+        filter_val = ""
+
+    text_search = search or filter_val
+
     stmt = select(Team)
 
-    if status_filter and status_filter != "ALL":
+    if raw_status == "ALL":
+        pass  # No status filter — show everything
+    elif raw_status:
         try:
-            status_enum = TeamStatus(status_filter)
+            status_enum = TeamStatus(raw_status)
             stmt = stmt.where(Team.status == status_enum)
         except ValueError:
             pass
     else:
-        # Public: only show active/cooldown teams
+        # No filter at all — public view: only active/cooldown
         stmt = stmt.where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]))
 
-    if filter:
+    if text_search:
         stmt = stmt.where(
-            (Team.name.ilike(f"%{filter}%")) | (Team.ticker.ilike(f"%{filter}%"))
+            (Team.name.ilike(f"%{text_search}%")) | (Team.ticker.ilike(f"%{text_search}%"))
         )
 
     result = await db.execute(stmt)

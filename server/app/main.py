@@ -26,7 +26,8 @@ logging.basicConfig(
 class _HealthFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
-        if "/health" in msg and ("GET /health" in msg or "GET /health/" in msg):
+        # Silence health checks and Caddy root polls
+        if "GET /health" in msg or 'GET / ' in msg or '"GET / HTTP' in msg:
             return False
         return True
 
@@ -40,7 +41,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     SKIP_PATHS = {"/health", "/health/db", "/health/redis", "/"}
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path in self.SKIP_PATHS:
+        if request.url.path in self.SKIP_PATHS or request.method == "OPTIONS":
             return await call_next(request)
 
         start = time.time()
