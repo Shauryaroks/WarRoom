@@ -100,7 +100,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
     <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[#0d0d0d] text-[#e0e0e0] relative">
       {/* Toolbar (40px) */}
       <div className="h-[40px] shrink-0 border-b border-[#2a2a2a] flex items-center px-4 gap-4 bg-[#0a0a0a]">
-        <button className="text-[#ffb000] hover:text-[#e0e0e0]">
+        <button className="text-[#0077b6] hover:text-[#e0e0e0]">
           [TEMPLATE ▼]
         </button>
         <button
@@ -154,14 +154,14 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           onChange={handleChange}
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           disabled={cooldownRemaining > 0}
-          className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[#505050] focus:ring-1 focus:ring-inset focus:ring-[#ffb000]"
+          className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[#505050] focus:ring-1 focus:ring-inset focus:ring-[#0077b6]"
           placeholder="# Enter strategic directive here..."
           spellCheck={false}
         />
 
         {/* Character Counter */}
         <div
-          className={`absolute bottom-4 right-4 font-bold ${isMaxChars ? "text-[#ff3333] animate-pulse" : isWarningChars ? "text-[#ffb000]" : "text-[#505050]"}`}
+          className={`absolute bottom-4 right-4 font-bold ${isMaxChars ? "text-[#ff3333] animate-pulse" : isWarningChars ? "text-[#0077b6]" : "text-[#505050]"}`}
         >
           {charCount} / {maxChars}
         </div>
@@ -169,11 +169,11 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         {/* Cooldown Overlay */}
         {cooldownRemaining > 0 && (
           <div className="absolute inset-0 bg-[#0a0a0acc] flex items-center justify-center backdrop-blur-[1px] z-10">
-            <div className="border-2 border-[#ffb000] p-8 text-center bg-[#0a0a0a] shadow-[0_0_20px_rgba(255,176,0,0.2)] animate-pulse">
-              <div className="text-[#ffb000] mb-4 text-[16px] tracking-widest">
+            <div className="border-2 border-[#0077b6] p-8 text-center bg-[#0a0a0a] shadow-[0_0_20px_rgba(255,176,0,0.2)] animate-pulse">
+              <div className="text-[#0077b6] mb-4 text-[16px] tracking-widest">
                 BOARD REVIEWING DIRECTIVE
               </div>
-              <div className="text-[#ffb000] text-[48px] font-bold tracking-widest mb-4">
+              <div className="text-[#0077b6] text-[48px] font-bold tracking-widest mb-4">
                 ██ {formatTime(cooldownRemaining)} ██
               </div>
               <div className="text-[#808080]">Trading still enabled</div>
@@ -205,7 +205,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         ) : isSubmitting ? (
           <button
             disabled
-            className="w-full h-full bg-[#ffb000] text-black font-bold uppercase tracking-widest animate-pulse"
+            className="w-full h-full bg-[#0077b6] text-black font-bold uppercase tracking-widest animate-pulse"
           >
             TRANSMITTING... ▓▒░
           </button>
@@ -213,7 +213,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           <button
             onClick={handleSubmit}
             disabled={!directive.trim()}
-            className="w-full h-full bg-[#ffb000] text-black font-bold uppercase tracking-[0.1em] hover:brightness-110 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-full bg-[#0077b6] text-black font-bold uppercase tracking-[0.1em] hover:brightness-110 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
           >
             [ SUBMIT TO BOARD ]
           </button>

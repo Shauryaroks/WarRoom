@@ -128,7 +128,7 @@ export default function AdminDashboard() {
                 <span className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif]">
                   Avg Latency: {llm?.avg_latency_ms ? `${(llm.avg_latency_ms / 1000).toFixed(1)}s` : "0s"}
                 </span>
-                <span className={`text-[12px] font-['Inter',sans-serif] ${!llm || llm.avg_latency_ms > 2000 ? "text-[#ffb000]" : "text-[#00c853]"}`}>
+                <span className={`text-[12px] font-['Inter',sans-serif] ${!llm || llm.avg_latency_ms > 2000 ? "text-[#0077b6]" : "text-[#00c853]"}`}>
                   {!llm || llm.avg_latency_ms > 2000 ? "Warning" : "Good"}
                 </span>
               </div>
@@ -163,8 +163,8 @@ export default function AdminDashboard() {
 
           <div className="flex-1 min-h-[80px]">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-4 h-4 rounded-full bg-[#ffb000]/20 flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#ffb000] text-[12px]">
+              <div className="w-4 h-4 rounded-full bg-[#0077b6]/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[#0077b6] text-[12px]">
                   warning
                 </span>
               </div>
@@ -221,13 +221,13 @@ export default function AdminDashboard() {
                 placeholder="Search teams..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] pl-9 pr-3 text-[13px] text-[#e5e5e5] placeholder-[#6b7280] focus:outline-none focus:border-[#ffb000] font-['Inter',sans-serif] transition-colors"
+                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] pl-9 pr-3 text-[13px] text-[#e5e5e5] placeholder-[#6b7280] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors"
               />
             </div>
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#ffb000] font-['Inter',sans-serif] transition-colors min-w-[140px]">
+              className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors min-w-[140px]">
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="cooldown">Cooldown</option>
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
                       <td className="px-4 text-[13px] text-[#9ca3af] font-['Inter',sans-serif] whitespace-nowrap">
                         {team.name}
                       </td>
-                      <td className="px-4 text-[14px] text-[#ffb000] font-bold font-['JetBrains_Mono',monospace]">
+                      <td className="px-4 text-[14px] text-[#0077b6] font-bold font-['JetBrains_Mono',monospace]">
                         {team.ticker}
                       </td>
                       <td className="px-4 text-[14px] text-[#e0e0e0] font-['JetBrains_Mono',monospace] tabular-nums text-right">
@@ -288,7 +288,7 @@ export default function AdminDashboard() {
                             </span>
                           )}
                           {team.status === "COOLDOWN" && (
-                            <span className="text-[#ffb000] text-[14px] mr-2 leading-none">
+                            <span className="text-[#0077b6] text-[14px] mr-2 leading-none">
                               ◐
                             </span>
                           )}
@@ -370,7 +370,7 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               {purgeState === "PENDING" ? (
                 <span
-                  className="text-[#ffb000] text-[16px] material-symbols-outlined animate-spin"
+                  className="text-[#0077b6] text-[16px] material-symbols-outlined animate-spin"
                   style={{ animationDuration: "2s" }}
                 >
                   hourglass_empty
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               {(metrics?.llm_queue_depth ?? 0) > 0 ? (
                 <span
-                  className="text-[#ffb000] text-[16px] material-symbols-outlined animate-spin"
+                  className="text-[#0077b6] text-[16px] material-symbols-outlined animate-spin"
                   style={{ animationDuration: "2s" }}
                 >
                   hourglass_empty
@@ -446,7 +446,7 @@ export default function AdminDashboard() {
               disabled={purgeState === "PENDING" || purgeState === "COMPLETE" || purgeState === "PROCESSING"}
               className={`w-full h-[48px] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 flex items-center justify-center uppercase
                 ${(purgeState === "PENDING" || purgeState === "PROCESSING") ? "bg-[#2a2a2a] text-[#6b7280] cursor-not-allowed" : ""}
-                ${purgeState === "READY" ? "bg-[#ffb000] text-[#0a0a0a] hover:bg-[#ffb000]/90 shadow-[0_0_15px_rgba(255,176,0,0.3)] cursor-pointer" : ""}
+                ${purgeState === "READY" ? "bg-[#0077b6] text-[#0a0a0a] hover:bg-[#0077b6]/90 shadow-[0_0_15px_rgba(255,176,0,0.3)] cursor-pointer" : ""}
                 ${purgeState === "CONFIRM" ? "bg-[#ff3333] text-[#e5e5e5] hover:bg-[#ff3333]/90 shadow-[0_0_15px_rgba(255,51,51,0.4)] cursor-pointer" : ""}
                 ${purgeState === "COMPLETE" ? "bg-[#00c853] text-[#0a0a0a] cursor-not-allowed" : ""}
               `}

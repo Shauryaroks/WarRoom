@@ -23,7 +23,7 @@ export function TradeModal() {
           <div className="flex justify-between items-center">
             <span className="text-[#808080]">TARGET:</span>
             <div className="flex items-center gap-2">
-              <span className="text-[#ffb000] border border-[#2a2a2a] bg-[#0a0a0a] px-2 py-1">
+              <span className="text-[#0077b6] border border-[#2a2a2a] bg-[#0a0a0a] px-2 py-1">
                 [{selectedTicker || "$APEX"} ▼]
               </span>
               <span className="text-[#e0e0e0]">[Company Name]</span>
@@ -41,7 +41,7 @@ export function TradeModal() {
               <input
                 type="number"
                 defaultValue="100"
-                className="w-24 bg-[#0a0a0a] border border-[#2a2a2a] text-right px-2 py-1 text-[#e0e0e0] focus:border-[#ffb000] outline-none"
+                className="w-24 bg-[#0a0a0a] border border-[#2a2a2a] text-right px-2 py-1 text-[#e0e0e0] focus:border-[#0077b6] outline-none"
               />
               <span className="text-[#505050] text-[11px] mt-1">
                 └─ Max affordable: 8,173 shares
@@ -66,12 +66,12 @@ export function TradeModal() {
             <span>$839,600.00</span>
           </div>
 
-          <div className="border-l-4 border-[#ffcc00] bg-[#332a00] p-3 text-[#ffcc00] mt-4 uppercase">
+          <div className="border-l-4 border-[#00b4d8] bg-[#002a3d] p-3 text-[#00b4d8] mt-4 uppercase">
             [⚠ OWNERSHIP WARNING: 23% → 25%]
           </div>
 
           <button
-            className="w-full mt-4 py-3 bg-[#ffb000] text-black font-bold uppercase hover:brightness-110 active:translate-y-px"
+            className="w-full mt-4 py-3 bg-[#0077b6] text-black font-bold uppercase hover:brightness-110 active:translate-y-px"
             onClick={() => setIsTradeModalOpen(false)}
           >
             [ CONFIRM MARKET ORDER ]
@@ -144,7 +144,7 @@ export function BoardFeedbackModal() {
 
           <div className="flex flex-col gap-2 mt-4 bg-[#0a0a0a] p-3 border border-[#2a2a2a]">
             <span className="text-[#808080]">[GENERATED HEADLINE ▼]</span>
-            <span className="text-[#ffb000]">
+            <span className="text-[#0077b6]">
               &quot;Barbie Inc ($BRBE) slashes prices in aggressive market share
               grab&quot;
             </span>

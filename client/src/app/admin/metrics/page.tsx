@@ -42,7 +42,7 @@ export default function MetricsPage() {
 
   if (loading && !metrics) {
     return (
-      <div className="p-8 text-[#ffb000] font-['JetBrains_Mono',monospace]">
+      <div className="p-8 text-[#0077b6] font-['JetBrains_Mono',monospace]">
         [SYS] GATHERING_TELEMETRY...
       </div>
     );
@@ -96,7 +96,7 @@ export default function MetricsPage() {
             <span className="text-sm text-gray-500 font-['Inter',sans-serif]">
               Avg Market Cap
             </span>
-            <span className="text-xl text-[#ffb000] font-['JetBrains_Mono',monospace]">
+            <span className="text-xl text-[#0077b6] font-['JetBrains_Mono',monospace]">
               {formatCurrency(metrics?.avg_market_cap || 0)}
             </span>
           </div>
@@ -120,7 +120,7 @@ export default function MetricsPage() {
             <span className="text-sm text-gray-500 font-['Inter',sans-serif]">
               Error Rate
             </span>
-            <span className="text-xl text-[#ffb000] font-['JetBrains_Mono',monospace]">
+            <span className="text-xl text-[#0077b6] font-['JetBrains_Mono',monospace]">
               {((llm?.error_rate || 0) * 100).toFixed(1)}%
             </span>
           </div>
@@ -154,7 +154,7 @@ export default function MetricsPage() {
             <span className="text-sm text-gray-500 font-['Inter',sans-serif]">
               Trades Last Hour
             </span>
-            <span className="text-xl text-[#ffb000] font-['JetBrains_Mono',monospace]">
+            <span className="text-xl text-[#0077b6] font-['JetBrains_Mono',monospace]">
               {market?.trades_last_hour}
             </span>
           </div>
@@ -171,7 +171,7 @@ export default function MetricsPage() {
 
       {/* Warnings & Anomalies */}
       <div className="bg-[#111] border border-[#2a2a2a] rounded-[6px] p-4">
-        <div className="flex items-center text-[#ffb000] gap-2 mb-4 font-['Inter',sans-serif] uppercase text-xs tracking-wider">
+        <div className="flex items-center text-[#0077b6] gap-2 mb-4 font-['Inter',sans-serif] uppercase text-xs tracking-wider">
           <span className="material-symbols-outlined text-[16px]">
             gpp_maybe
           </span>
@@ -195,8 +195,8 @@ export default function MetricsPage() {
               ))
             : null}
           {(metrics?.llm_queue_depth ?? 0) > 10 ? (
-            <div className="bg-[#ffb000]/10 border border-[#ffb000]/20 p-3 rounded flex justify-between items-center text-sm font-['JetBrains_Mono',monospace]">
-              <span className="text-[#ffb000] flex items-center gap-2">
+            <div className="bg-[#0077b6]/10 border border-[#0077b6]/20 p-3 rounded flex justify-between items-center text-sm font-['JetBrains_Mono',monospace]">
+              <span className="text-[#0077b6] flex items-center gap-2">
                 <span className="material-symbols-outlined text-[14px]">
                   network_ping
                 </span>{" "}

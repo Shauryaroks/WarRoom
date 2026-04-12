@@ -42,12 +42,12 @@ export function TeamTable({
     cooldownRemaining?: string | null,
   ) => {
     if (status === "COOLDOWN" && cooldownRemaining) {
-      return "text-[#FFB000] border border-[#FFB000]/30 bg-[#FFB000]/10 font-bold";
+      return "text-[#0077b6] border border-[#0077b6]/30 bg-[#0077b6]/10 font-bold";
     }
     const styles: Record<TeamStatus, string> = {
       ACTIVE: "text-[#00c853] border border-[#00c853]/30 bg-[#00c853]/10",
       PENDING: "text-zinc-400 border border-white/10 bg-white/5",
-      COOLDOWN: "text-[#FFB000] border border-[#FFB000]/30 bg-[#FFB000]/10",
+      COOLDOWN: "text-[#0077b6] border border-[#0077b6]/30 bg-[#0077b6]/10",
       ELIMINATED: "text-zinc-500 border border-zinc-700/50 bg-zinc-800/30",
       BANKRUPT:
         "text-[#ff3333] border border-[#ff3333]/50 bg-[#ff3333]/20 animate-pulse",
@@ -76,7 +76,7 @@ export function TeamTable({
                 onClick={() => onFilterChange(f.toLowerCase())}
                 className={`text-[11px] py-1 cursor-pointer whitespace-nowrap ${
                   filter === f.toLowerCase()
-                    ? "text-[#FFB000] font-bold border-b-2 border-[#FFB000]"
+                    ? "text-[#0077b6] font-bold border-b-2 border-[#0077b6]"
                     : "text-zinc-600 hover:text-zinc-400"
                 }`}
               >
@@ -119,7 +119,7 @@ export function TeamTable({
                 className={`border-b border-white/5 hover:bg-white/5 ${team.status === "ELIMINATED" ? "opacity-40" : ""} ${team.status === "BANKRUPT" ? "bg-[#ff3333]/5" : ""}`}
               >
                 <td className="px-4 py-3 font-bold text-white">{team.name}</td>
-                <td className="px-4 py-3 text-[#FFB000] font-bold">
+                <td className="px-4 py-3 text-[#0077b6] font-bold">
                   {team.ticker}
                 </td>
                 <td className="px-4 py-3">
@@ -133,7 +133,7 @@ export function TeamTable({
                 <td className="px-4 py-3 text-right">{team.mktCap}</td>
                 <td className="px-4 py-3">
                   {team.status === "COOLDOWN" ? (
-                    <span className="text-[#FFB000] italic">
+                    <span className="text-[#0077b6] italic">
                       AWAITING_BOARD ({team.cooldownRemaining} REMAINING)
                     </span>
                   ) : (
@@ -151,7 +151,7 @@ export function TeamTable({
                       {onForceBankrupt && (
                         <button
                           onClick={() => onForceBankrupt(team)}
-                          className="bg-[#FFB000]/10 text-[#FFB000] border border-[#FFB000]/30 px-2 py-1 hover:bg-[#FFB000] hover:text-black text-[9px] uppercase cursor-pointer"
+                          className="bg-[#0077b6]/10 text-[#0077b6] border border-[#0077b6]/30 px-2 py-1 hover:bg-[#0077b6] hover:text-black text-[9px] uppercase cursor-pointer"
                         >
                           FORCE BANKRUPT
                         </button>

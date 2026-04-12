@@ -50,7 +50,7 @@ export function MetricsBar({
           LLM QUEUE | SESSION_COST
         </div>
         <div className="flex flex-col">
-          <div className="text-lg font-bold text-[#FFB000]">
+          <div className="text-lg font-bold text-[#0077b6]">
             {llmQueue} PENDING
           </div>
           <div className="text-[10px] text-zinc-400">

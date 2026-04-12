@@ -29,19 +29,19 @@ export function LeftSidebar() {
       <div className="flex h-[40px] border-b border-[#2a2a2a]">
         <button
           onClick={() => setActiveTab("portfolio")}
-          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "portfolio" ? "border-b-2 border-[#ffb000] text-[#ffb000]" : "text-[#505050] hover:text-[#808080]"}`}
+          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "portfolio" ? "border-b-2 border-[#0077b6] text-[#0077b6]" : "text-[#505050] hover:text-[#808080]"}`}
         >
           <span>[1 PORTFOLIO]</span>
         </button>
         <button
           onClick={() => setActiveTab("market")}
-          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "market" ? "border-b-2 border-[#ffb000] text-[#ffb000]" : "text-[#505050] hover:text-[#808080]"}`}
+          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "market" ? "border-b-2 border-[#0077b6] text-[#0077b6]" : "text-[#505050] hover:text-[#808080]"}`}
         >
           <span>[2 MARKET]</span>
         </button>
         <button
           onClick={() => setActiveTab("history")}
-          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "history" ? "border-b-2 border-[#ffb000] text-[#ffb000]" : "text-[#505050] hover:text-[#808080]"}`}
+          className={`flex-1 flex justify-center items-center gap-1 uppercase ${activeTab === "history" ? "border-b-2 border-[#0077b6] text-[#0077b6]" : "text-[#505050] hover:text-[#808080]"}`}
         >
           <span>[3 HISTORY]</span>
         </button>
@@ -51,7 +51,7 @@ export function LeftSidebar() {
         {activeTab === "portfolio" && (
           <>
             {/* Net Worth Header */}
-            <div className="p-4 border-b border-[#2a2a2a] whitespace-pre font-mono text-[12px] leading-tight text-[#ffb000]">
+            <div className="p-4 border-b border-[#2a2a2a] whitespace-pre font-mono text-[12px] leading-tight text-[#0077b6]">
               {`┌────────────────────────────────────┐
 │ NET WORTH            $${(dossier?.financials.cash || 0).toLocaleString()} │
 │ ▲ +12.4% ▲ $137,000      [REFRESH] │
@@ -81,7 +81,7 @@ export function LeftSidebar() {
                       className="border-b border-[#1a1a1a] hover:bg-[#141414] group"
                     >
                       <td className="p-3 text-[#e0e0e0]">{h.ticker}</td>
-                      <td className="p-3 text-[#ffb000] text-right tabular-nums">
+                      <td className="p-3 text-[#0077b6] text-right tabular-nums">
                         {h.current_price}
                       </td>
                       <td className="p-3 text-right tabular-nums">
@@ -95,7 +95,7 @@ export function LeftSidebar() {
                       <td className="p-3 text-center">
                         <button
                           onClick={() => handleTradeClick(h.ticker)}
-                          className="hidden group-hover:block border border-[#ffb000] text-[#ffb000] px-2 py-0.5 text-[11px] hover:bg-[#ffb000] hover:text-black uppercase"
+                          className="hidden group-hover:block border border-[#0077b6] text-[#0077b6] px-2 py-0.5 text-[11px] hover:bg-[#0077b6] hover:text-black uppercase"
                         >
                           Trade
                         </button>
@@ -108,10 +108,10 @@ export function LeftSidebar() {
 
             {/* Quick Actions Bar */}
             <div className="h-[36px] flex border-t border-[#2a2a2a] shrink-0 bg-[#0a0a0a]">
-              <button className="flex-1 bg-[#ffb000] text-black font-bold uppercase hover:brightness-110 border-r border-black">
+              <button className="flex-1 bg-[#0077b6] text-black font-bold uppercase hover:brightness-110 border-r border-black">
                 [SELL 25%]
               </button>
-              <button className="flex-1 bg-[#ffb000] text-black font-bold uppercase hover:brightness-110">
+              <button className="flex-1 bg-[#0077b6] text-black font-bold uppercase hover:brightness-110">
                 [SELL 50%]
               </button>
             </div>

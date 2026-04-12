@@ -20,7 +20,7 @@ export function SideNav({ activeTab, onTabChange }: SideNavProps) {
         <div className="flex items-center gap-3 p-3 bg-[#1a1a1a] border border-white/5">
           <div className="w-2 h-2 rounded-full bg-[#00c853] animate-pulse"></div>
           <div>
-            <div className="text-[11px] font-bold text-[#FFB000]">
+            <div className="text-[11px] font-bold text-[#0077b6]">
               SYSTEM_STATUS: ONLINE
             </div>
             <div className="text-[9px] text-zinc-500 tracking-widest">
@@ -37,7 +37,7 @@ export function SideNav({ activeTab, onTabChange }: SideNavProps) {
             onClick={() => onTabChange(tab.id)}
             className={`flex items-center gap-4 px-6 py-4 transition-all cursor-pointer ${
               activeTab === tab.id
-                ? "text-[#FFB000] bg-white/5 border-l-2 border-[#FFB000]"
+                ? "text-[#0077b6] bg-white/5 border-l-2 border-[#0077b6]"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >

@@ -10,7 +10,7 @@ export function TopNav({
   return (
     <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0a0a0a] border-b border-white/5">
       <div className="flex items-center gap-8">
-        <span className="text-xl font-bold tracking-tighter text-[#FFB000] font-mono">
+        <span className="text-xl font-bold tracking-tighter text-[#0077b6] font-mono">
           COMPLEX: ADMIN_CONSOLE
         </span>
         <nav className="hidden md:flex gap-1 text-[11px] items-center">
@@ -39,15 +39,15 @@ export function TopNav({
           <span className="text-[10px] text-zinc-500">
             SERVER_TIME: {serverTime}
           </span>
-          <span className="text-[10px] text-[#FFB000]">
+          <span className="text-[10px] text-[#0077b6]">
             EVENT_ID: {eventId}
           </span>
         </div>
         <div className="flex gap-4">
-          <span className="material-symbols-outlined text-zinc-500 hover:text-[#FFB000] cursor-pointer text-xl">
+          <span className="material-symbols-outlined text-zinc-500 hover:text-[#0077b6] cursor-pointer text-xl">
             database
           </span>
-          <span className="material-symbols-outlined text-zinc-500 hover:text-[#FFB000] cursor-pointer text-xl">
+          <span className="material-symbols-outlined text-zinc-500 hover:text-[#0077b6] cursor-pointer text-xl">
             shield
           </span>
         </div>

@@ -24,19 +24,19 @@
 
   /* Registration page specific */
   --color-primary-registration: #ffd597;
-  --color-primary-registration-container: #ffb000;
+  --color-primary-registration-container: #0077b6;
   --color-secondary-registration: #40e56c;
   --color-on-primary-registration: #432c00;
   --color-on-secondary-registration: #003912;
 
   /* Terminal page specific */
-  --color-primary-terminal: #ffb000;
+  --color-primary-terminal: #0077b6;
   --color-success-terminal: #00c853;
   --color-error-terminal: #ff3333;
 
   /* Admin page specific */
   --color-primary-admin: #00c853;
-  --color-secondary-admin: #ffb000;
+  --color-secondary-admin: #0077b6;
   --color-institutional-blue: #2196f3;
 }
 

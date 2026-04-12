@@ -31,7 +31,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="lg:hidden flex flex-col bg-[#0a0a0a] border-b border-[#2a2a2a] z-30">
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#ffb000]">
+            <span className="material-symbols-outlined text-[#0077b6]">
               bolt
             </span>
             <span className="font-bold text-base tracking-widest font-['JetBrains_Mono',monospace]">
@@ -66,7 +66,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 href={item.href}
                 className={`flex items-center gap-2 px-4 h-full border-b-2 font-medium text-sm transition-colors ${
                   isActive
-                    ? "border-[#ffb000] text-white"
+                    ? "border-[#0077b6] text-white"
                     : "border-transparent text-[#9ca3af]"
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
@@ -86,7 +86,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Desktop Left Sidebar */}
       <aside className="hidden lg:flex w-[240px] flex-shrink-0 bg-[#0a0a0a] border-r border-[#2a2a2a] flex-col z-20">
         <div className="h-16 flex items-center px-6 border-b border-[#2a2a2a]">
-          <span className="material-symbols-outlined text-[#ffb000] mr-3">
+          <span className="material-symbols-outlined text-[#0077b6] mr-3">
             bolt
           </span>
           <span className="font-bold text-base text-[#e5e5e5] tracking-widest font-['JetBrains_Mono',monospace]">
@@ -111,7 +111,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 title={item.label}
               >
                 {isActive && (
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#ffb000]"></div>
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#0077b6]"></div>
                 )}
                 <div className="flex items-center">
                   <span className="material-symbols-outlined text-[20px] mr-4 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -151,7 +151,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center space-x-3 text-[12px] font-['JetBrains_Mono',monospace] font-bold">
             <span className="text-[#505050]">[SETUP]</span>
             <span className="text-[#505050]">→</span>
-            <span className="text-[#ffb000]">[ACTIVE]</span>
+            <span className="text-[#0077b6]">[ACTIVE]</span>
             <span className="text-[#505050]">→</span>
             <span className="text-[#505050]">[PURGE]</span>
             <span className="text-[#505050]">→</span>

@@ -26,17 +26,17 @@ export function NewsInjection({ onBroadcast }: NewsInjectionProps) {
   return (
     <div className="flex-1 p-4 border-r border-white/5 bg-[#0f0f0f]">
       <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-sm text-[#FFB000]">
+        <span className="material-symbols-outlined text-sm text-[#0077b6]">
           megaphone
         </span>
-        <span className="text-[10px] font-bold text-[#FFB000] uppercase">
+        <span className="text-[10px] font-bold text-[#0077b6] uppercase">
           BREAKING_NEWS_INJECTION
         </span>
       </div>
       <div className="space-y-3">
         <div className="relative">
           <input
-            className={`w-full bg-black border border-white/10 p-2 text-[10px] outline-none focus:border-[#FFB000] ${isOverLimit ? "border-[#ff3333] text-[#ff3333]" : ""}`}
+            className={`w-full bg-black border border-white/10 p-2 text-[10px] outline-none focus:border-[#0077b6] ${isOverLimit ? "border-[#ff3333] text-[#ff3333]" : ""}`}
             placeholder="ENTER_HEADLINE_TEXT..."
             value={headline}
             onChange={(e) =>
@@ -51,7 +51,7 @@ export function NewsInjection({ onBroadcast }: NewsInjectionProps) {
         </div>
         <div className="flex gap-2">
           <select
-            className="flex-1 bg-black border border-white/10 p-2 text-[10px] outline-none focus:border-[#FFB000] cursor-pointer"
+            className="flex-1 bg-black border border-white/10 p-2 text-[10px] outline-none focus:border-[#0077b6] cursor-pointer"
             value={impact}
             onChange={(e) => setImpact(e.target.value as "bullish" | "bearish")}
           >
@@ -134,7 +134,7 @@ export function Observability({
             </div>
             <div className="flex justify-between">
               <span>MOST_TRADED:</span>{" "}
-              <span className="text-[#FFB000]">{marketStats.mostTraded}</span>
+              <span className="text-[#0077b6]">{marketStats.mostTraded}</span>
             </div>
             <div className="flex justify-between">
               <span>PENDING:</span>{" "}
@@ -153,12 +153,12 @@ export function Observability({
           <div className="flex-1 bg-[#00c853] h-full"></div>
         </div>
         <div className="flex-1 h-8 bg-white/5 border border-white/5 flex items-end p-1 gap-0.5">
-          <div className="flex-1 bg-[#FFB000]/40 h-[80%]"></div>
-          <div className="flex-1 bg-[#FFB000]/40 h-[60%]"></div>
-          <div className="flex-1 bg-[#FFB000]/40 h-[70%]"></div>
-          <div className="flex-1 bg-[#FFB000]/40 h-[40%]"></div>
-          <div className="flex-1 bg-[#FFB000]/40 h-[20%]"></div>
-          <div className="flex-1 bg-[#FFB000] h-[30%]"></div>
+          <div className="flex-1 bg-[#0077b6]/40 h-[80%]"></div>
+          <div className="flex-1 bg-[#0077b6]/40 h-[60%]"></div>
+          <div className="flex-1 bg-[#0077b6]/40 h-[70%]"></div>
+          <div className="flex-1 bg-[#0077b6]/40 h-[40%]"></div>
+          <div className="flex-1 bg-[#0077b6]/40 h-[20%]"></div>
+          <div className="flex-1 bg-[#0077b6] h-[30%]"></div>
         </div>
       </div>
     </div>

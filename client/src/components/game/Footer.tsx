@@ -36,7 +36,7 @@ export function Footer() {
               onClick={() => handleTickerClick(t.ticker)}
               title={t.ticker}
             >
-              <span className="text-[#ffb000] font-bold">{t.ticker}</span>
+              <span className="text-[#0077b6] font-bold">{t.ticker}</span>
               <span className="text-white tabular-nums">{t.price.toFixed(2)}</span>
               <span className={getChangeColor(t.change_24h)}>
                 {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : ""}{Math.abs(t.change_24h).toFixed(1)}%

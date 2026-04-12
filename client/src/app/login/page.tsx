@@ -19,7 +19,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#FFB000] font-mono flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0a0a0a] text-[#0077b6] font-mono flex items-center justify-center p-4">
       <div className="w-full max-w-md border border-[#333] p-6 bg-[#111]">
         <div className="mb-6 border-b border-[#333] pb-4">
           <h1 className="text-xl font-bold tracking-widest uppercase">
@@ -39,7 +39,7 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-black border border-[#333] text-[#FFB000] px-3 py-2 text-sm focus:outline-none focus:border-[#FFB000] transition-colors"
+              className="w-full bg-black border border-[#333] text-[#0077b6] px-3 py-2 text-sm focus:outline-none focus:border-[#0077b6] transition-colors"
               required
               autoFocus
             />
@@ -53,7 +53,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black border border-[#333] text-[#FFB000] px-3 py-2 text-sm focus:outline-none focus:border-[#FFB000] transition-colors"
+              className="w-full bg-black border border-[#333] text-[#0077b6] px-3 py-2 text-sm focus:outline-none focus:border-[#0077b6] transition-colors"
               required
             />
           </div>
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 bg-[#FFB000] text-black font-bold uppercase tracking-widest py-3 text-sm hover:bg-[#FFD000] transition-colors disabled:opacity-50"
+            className="w-full mt-6 bg-[#0077b6] text-black font-bold uppercase tracking-widest py-3 text-sm hover:bg-[#FFD000] transition-colors disabled:opacity-50"
           >
             {loading ? "AUTHENTICATING..." : "INITIATE_SESSION"}
           </button>

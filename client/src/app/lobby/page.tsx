@@ -30,7 +30,7 @@ export default function LobbyPage() {
       <div className="w-full max-w-2xl border border-[#333] p-6 bg-[#111]">
         <div className="flex justify-between items-center mb-6 border-b border-[#333] pb-4">
           <div>
-            <h1 className="text-xl font-bold tracking-widest uppercase text-[#FFB000]">
+            <h1 className="text-xl font-bold tracking-widest uppercase text-[#0077b6]">
               &gt; WAITING_ROOM
             </h1>
             <p className="text-xs text-gray-500 mt-1">
@@ -74,7 +74,7 @@ export default function LobbyPage() {
           </button>
 
           {countdown !== null ? (
-            <div className="text-[#FFB000] font-bold text-lg animate-pulse">
+            <div className="text-[#0077b6] font-bold text-lg animate-pulse">
               COMMENCING IN T-{countdown}...
             </div>
           ) : (

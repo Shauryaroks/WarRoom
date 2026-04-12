@@ -22,7 +22,7 @@ export function RightSidebar() {
       case "ADMIN_INJECTED":
         return "bg-[#2a2a2a] text-white";
       case "TEAM_ACTION":
-        return "bg-[#332200] text-[#ffb000]";
+        return "bg-[#001f2e] text-[#0077b6]";
       case "SYSTEM":
         return "bg-[#002233] text-[#00d4ff]";
     }
@@ -39,7 +39,7 @@ export function RightSidebar() {
     <aside className="bg-[#0a0a0a] flex flex-col h-full w-full font-mono text-[13px] text-[#e0e0e0]">
       {/* Header */}
       <div className="flex h-[40px] shrink-0 items-center justify-between px-4 border-b border-[#2a2a2a] bg-[#0a0a0a]">
-        <span className="uppercase text-[#ffb000] font-bold">THE WIRE</span>
+        <span className="uppercase text-[#0077b6] font-bold">THE WIRE</span>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as "ALL" | "GLOBAL" | "HOLDINGS" | "SYSTEM")}

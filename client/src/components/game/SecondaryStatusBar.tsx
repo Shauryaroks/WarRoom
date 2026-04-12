@@ -30,7 +30,7 @@ export function SecondaryStatusBar({
       </div>
       <div className="flex gap-2">
         <span className="text-zinc-500 uppercase">HOLDINGS:</span>
-        <span className="text-[#FFB000]">{holdings}</span>
+        <span className="text-[#0077b6]">{holdings}</span>
       </div>
     </div>
   );

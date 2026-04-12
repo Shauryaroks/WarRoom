@@ -44,7 +44,7 @@ export function SidePanel({
     <div className="w-80 bg-[#0f0f0f] border-l border-white/5 flex flex-col">
       {/* Portfolio Assignment */}
       <div className="p-6 border-b border-white/5">
-        <h3 className="text-[10px] font-bold text-[#FFB000] mb-6 flex items-center gap-2 uppercase">
+        <h3 className="text-[10px] font-bold text-[#0077b6] mb-6 flex items-center gap-2 uppercase">
           <span className="material-symbols-outlined text-sm">
             assignment_ind
           </span>
@@ -84,7 +84,7 @@ export function SidePanel({
           {selectedPortfolio &&
             portfolios[selectedPortfolio as keyof typeof portfolios] && (
               <div className="p-3 bg-black border border-[#353534] space-y-2">
-                <div className="text-[9px] text-[#FFB000] font-bold uppercase mb-2">
+                <div className="text-[9px] text-[#0077b6] font-bold uppercase mb-2">
                   {selectedPortfolio} Selected:
                 </div>
                 <div className="space-y-1 text-[8px]">
@@ -101,7 +101,7 @@ export function SidePanel({
                     </span>
                   </div>
                 </div>
-                <button className="text-[8px] text-[#FFB000] hover:underline uppercase cursor-pointer mt-2">
+                <button className="text-[8px] text-[#0077b6] hover:underline uppercase cursor-pointer mt-2">
                   [VIEW FULL PROFILE]
                 </button>
               </div>
@@ -126,7 +126,7 @@ interface GameControlsProps {
 function GameControls({ onInitiatePurge }: GameControlsProps) {
   return (
     <div className="p-6 flex-1 bg-black/20">
-      <h3 className="text-[10px] font-bold text-[#FFB000] mb-6 flex items-center gap-2 uppercase">
+      <h3 className="text-[10px] font-bold text-[#0077b6] mb-6 flex items-center gap-2 uppercase">
         <span className="material-symbols-outlined text-sm">
           settings_remote
         </span>
@@ -137,7 +137,7 @@ function GameControls({ onInitiatePurge }: GameControlsProps) {
           <span className="material-symbols-outlined text-sm">play_circle</span>
           START_GAME_SESSION
         </button>
-        <button className="w-full bg-[#FFB000]/10 border border-[#FFB000] text-[#FFB000] py-3 text-[10px] font-bold hover:bg-[#FFB000] hover:text-black transition-all flex items-center justify-center gap-2 uppercase cursor-pointer">
+        <button className="w-full bg-[#0077b6]/10 border border-[#0077b6] text-[#0077b6] py-3 text-[10px] font-bold hover:bg-[#0077b6] hover:text-black transition-all flex items-center justify-center gap-2 uppercase cursor-pointer">
           <span className="material-symbols-outlined text-sm">
             pause_circle
           </span>

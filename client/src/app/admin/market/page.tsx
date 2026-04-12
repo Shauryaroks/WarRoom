@@ -59,7 +59,7 @@ export default function MarketPage() {
               maxLength={120}
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#ffb000] font-['Inter',sans-serif] transition-colors"
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors"
             />
           </div>
 
@@ -76,10 +76,10 @@ export default function MarketPage() {
                   onClick={() => setImpactType(type)}
                 >
                   <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${impactType === type ? "border-[#ffb000]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${impactType === type ? "border-[#0077b6]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}
                   >
                     {impactType === type && (
-                      <div className="w-2 h-2 rounded-full bg-[#ffb000]" />
+                      <div className="w-2 h-2 rounded-full bg-[#0077b6]" />
                     )}
                   </div>
                   <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif] capitalize">
@@ -101,7 +101,7 @@ export default function MarketPage() {
               <button
                 type="button"
                 onClick={() => setSectors([])}
-                className="text-[11px] text-[#ffb000] hover:underline font-['Inter',sans-serif]"
+                className="text-[11px] text-[#0077b6] hover:underline font-['Inter',sans-serif]"
               >
                 Clear
               </button>
@@ -114,10 +114,10 @@ export default function MarketPage() {
                     className="flex items-center gap-2 cursor-pointer group"
                   >
                     <div
-                      className={`w-4 h-4 rounded-[2px] border flex items-center justify-center transition-colors ${sectors.includes(sector) ? "border-[#ffb000] bg-[#ffb000]/10" : "border-[#6b7280] group-hover:border-[#9ca3af] bg-[#0a0a0a]"}`}
+                      className={`w-4 h-4 rounded-[2px] border flex items-center justify-center transition-colors ${sectors.includes(sector) ? "border-[#0077b6] bg-[#0077b6]/10" : "border-[#6b7280] group-hover:border-[#9ca3af] bg-[#0a0a0a]"}`}
                     >
                       {sectors.includes(sector) && (
-                        <span className="material-symbols-outlined text-[12px] text-[#ffb000] font-bold">
+                        <span className="material-symbols-outlined text-[12px] text-[#0077b6] font-bold">
                           check
                         </span>
                       )}
@@ -152,7 +152,7 @@ export default function MarketPage() {
                 type="text"
                 value={targetTicker}
                 onChange={(e) => setTargetTicker(e.target.value.toUpperCase())}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] pl-7 pr-3 text-[13px] text-[#ffb000] font-bold focus:outline-none focus:border-[#ffb000] font-['JetBrains_Mono',monospace] transition-colors"
+                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] pl-7 pr-3 text-[13px] text-[#0077b6] font-bold focus:outline-none focus:border-[#0077b6] font-['JetBrains_Mono',monospace] transition-colors"
               />
             </div>
           </div>
@@ -165,10 +165,10 @@ export default function MarketPage() {
             <div className="flex gap-6 items-center">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <div
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${schedule === "IMMEDIATE" ? "border-[#ffb000]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}
+                  className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${schedule === "IMMEDIATE" ? "border-[#0077b6]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}
                 >
                   {schedule === "IMMEDIATE" && (
-                    <div className="w-2 h-2 rounded-full bg-[#ffb000]" />
+                    <div className="w-2 h-2 rounded-full bg-[#0077b6]" />
                   )}
                 </div>
                 <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif]">
@@ -179,10 +179,10 @@ export default function MarketPage() {
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${schedule === "DELAYED" ? "border-[#ffb000]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${schedule === "DELAYED" ? "border-[#0077b6]" : "border-[#6b7280] group-hover:border-[#9ca3af]"}`}
                   >
                     {schedule === "DELAYED" && (
-                      <div className="w-2 h-2 rounded-full bg-[#ffb000]" />
+                      <div className="w-2 h-2 rounded-full bg-[#0077b6]" />
                     )}
                   </div>
                   <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif]">
@@ -196,7 +196,7 @@ export default function MarketPage() {
                     setScheduleMins(e.target.value);
                     setSchedule("DELAYED");
                   }}
-                  className="w-16 bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[32px] px-2 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#ffb000] font-['JetBrains_Mono',monospace] text-center"
+                  className="w-16 bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[32px] px-2 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['JetBrains_Mono',monospace] text-center"
                 />
                 <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif]">
                   minutes
@@ -219,14 +219,14 @@ export default function MarketPage() {
                 })}
                 ]
               </span>
-              <span className="text-[#ffb000] mr-2">[{impactType}]</span>
+              <span className="text-[#0077b6] mr-2">[{impactType}]</span>
               {headline || "Waiting for input..."}
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full h-[48px] bg-[#ffb000] hover:bg-[#ffb000]/90 text-[#0a0a0a] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 mt-4 shadow-[0_0_15px_rgba(255,176,0,0.2)] uppercase"
+            className="w-full h-[48px] bg-[#0077b6] hover:bg-[#0077b6]/90 text-[#0a0a0a] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 mt-4 shadow-[0_0_15px_rgba(255,176,0,0.2)] uppercase"
           >
             BROADCAST TO ALL TEAMS
           </button>

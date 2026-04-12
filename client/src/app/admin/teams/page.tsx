@@ -102,7 +102,7 @@ export default function TeamsPage() {
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded transition-colors font-['Inter',sans-serif] ${
                 filter === f
-                  ? "bg-[#ffb000] text-black"
+                  ? "bg-[#0077b6] text-black"
                   : "bg-[#2a2a2a] text-gray-400 hover:text-gray-200"
               }`}
             >
@@ -170,7 +170,7 @@ export default function TeamsPage() {
                               team.status === "BANKRUPT"
                             ? "bg-[#ff3333]/20 text-[#ff3333]"
                             : team.status === "COOLDOWN"
-                              ? "bg-[#ffb000]/20 text-[#ffb000]"
+                              ? "bg-[#0077b6]/20 text-[#0077b6]"
                               : "bg-[#2a2a2a] text-gray-400"
                       }`}
                     >
@@ -193,7 +193,7 @@ export default function TeamsPage() {
                         <input
                           type="text"
                           placeholder="e.g. PORT_TECH_01"
-                          className="bg-[#0a0a0a] border border-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-[#ffb000] font-['JetBrains_Mono',monospace] w-[130px]"
+                          className="bg-[#0a0a0a] border border-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-[#0077b6] font-['JetBrains_Mono',monospace] w-[130px]"
                           value={selectedPortfolios[team.team_id] || ""}
                           onChange={(e) =>
                             setSelectedPortfolios({
