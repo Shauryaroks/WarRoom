@@ -13,6 +13,7 @@ interface User {
   teamName: string;
   ticker: string;
   role: "player" | "admin";
+  token?: string;
 }
 
 interface AuthContextType {
@@ -44,11 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem("complex_user", JSON.stringify(userData));
+    if (userData.token) {
+      localStorage.setItem("complex_api_key", userData.token);
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("complex_user");
+    localStorage.removeItem("complex_api_key");
   };
 
   return (
