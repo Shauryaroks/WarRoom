@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ReactNode, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useState, useEffect } from "react";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_ADMIN_API_KEY) {
+      router.push("/login");
+    }
+  }, [router]);
+
+  if (!process.env.NEXT_PUBLIC_ADMIN_API_KEY) {
+    return null; // Avoid rendering the admin UI before redirecting
+  }
 
   const navItems = [
     { href: "/admin", label: "War Room", icon: "radar", count: null },
