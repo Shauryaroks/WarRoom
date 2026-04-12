@@ -2,7 +2,8 @@ import { z } from "zod";
 
 export const TeamStatusSchema = z.enum([
   "PENDING",
-  "PENDING_START", "PENDING_PURGE",
+  "PENDING_START",
+  "PENDING_PURGE",
   "ACTIVE",
   "COOLDOWN",
   "BANKRUPT",
@@ -238,7 +239,9 @@ export const SubmitDirectiveResponseSchema = z.object({
   seconds_remaining: z.number(),
   message: z.string(),
 });
-export type SubmitDirectiveResponse = z.infer<typeof SubmitDirectiveResponseSchema>;
+export type SubmitDirectiveResponse = z.infer<
+  typeof SubmitDirectiveResponseSchema
+>;
 
 export const PurgeResponseSchema = z.object({
   purge_id: z.string().optional(),
@@ -248,4 +251,3 @@ export const PurgeResponseSchema = z.object({
   new_treasury_limits: z.number().optional(),
 });
 export type PurgeResponse = z.infer<typeof PurgeResponseSchema>;
-

@@ -5,8 +5,11 @@ import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 
 export function LeftSidebar() {
-  const [activeTab, setActiveTab] = useState<"portfolio" | "market" | "history">("portfolio");
-  const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } = useGameContext();
+  const [activeTab, setActiveTab] = useState<
+    "portfolio" | "market" | "history"
+  >("portfolio");
+  const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } =
+    useGameContext();
   const { dossier } = useWebSocket();
 
   const handleTradeClick = (symbol: string, presetShares?: number) => {
@@ -55,10 +58,46 @@ export function LeftSidebar() {
             {/* Ledger Header */}
             <div className="p-4 border-b border-[#ffb000] font-mono text-[12px] leading-tight text-[#ffb000]">
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <div className="flex justify-between"><span>CASH:</span><span>${cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-                <div className="flex justify-between"><span>LIQUIDITY:</span><span>${liquidity.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-                <div className="flex justify-between"><span>STOCK P:</span><span>${stockPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-                <div className="flex justify-between"><span>MKT CAP:</span><span>${marketCap.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                <div className="flex justify-between">
+                  <span>CASH:</span>
+                  <span>
+                    $
+                    {cash.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>LIQUIDITY:</span>
+                  <span>
+                    $
+                    {liquidity.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>STOCK P:</span>
+                  <span>
+                    $
+                    {stockPrice.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>MKT CAP:</span>
+                  <span>
+                    $
+                    {marketCap.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -72,7 +111,9 @@ export function LeftSidebar() {
                     <th className="p-2 font-normal text-right">PRICE</th>
                     <th className="p-2 font-normal text-right">P&L</th>
                     <th className="p-2 font-normal text-right">OWN %</th>
-                    <th className="p-2 font-normal text-center w-[120px]">TRADE</th>
+                    <th className="p-2 font-normal text-center w-[120px]">
+                      TRADE
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -82,30 +123,45 @@ export function LeftSidebar() {
                       className="border-b border-[#332300] hover:bg-[#1a1a1a] group"
                     >
                       <td className="p-2 text-[#e0e0e0]">{h.ticker}</td>
-                      <td className="p-2 text-right tabular-nums">{h.shares.toLocaleString()}</td>
-                      <td className="p-2 text-right tabular-nums text-[#ffb000]">${h.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                      <td className="p-2 text-right tabular-nums">
+                        {h.shares.toLocaleString()}
+                      </td>
+                      <td className="p-2 text-right tabular-nums text-[#ffb000]">
+                        $
+                        {h.current_price.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
                       <td
                         className={`p-2 text-right tabular-nums ${h.unrealized_pnl > 0 ? "text-green-500" : h.unrealized_pnl < 0 ? "text-red-500" : "text-[#e0e0e0]"}`}
                       >
-                        {h.unrealized_pnl > 0 ? "+" : ""}{h.unrealized_pnl.toFixed(2)}%
+                        {h.unrealized_pnl > 0 ? "+" : ""}
+                        {h.unrealized_pnl.toFixed(2)}%
                       </td>
-                      <td className={`p-2 text-right tabular-nums ${h.ownership_percentage >= 20 ? "text-red-500 font-bold" : "text-[#e0e0e0]"}`}>
+                      <td
+                        className={`p-2 text-right tabular-nums ${h.ownership_percentage >= 20 ? "text-red-500 font-bold" : "text-[#e0e0e0]"}`}
+                      >
                         {h.ownership_percentage.toFixed(2)}%
                       </td>
                       <td className="p-2 text-center flex gap-1 justify-center">
-                        <button 
-                          onClick={() => handleTradeClick(h.ticker, h.shares * 0.25)}
+                        <button
+                          onClick={() =>
+                            handleTradeClick(h.ticker, h.shares * 0.25)
+                          }
                           className="px-1 text-[10px] border border-[#ffb000] text-[#ffb000] hover:bg-[#ffb000] hover:text-black"
                         >
                           25%
                         </button>
-                        <button 
-                          onClick={() => handleTradeClick(h.ticker, h.shares * 0.5)}
+                        <button
+                          onClick={() =>
+                            handleTradeClick(h.ticker, h.shares * 0.5)
+                          }
                           className="px-1 text-[10px] border border-[#ffb000] text-[#ffb000] hover:bg-[#ffb000] hover:text-black"
                         >
                           50%
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleTradeClick(h.ticker, h.shares)}
                           className="px-1 text-[10px] border border-[#ffb000] text-[#ffb000] hover:bg-[#ffb000] hover:text-black"
                         >
@@ -120,7 +176,7 @@ export function LeftSidebar() {
 
             {/* Quick Actions Bar */}
             <div className="p-2 border-t border-[#ffb000] bg-[#0a0a0a] flex flex-col gap-2">
-              <button 
+              <button
                 onClick={() => setIsTradeModalOpen(true)}
                 className="w-full bg-[#0a0a0a] text-[#ffb000] border border-[#ffb000] font-bold uppercase hover:bg-[#ffb000] hover:text-black py-2"
               >
@@ -137,9 +193,7 @@ export function LeftSidebar() {
         )}
 
         {activeTab === "history" && (
-          <div className="p-4 text-[#ffb000] italic">
-            &gt; HISTORY OFFLINE
-          </div>
+          <div className="p-4 text-[#ffb000] italic">&gt; HISTORY OFFLINE</div>
         )}
       </div>
     </aside>

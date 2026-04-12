@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function GameGuard({ children }: { children: React.ReactNode }) {
   const { gameState, dossier } = useWebSocket();
   const { user } = useAuth();
-  
+
   const [countdown, setCountdown] = useState(60);
 
   // Simple countdown effect for Bankrupt state
@@ -34,7 +34,10 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
   }
 
   // State 1: Pre-Game Lobby
-  if (gameState?.status === "SETUP" && dossier?.profile?.status === "PENDING_START") {
+  if (
+    gameState?.status === "SETUP" &&
+    dossier?.profile?.status === "PENDING_START"
+  ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] text-[#ffb000] font-mono p-8 text-center relative overflow-hidden">
         {/* Terminal text styling */}
@@ -44,14 +47,16 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
           <p>{`> Connection established to /ws/team/${user?.token || "API_KEY"}`}</p>
           <p className="animate-pulse">{`> Waiting for Administrator / TRADING_OPEN broadcast...`}</p>
         </div>
-        
+
         <h1 className="text-4xl font-bold mb-4 tracking-widest border border-[#ffb000] p-4 inline-block shadow-[0_0_15px_rgba(255,176,0,0.3)]">
           PRE-GAME LOBBY
         </h1>
         <p className="text-xl mb-8">MARKET STATUS: CLOSED</p>
-        
+
         <div className="mb-12 border border-[#ffb000]/50 p-6 max-w-2xl bg-[#ffb000]/5">
-          <h2 className="text-2xl mb-4 underline decoration-[#ffb000]/50">SWOT PROFILE (READ-ONLY)</h2>
+          <h2 className="text-2xl mb-4 underline decoration-[#ffb000]/50">
+            SWOT PROFILE (READ-ONLY)
+          </h2>
           <div className="grid grid-cols-2 gap-8 text-left">
             <div>
               <h3 className="font-bold mb-2">STRENGTHS</h3>
@@ -79,7 +84,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-        
+
         <div className="mt-auto animate-pulse text-lg border-t border-b border-[#ffb000] py-2 px-8">
           STATUS: {50 - (gameState?.teams_remaining || 0)} of 50 teams ready
         </div>
@@ -93,7 +98,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
   const isBankrupt = dossier?.profile?.status === "BANKRUPT";
   const isPendingPurge = dossier?.profile?.status === "PENDING_PURGE";
   const isPaused = gameState?.status === "PAUSED";
-  
+
   const hasOverlay = isSpectator || isBankrupt || isPendingPurge || isPaused;
 
   return (
@@ -151,7 +156,9 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
             <h1 className="text-6xl font-bold tracking-[0.4em] animate-pulse">
               TRADING HALTED
             </h1>
-            <p className="text-xl mt-4 opacity-80">ADMINISTRATOR PAUSE IN EFFECT</p>
+            <p className="text-xl mt-4 opacity-80">
+              ADMINISTRATOR PAUSE IN EFFECT
+            </p>
           </div>
         </div>
       )}

@@ -25,7 +25,8 @@ function GameLayout() {
   const { user } = useAuth();
   const ticker = user?.ticker || "$BRBE";
   const { isTradeModalOpen, isFeedbackModalOpen } = useGameContext();
-  const { gameState, isMarketConnected, isTeamConnected, globalAnnouncement } = useWebSocket();
+  const { gameState, isMarketConnected, isTeamConnected, globalAnnouncement } =
+    useWebSocket();
 
   const formatSeconds = (secs?: number) => {
     if (!secs) return "00:00:00";

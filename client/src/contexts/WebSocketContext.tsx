@@ -141,10 +141,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               message: `PURGE PROTOCOL COMPLETE. ELIMINATED: ${data.payload.eliminated?.join(", ") || "NONE"}`,
               type: "PURGE",
             });
-            if (data.payload.eliminated && Array.isArray(data.payload.eliminated)) {
+            if (
+              data.payload.eliminated &&
+              Array.isArray(data.payload.eliminated)
+            ) {
               setMarketTickers((prev) => {
-                return prev.map((t) => 
-                  data.payload.eliminated.includes(t.ticker) ? { ...t, status: "HALTED" } : t
+                return prev.map((t) =>
+                  data.payload.eliminated.includes(t.ticker)
+                    ? { ...t, status: "HALTED" }
+                    : t,
                 );
               });
             }
@@ -184,7 +189,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   };
 
   const connectTeam = () => {
-    const apiKey = typeof window !== "undefined" ? localStorage.getItem("complex_api_key") : null;
+    const apiKey =
+      typeof window !== "undefined"
+        ? localStorage.getItem("complex_api_key")
+        : null;
     if (!apiKey) return;
     if (teamWsRef.current?.readyState === WebSocket.OPEN) return;
 
@@ -266,7 +274,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("complex_api_key")) {
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("complex_api_key")
+    ) {
       connectTeam();
     }
     return () => {

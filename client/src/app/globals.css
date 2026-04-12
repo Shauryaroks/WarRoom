@@ -11,7 +11,7 @@
   --color-background: #0a0a0a;
   --color-surface: #111111;
   --color-surface-variant: #201f1f;
-  
+
   --color-outline: #333333;
   --color-muted: #888888;
 
@@ -61,6 +61,7 @@ body {
   animation: ticker 40s linear infinite;
 }
 
-input, button {
+input,
+button {
   font-family: var(--font-mono);
 }

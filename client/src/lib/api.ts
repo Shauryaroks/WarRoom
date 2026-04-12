@@ -16,7 +16,8 @@ import {
   PurgeResponse,
 } from "./models";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/api/v1";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/api/v1";
 
 async function authFetch(endpoint: string, options: RequestInit = {}) {
   const token =
@@ -188,7 +189,10 @@ export const api = {
     }
   },
 
-  async rejectTeam(teamId: string, reason: string = "Admin Rejection"): Promise<void> {
+  async rejectTeam(
+    teamId: string,
+    reason: string = "Admin Rejection",
+  ): Promise<void> {
     try {
       await authFetch(`/teams/${teamId}/reject`, {
         method: "POST",
@@ -200,7 +204,10 @@ export const api = {
     }
   },
 
-  async forceBankruptTeam(teamId: string, reason: string = "Admin Override"): Promise<unknown> {
+  async forceBankruptTeam(
+    teamId: string,
+    reason: string = "Admin Override",
+  ): Promise<unknown> {
     try {
       const res = await authFetch(`/teams/${teamId}/bankrupt`, {
         method: "POST",
@@ -214,9 +221,10 @@ export const api = {
   },
 
   // --- Directives ---
-  async submitDirective(
-    data: { directive_markdown: string; player_confidence_rating?: number }
-  ): Promise<SubmitDirectiveResponse> {
+  async submitDirective(data: {
+    directive_markdown: string;
+    player_confidence_rating?: number;
+  }): Promise<SubmitDirectiveResponse> {
     try {
       const res = await authFetch(`/directives`, {
         method: "POST",
@@ -229,7 +237,10 @@ export const api = {
     }
   },
 
-  async getDirectives(): Promise<{ directives: DirectiveWithFeedback[]; total_count: number }> {
+  async getDirectives(): Promise<{
+    directives: DirectiveWithFeedback[];
+    total_count: number;
+  }> {
     try {
       const res = await authFetch(`/teams/me/directives`);
       return await res.json();
@@ -262,9 +273,12 @@ export const api = {
     }
   },
 
-  async executeTrade(
-    data: { action: "buy" | "sell"; target_ticker: string; shares: number; order_type: "MARKET" | "LIMIT" }
-  ): Promise<OrderResponse> {
+  async executeTrade(data: {
+    action: "buy" | "sell";
+    target_ticker: string;
+    shares: number;
+    order_type: "MARKET" | "LIMIT";
+  }): Promise<OrderResponse> {
     try {
       const res = await authFetch(`/orders`, {
         method: "POST",
@@ -278,7 +292,9 @@ export const api = {
   },
 
   // --- News ---
-  async getNewsItems(limit = 20): Promise<{ items: NewsItem[]; has_more: boolean }> {
+  async getNewsItems(
+    limit = 20,
+  ): Promise<{ items: NewsItem[]; has_more: boolean }> {
     try {
       const res = await authFetch(`/news?limit=${limit}`);
       return await res.json();
@@ -332,7 +348,10 @@ export const api = {
     }
   },
 
-  async initiatePurge(data: { confirmation: "PURGE"; force: boolean }): Promise<PurgeResponse> {
+  async initiatePurge(data: {
+    confirmation: "PURGE";
+    force: boolean;
+  }): Promise<PurgeResponse> {
     try {
       const res = await authFetch("/game/purge", {
         method: "POST",

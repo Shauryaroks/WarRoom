@@ -8,7 +8,8 @@ import { api } from "@/lib/api";
 const STORAGE_KEY = "complex_directive_draft";
 
 export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
-  const { cooldownRemaining, setCooldownRemaining, setIsFeedbackModalOpen } = useGameContext();
+  const { cooldownRemaining, setCooldownRemaining, setIsFeedbackModalOpen } =
+    useGameContext();
   const { dossier } = useWebSocket();
   const [directive, setDirective] = useState("");
   const [charCount, setCharCount] = useState(0);
@@ -46,7 +47,9 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
 
     setIsSubmitting(true);
     try {
-      const response = await api.submitDirective({ directive_markdown: directive });
+      const response = await api.submitDirective({
+        directive_markdown: directive,
+      });
       if (response && response.seconds_remaining) {
         setCooldownRemaining(response.seconds_remaining);
       }
@@ -79,8 +82,12 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
   const isMaxChars = charCount >= maxChars;
 
   // Use both dossier cooldown status and local countdown
-  const activeCooldown = dossier?.cooldown_status?.active || cooldownRemaining > 0;
-  const displayCooldown = Math.max(cooldownRemaining, dossier?.cooldown_status?.seconds_remaining || 0);
+  const activeCooldown =
+    dossier?.cooldown_status?.active || cooldownRemaining > 0;
+  const displayCooldown = Math.max(
+    cooldownRemaining,
+    dossier?.cooldown_status?.seconds_remaining || 0,
+  );
 
   return (
     <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[#0a0a0a] text-[#ffb000] relative">
@@ -88,13 +95,17 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
       <div className="h-[40px] shrink-0 border-b border-[#ffb000] flex items-center px-4 gap-4 bg-[#0a0a0a] text-[#ffb000]">
         <button className="hover:text-white uppercase">[TEMPLATE ▼]</button>
         <button
-          onClick={() => handleTemplate("# Price War\nWe will cut prices by 15%...")}
+          onClick={() =>
+            handleTemplate("# Price War\nWe will cut prices by 15%...")
+          }
           className="hover:text-white uppercase"
         >
           [PRICE WAR]
         </button>
         <button
-          onClick={() => handleTemplate("# R&D Push\nWe are allocating $500k to R&D...")}
+          onClick={() =>
+            handleTemplate("# R&D Push\nWe are allocating $500k to R&D...")
+          }
           className="hover:text-white uppercase"
         >
           [R&D PUSH]
@@ -164,7 +175,8 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         <span>LAST SAVE: {new Date().toLocaleTimeString()}</span>
         <span>|</span>
         <span className="flex items-center gap-2">
-          CONNECTION: <span className="text-[#ffb000]">[████████░░] SECURE</span>
+          CONNECTION:{" "}
+          <span className="text-[#ffb000]">[████████░░] SECURE</span>
         </span>
       </div>
 

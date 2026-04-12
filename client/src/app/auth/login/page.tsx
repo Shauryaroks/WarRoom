@@ -75,7 +75,9 @@ export default function LoginPage() {
         {pendingApproval ? (
           <div className="text-[var(--color-primary)] border border-[var(--color-primary)] p-4 text-center">
             <p className="font-bold">STATUS: PENDING_APPROVAL</p>
-            <p className="text-sm mt-2">YOUR REGISTRATION IS PENDING ADMIN APPROVAL.</p>
+            <p className="text-sm mt-2">
+              YOUR REGISTRATION IS PENDING ADMIN APPROVAL.
+            </p>
           </div>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">

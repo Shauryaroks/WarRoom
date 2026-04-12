@@ -9,11 +9,11 @@ export default function RegisterPage() {
   const [tickerInput, setTickerInput] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [success, setSuccess] = useState(false);
-  
+
   const router = useRouter();
 
   const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,7 +44,7 @@ export default function RegisterPage() {
       }
 
       const formattedTicker = `$${tickerInput}`;
-      
+
       await api.registerTeam({
         team_name: teamName,
         ticker: formattedTicker,

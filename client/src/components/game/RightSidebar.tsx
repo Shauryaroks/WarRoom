@@ -13,7 +13,10 @@ export function RightSidebar() {
     let tag = item.source_type;
     let color = "text-[#ffb000]";
 
-    if (item.source_type === "GLOBAL" || item.source_type === "ADMIN_INJECTED") {
+    if (
+      item.source_type === "GLOBAL" ||
+      item.source_type === "ADMIN_INJECTED"
+    ) {
       tag = "GLOBAL";
       color = "text-[#a0a0a0]"; // white/gray
     } else if (item.source_type === "TEAM_ACTION" && item.source_ticker) {
@@ -32,12 +35,19 @@ export function RightSidebar() {
     return { tag, color };
   };
 
-  const filteredNews = newsItems.filter(item => {
+  const filteredNews = newsItems.filter((item) => {
     if (filter === "ALL") return true;
-    if (filter === "GLOBAL") return item.source_type === "GLOBAL" || item.source_type === "ADMIN_INJECTED";
+    if (filter === "GLOBAL")
+      return (
+        item.source_type === "GLOBAL" || item.source_type === "ADMIN_INJECTED"
+      );
     if (filter === "HOLDINGS") {
-       const holdings = dossier?.portfolio.holdings.map(h => h.ticker) || [];
-       return item.source_type === "TEAM_ACTION" && item.source_ticker && holdings.includes(item.source_ticker);
+      const holdings = dossier?.portfolio.holdings.map((h) => h.ticker) || [];
+      return (
+        item.source_type === "TEAM_ACTION" &&
+        item.source_ticker &&
+        holdings.includes(item.source_ticker)
+      );
     }
     return true;
   });
@@ -77,8 +87,10 @@ export function RightSidebar() {
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
         {filteredNews.map((item) => {
           const { tag, color } = getTagAndColor(item);
-          const time = new Date(item.created_at).toLocaleTimeString([], { hour12: false });
-          
+          const time = new Date(item.created_at).toLocaleTimeString([], {
+            hour12: false,
+          });
+
           return (
             <div key={item.id} className="py-1">
               <span className="text-[#a0a0a0]">[{time}] </span>

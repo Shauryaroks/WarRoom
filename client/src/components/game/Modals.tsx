@@ -5,15 +5,26 @@ import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 
 export function TradeModal() {
-  const { selectedTicker, setSelectedTicker, setIsTradeModalOpen, tradePreset } = useGameContext();
+  const {
+    selectedTicker,
+    setSelectedTicker,
+    setIsTradeModalOpen,
+    tradePreset,
+  } = useGameContext();
   const { dossier, marketTickers } = useWebSocket();
-  const [shares, setShares] = useState(tradePreset ? Math.floor(tradePreset).toString() : "100");
+  const [shares, setShares] = useState(
+    tradePreset ? Math.floor(tradePreset).toString() : "100",
+  );
 
   const cash = dossier?.financials.cash || 0;
-  
+
   // Find current price of selected ticker
-  const selectedMarketTicker = marketTickers.find(t => t.ticker === selectedTicker);
-  const holding = dossier?.portfolio.holdings.find(h => h.ticker === selectedTicker);
+  const selectedMarketTicker = marketTickers.find(
+    (t) => t.ticker === selectedTicker,
+  );
+  const holding = dossier?.portfolio.holdings.find(
+    (h) => h.ticker === selectedTicker,
+  );
   const price = selectedMarketTicker?.price || holding?.current_price || 0;
 
   const numShares = parseInt(shares) || 0;
@@ -38,25 +49,42 @@ export function TradeModal() {
           <div className="flex justify-between items-center">
             <span className="text-[#ffb000]">TARGET:</span>
             <div className="flex items-center gap-2">
-              <select 
+              <select
                 className="bg-[#0a0a0a] border border-[#ffb000] text-[#ffb000] p-1 outline-none cursor-pointer uppercase"
                 value={selectedTicker || ""}
                 onChange={(e) => setSelectedTicker(e.target.value)}
               >
                 <option value="">[SELECT]</option>
-                {dossier?.portfolio.holdings.map(h => (
-                  <option key={h.ticker} value={h.ticker}>{h.ticker}</option>
+                {dossier?.portfolio.holdings.map((h) => (
+                  <option key={h.ticker} value={h.ticker}>
+                    {h.ticker}
+                  </option>
                 ))}
-                {marketTickers.filter(mt => !dossier?.portfolio.holdings.some(h => h.ticker === mt.ticker)).map(mt => (
-                  <option key={mt.ticker} value={mt.ticker}>{mt.ticker}</option>
-                ))}
+                {marketTickers
+                  .filter(
+                    (mt) =>
+                      !dossier?.portfolio.holdings.some(
+                        (h) => h.ticker === mt.ticker,
+                      ),
+                  )
+                  .map((mt) => (
+                    <option key={mt.ticker} value={mt.ticker}>
+                      {mt.ticker}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-[#ffb000]">MARKET PRICE:</span>
-            <span className="tabular-nums">${price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            <span className="tabular-nums">
+              $
+              {price.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
           </div>
 
           <div className="flex justify-between items-center">
@@ -78,16 +106,29 @@ export function TradeModal() {
 
           <div className="flex justify-between items-center">
             <span className="text-[#ffb000]">TOTAL VALUE:</span>
-            <span className="tabular-nums">${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            <span className="tabular-nums">
+              $
+              {totalCost.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-[#ffb000]">AVAILABLE CASH:</span>
-            <span className="tabular-nums">${cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            <span className="tabular-nums">
+              $
+              {cash.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
           </div>
 
           <div className="border-l-4 border-amber-500 bg-[#1a1100] p-3 text-amber-500 mt-4 uppercase">
-            [ SYSTEM NOTICE: TRADE EXECUTION REQUIRES BOARD APPROVAL. USE DIRECTIVE CONSOLE. ]
+            [ SYSTEM NOTICE: TRADE EXECUTION REQUIRES BOARD APPROVAL. USE
+            DIRECTIVE CONSOLE. ]
           </div>
 
           <button
