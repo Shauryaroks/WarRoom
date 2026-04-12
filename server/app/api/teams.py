@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -353,6 +353,7 @@ class TeamSummary(BaseModel):
 
 @router.get("", response_model=dict)
 async def list_teams(
+    request: Request,
     status_filter: Optional[str] = None,
     filter: Optional[str] = None,
     status: Optional[str] = None,
@@ -378,18 +379,23 @@ async def list_teams(
 
     text_search = search or filter_val
 
+    # Admin callers (X-Admin-Key present) default to ALL teams
+    is_admin = bool(request.headers.get("X-Admin-Key"))
+
     stmt = select(Team)
 
     if raw_status == "ALL":
-        pass  # No status filter — show everything
+        pass  # Show everything
     elif raw_status:
         try:
             status_enum = TeamStatus(raw_status)
             stmt = stmt.where(Team.status == status_enum)
         except ValueError:
             pass
+    elif is_admin:
+        pass  # Admin with no filter: show all
     else:
-        # No filter at all — public view: only active/cooldown
+        # Public view: only active/cooldown
         stmt = stmt.where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]))
 
     if text_search:
