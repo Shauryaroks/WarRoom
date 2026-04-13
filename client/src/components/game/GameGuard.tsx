@@ -36,7 +36,8 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
   // State 1: Pre-Game Lobby
   if (
     gameState?.status === "SETUP" &&
-    (dossier?.profile?.status === "PENDING_START" || dossier?.profile?.status === "READY")
+    (dossier?.profile?.status === "PENDING_START" ||
+      dossier?.profile?.status === "READY")
   ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-bg-darkest)] text-[var(--color-accent-blue)] font-mono p-8 text-center relative overflow-hidden">
@@ -59,7 +60,9 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
           </h2>
           <div className="grid grid-cols-2 gap-8 text-left">
             {(() => {
-              const portfolioEntries = Object.entries(dossier?.profile?.swot || {} as Record<string, string>);
+              const portfolioEntries = Object.entries(
+                dossier?.profile?.swot || ({} as Record<string, string>),
+              );
               if (portfolioEntries.length === 0) {
                 return (
                   <div className="col-span-2 text-center text-[var(--color-text-muted)] italic">

@@ -273,9 +273,15 @@ export const api = {
     }
   },
 
-  async getMarketHistory(ticker: string, interval: string = "5m", limit: number = 100): Promise<any> {
+  async getMarketHistory(
+    ticker: string,
+    interval: string = "5m",
+    limit: number = 100,
+  ): Promise<any> {
     try {
-      const res = await authFetch(`/market/history/${encodeURIComponent(ticker)}?interval=${interval}&limit=${limit}`);
+      const res = await authFetch(
+        `/market/history/${encodeURIComponent(ticker)}?interval=${interval}&limit=${limit}`,
+      );
       return await res.json();
     } catch (error) {
       console.error("[API Error] getMarketHistory:", error);
@@ -328,11 +334,13 @@ export const api = {
   },
 
   // --- Admin Game Control ---
-  async startGame(data: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  async startGame(
+    data: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> {
     try {
-      const res = await authFetch("/game/start", { 
+      const res = await authFetch("/game/start", {
         method: "POST",
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       return await res.json();
     } catch (error) {
@@ -388,7 +396,7 @@ export const api = {
   },
 
   // --- Admin Metrics ---
-  
+
   async adminGetPortfolios(): Promise<string[]> {
     try {
       const res = await authFetch("/admin/portfolios");

@@ -77,7 +77,9 @@ export function TradeModal() {
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[var(--color-accent-blue)]">MARKET PRICE:</span>
+            <span className="text-[var(--color-accent-blue)]">
+              MARKET PRICE:
+            </span>
             <span className="tabular-nums">
               $
               {price.toLocaleString(undefined, {
@@ -105,7 +107,9 @@ export function TradeModal() {
           <div className="border-b border-dashed border-[var(--color-accent-blue)] my-2"></div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[var(--color-accent-blue)]">TOTAL VALUE:</span>
+            <span className="text-[var(--color-accent-blue)]">
+              TOTAL VALUE:
+            </span>
             <span className="tabular-nums">
               $
               {totalCost.toLocaleString(undefined, {
@@ -116,7 +120,9 @@ export function TradeModal() {
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-[var(--color-accent-blue)]">AVAILABLE CASH:</span>
+            <span className="text-[var(--color-accent-blue)]">
+              AVAILABLE CASH:
+            </span>
             <span className="tabular-nums">
               $
               {cash.toLocaleString(undefined, {

@@ -46,7 +46,8 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
  */
 function getWsBaseUrl(): string {
   // Derive from API URL: https://host/api/v1 -> wss://host, http://host:8080/api/v1 -> ws://host:8080
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
   try {
     const url = new URL(apiUrl);
     const wsProto = url.protocol === "https:" ? "wss:" : "ws:";

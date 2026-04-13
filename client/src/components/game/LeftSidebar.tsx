@@ -6,9 +6,12 @@ import { useWebSocket } from "@/contexts/WebSocketContext";
 import { CandlestickChart } from "./CandlestickChart";
 
 export function LeftSidebar() {
-  const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } = useGameContext();
+  const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } =
+    useGameContext();
   const { dossier } = useWebSocket();
-  const [activeTab, setActiveTab] = useState<"HOLDINGS" | "PORTFOLIO">("HOLDINGS");
+  const [activeTab, setActiveTab] = useState<"HOLDINGS" | "PORTFOLIO">(
+    "HOLDINGS",
+  );
 
   const handleTradeClick = (symbol: string, presetShares?: number) => {
     setSelectedTicker(symbol);
@@ -24,7 +27,7 @@ export function LeftSidebar() {
   const marketCap = dossier?.financials.market_cap || 0;
   const totalValue = dossier?.portfolio.total_portfolio_value || 0;
   const liquidity = cash + 0.5 * totalValue;
-  
+
   const teamTicker = dossier?.profile.ticker || "TICKER";
 
   const formatK = (num: number) => {
@@ -59,19 +62,31 @@ export function LeftSidebar() {
           </h2>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2 rounded-sm flex flex-col">
-              <span className="text-[var(--color-text-muted)] text-[10px]">CASH</span>
+              <span className="text-[var(--color-text-muted)] text-[10px]">
+                CASH
+              </span>
               <span className="text-lg font-semibold">${formatK(cash)}</span>
             </div>
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2 rounded-sm flex flex-col">
-              <span className="text-[var(--color-text-muted)] text-[10px]">LIQUIDITY</span>
-              <span className="text-lg font-semibold">${formatK(liquidity)}</span>
+              <span className="text-[var(--color-text-muted)] text-[10px]">
+                LIQUIDITY
+              </span>
+              <span className="text-lg font-semibold">
+                ${formatK(liquidity)}
+              </span>
             </div>
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2 rounded-sm flex flex-col">
-              <span className="text-[var(--color-text-muted)] text-[10px]">MARKET CAP</span>
-              <span className="text-lg font-semibold">${formatK(marketCap)}</span>
+              <span className="text-[var(--color-text-muted)] text-[10px]">
+                MARKET CAP
+              </span>
+              <span className="text-lg font-semibold">
+                ${formatK(marketCap)}
+              </span>
             </div>
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2 rounded-sm flex flex-col justify-center">
-              <span className="text-[var(--color-text-muted)] text-[10px]">UNREALIZED P&L</span>
+              <span className="text-[var(--color-text-muted)] text-[10px]">
+                UNREALIZED P&L
+              </span>
               <div className="flex items-center gap-2 mt-0.5">
                 <span
                   className={`text-lg font-semibold ${
@@ -101,8 +116,18 @@ export function LeftSidebar() {
         {/* Asset Cards */}
         <section className="flex flex-col gap-2">
           <div className="flex h-[30px] shrink-0 border-b border-[var(--color-outline)] text-[12px] mb-2">
-            <button onClick={() => setActiveTab("HOLDINGS")} className={`flex-1 uppercase font-bold transition-colors ${activeTab === "HOLDINGS" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}>[HOLDINGS]</button>
-            <button onClick={() => setActiveTab("PORTFOLIO")} className={`flex-1 uppercase font-bold transition-colors ${activeTab === "PORTFOLIO" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}>[PORTFOLIO INFO]</button>
+            <button
+              onClick={() => setActiveTab("HOLDINGS")}
+              className={`flex-1 uppercase font-bold transition-colors ${activeTab === "HOLDINGS" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}
+            >
+              [HOLDINGS]
+            </button>
+            <button
+              onClick={() => setActiveTab("PORTFOLIO")}
+              className={`flex-1 uppercase font-bold transition-colors ${activeTab === "PORTFOLIO" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}
+            >
+              [PORTFOLIO INFO]
+            </button>
           </div>
           {activeTab === "HOLDINGS" && (
             <div className="flex flex-col gap-2">
@@ -127,7 +152,9 @@ export function LeftSidebar() {
                       </span>
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
-                      <span className="font-semibold text-sm">${formatK(value)}</span>
+                      <span className="font-semibold text-sm">
+                        ${formatK(value)}
+                      </span>
                       <span
                         className={`text-[11px] font-medium ${
                           isPositive
@@ -152,26 +179,45 @@ export function LeftSidebar() {
           )}
           {activeTab === "PORTFOLIO" && (
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm font-mono text-[12px] whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[400px]">
-              <div className="text-[var(--color-accent-blue)] font-bold mb-3"># CORPORATE DOSSIER: {teamTicker}</div>
-              
+              <div className="text-[var(--color-accent-blue)] font-bold mb-3">
+                # CORPORATE DOSSIER: {teamTicker}
+              </div>
+
               {(() => {
-                const portfolioEntries = Object.entries(dossier?.profile?.swot || {} as Record<string, string>);
+                const portfolioEntries = Object.entries(
+                  dossier?.profile?.swot || ({} as Record<string, string>),
+                );
                 if (portfolioEntries.length === 0) {
-                  return <div className="text-[var(--color-text-muted)] italic">No data available</div>;
+                  return (
+                    <div className="text-[var(--color-text-muted)] italic">
+                      No data available
+                    </div>
+                  );
                 }
-                
+
                 return portfolioEntries.map(([key, value]) => {
                   const lowerKey = key.toLowerCase();
                   let colorClass = "text-[var(--color-text-primary)]";
-                  if (lowerKey.includes("strength") || lowerKey.includes("advantage") || lowerKey.includes("pro")) {
+                  if (
+                    lowerKey.includes("strength") ||
+                    lowerKey.includes("advantage") ||
+                    lowerKey.includes("pro")
+                  ) {
                     colorClass = "text-[var(--color-accent-mint)]";
-                  } else if (lowerKey.includes("weakness") || lowerKey.includes("risk") || lowerKey.includes("con") || lowerKey.includes("threat")) {
+                  } else if (
+                    lowerKey.includes("weakness") ||
+                    lowerKey.includes("risk") ||
+                    lowerKey.includes("con") ||
+                    lowerKey.includes("threat")
+                  ) {
                     colorClass = "text-[var(--color-accent-rose)]";
                   }
-                  
+
                   return (
                     <div key={key} className="mb-3">
-                      <div className="text-[var(--color-text-muted)] font-bold">## {key.toUpperCase()}</div>
+                      <div className="text-[var(--color-text-muted)] font-bold">
+                        ## {key.toUpperCase()}
+                      </div>
                       <div className={colorClass}>{value || "N/A"}</div>
                     </div>
                   );
@@ -187,7 +233,9 @@ export function LeftSidebar() {
             Market Data
           </h2>
           <div className="h-40 border border-[var(--color-outline)] bg-[var(--color-bg-dark)] p-2 rounded-sm flex flex-col">
-            <span className="text-[var(--color-text-muted)] text-[10px] mb-2">{teamTicker} / USD</span>
+            <span className="text-[var(--color-text-muted)] text-[10px] mb-2">
+              {teamTicker} / USD
+            </span>
             <div className="flex-1 relative">
               {teamTicker !== "TICKER" ? (
                 <CandlestickChart ticker={teamTicker} />

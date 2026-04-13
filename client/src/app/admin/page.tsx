@@ -111,7 +111,9 @@ export default function AdminDashboard() {
           </h2>
           <div className="grid grid-cols-2 gap-2 mt-auto">
             <button
-              onClick={() => api.startGame({}).then(fetchData).catch(console.error)}
+              onClick={() =>
+                api.startGame({}).then(fetchData).catch(console.error)
+              }
               className="bg-[#00c853]/10 hover:bg-[#00c853]/20 text-[#00c853] border border-[#00c853]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
             >
               START GAME
@@ -123,13 +125,17 @@ export default function AdminDashboard() {
               END GAME
             </button>
             <button
-              onClick={() => api.pauseGame().then(fetchData).catch(console.error)}
+              onClick={() =>
+                api.pauseGame().then(fetchData).catch(console.error)
+              }
               className="bg-[#0077b6]/10 hover:bg-[#0077b6]/20 text-[#0077b6] border border-[#0077b6]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
             >
               PAUSE
             </button>
             <button
-              onClick={() => api.resumeGame().then(fetchData).catch(console.error)}
+              onClick={() =>
+                api.resumeGame().then(fetchData).catch(console.error)
+              }
               className="bg-[#00bcd4]/10 hover:bg-[#00bcd4]/20 text-[#00bcd4] border border-[#00bcd4]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
             >
               RESUME

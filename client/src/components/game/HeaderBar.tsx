@@ -42,17 +42,19 @@ export function HeaderBar({
             <span className="font-bold text-[11px] tracking-wide">LIVE</span>
           </div>
         )}
-        <span className="font-bold tracking-wide text-[var(--color-text-primary)]">COMPLEX_TERMINAL</span>
-        <span className="text-[var(--color-text-muted)] text-[11px]">v1.0.4</span>
+        <span className="font-bold tracking-wide text-[var(--color-text-primary)]">
+          COMPLEX_TERMINAL
+        </span>
+        <span className="text-[var(--color-text-muted)] text-[11px]">
+          v1.0.4
+        </span>
       </div>
 
       {/* Center Zone */}
       <div className="flex items-center gap-6 justify-center flex-1">
         <div className="flex items-center gap-2">
           <span className="text-[var(--color-text-muted)]">PHASE:</span>
-          <span className="text-[var(--color-accent-mint)]">
-            [{gameState}]
-          </span>
+          <span className="text-[var(--color-accent-mint)]">[{gameState}]</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[var(--color-text-muted)]">T-MINUS:</span>
@@ -68,12 +70,16 @@ export function HeaderBar({
 
       {/* Right Zone */}
       <div className="flex items-center gap-4 justify-end w-[380px]">
-        <span className="text-[var(--color-accent-cyan)] font-bold text-[14px]">{ticker}</span>
+        <span className="text-[var(--color-accent-cyan)] font-bold text-[14px]">
+          {ticker}
+        </span>
         <span className="text-[var(--color-outline)]">|</span>
         <div className="flex items-center gap-2">
           <span className="text-[var(--color-text-muted)]">WS:</span>
           {isMarketConnected && isTeamConnected ? (
-            <span className="text-[var(--color-accent-mint)] font-bold">LIVE</span>
+            <span className="text-[var(--color-accent-mint)] font-bold">
+              LIVE
+            </span>
           ) : (
             <span className="text-[var(--color-accent-rose)] animate-pulse font-bold">
               RECONNECTING...

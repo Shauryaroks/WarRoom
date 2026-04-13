@@ -11,33 +11,44 @@ export function RightSidebar() {
 
   const getTagAndStyles = (item: NewsItem) => {
     let tag = item.source_type as string;
-    let badgeColor = "text-[var(--color-text-primary)] border-[var(--color-outline)]";
+    let badgeColor =
+      "text-[var(--color-text-primary)] border-[var(--color-outline)]";
     let isBoardFeedback = false;
     let isWhaleWatch = false;
 
-    if (item.source_type === "GLOBAL" || item.source_type === "ADMIN_INJECTED") {
+    if (
+      item.source_type === "GLOBAL" ||
+      item.source_type === "ADMIN_INJECTED"
+    ) {
       tag = "GLOBAL";
-      badgeColor = "text-[var(--color-accent-blue)] border-[var(--color-accent-blue)] bg-[var(--color-accent-blue)]/10";
+      badgeColor =
+        "text-[var(--color-accent-blue)] border-[var(--color-accent-blue)] bg-[var(--color-accent-blue)]/10";
     } else if (item.source_type === "TEAM_ACTION" && item.source_ticker) {
       tag = "$" + item.source_ticker;
-      badgeColor = "text-[var(--color-accent-cyan)] border-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10";
+      badgeColor =
+        "text-[var(--color-accent-cyan)] border-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10";
     } else if (item.source_type === "SYSTEM") {
       tag = "SYSTEM";
-      badgeColor = "text-[var(--color-accent-rose)] border-[var(--color-accent-rose)] bg-[var(--color-accent-rose)]/10";
+      badgeColor =
+        "text-[var(--color-accent-rose)] border-[var(--color-accent-rose)] bg-[var(--color-accent-rose)]/10";
       isBoardFeedback = true;
     }
 
     const headlineUpper = item.headline.toUpperCase();
     if (headlineUpper.includes("FOLLOWER")) {
       tag = "FOLLOWER";
-      badgeColor = "text-[var(--color-accent-mint)] border-[var(--color-accent-mint)] bg-[var(--color-accent-mint)]/10";
+      badgeColor =
+        "text-[var(--color-accent-mint)] border-[var(--color-accent-mint)] bg-[var(--color-accent-mint)]/10";
     }
 
     if (headlineUpper.includes("BOARD") || headlineUpper.includes("FEEDBACK")) {
       isBoardFeedback = true;
     }
 
-    if (headlineUpper.includes("WHALE") || headlineUpper.includes("LARGE TRADE")) {
+    if (
+      headlineUpper.includes("WHALE") ||
+      headlineUpper.includes("LARGE TRADE")
+    ) {
       isWhaleWatch = true;
     }
 
@@ -74,7 +85,9 @@ export function RightSidebar() {
       <div className="h-[30px] shrink-0 border-b border-[var(--color-outline)] bg-[var(--color-bg-dark)] flex items-center justify-between px-3 text-[11px] uppercase tracking-wider">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[var(--color-accent-mint)] animate-pulse"></div>
-          <span className="text-[var(--color-text-muted)] font-bold">FEED_ACTIVE</span>
+          <span className="text-[var(--color-text-muted)] font-bold">
+            FEED_ACTIVE
+          </span>
         </div>
         <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-outline)] px-2 py-0.5 text-[var(--color-accent-cyan)] font-bold">
           {filteredNews.length} NEW ITEMS
@@ -101,17 +114,25 @@ export function RightSidebar() {
       {/* News Feed */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {filteredNews.map((item) => {
-          const { tag, badgeColor, isBoardFeedback, isWhaleWatch } = getTagAndStyles(item);
+          const { tag, badgeColor, isBoardFeedback, isWhaleWatch } =
+            getTagAndStyles(item);
           const time = new Date(item.created_at).toLocaleTimeString([], {
             hour12: false,
           });
 
           if (isBoardFeedback) {
             return (
-              <div key={item.id} className="bg-[var(--color-bg-elevated)] border-l-2 border-l-[var(--color-accent-rose)] p-3 shadow-md">
+              <div
+                key={item.id}
+                className="bg-[var(--color-bg-elevated)] border-l-2 border-l-[var(--color-accent-rose)] p-3 shadow-md"
+              >
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[var(--color-accent-rose)] font-bold text-sm">△ BOARD FEEDBACK</span>
-                  <span className="text-[var(--color-text-muted)] text-[11px] ml-auto">({time})</span>
+                  <span className="text-[var(--color-accent-rose)] font-bold text-sm">
+                    △ BOARD FEEDBACK
+                  </span>
+                  <span className="text-[var(--color-text-muted)] text-[11px] ml-auto">
+                    ({time})
+                  </span>
                 </div>
                 <p className="text-[var(--color-text-primary)] italic border-l-2 border-[var(--color-outline)] pl-3 ml-1 py-1">
                   "{item.headline}"
@@ -122,24 +143,48 @@ export function RightSidebar() {
 
           if (isWhaleWatch) {
             return (
-              <div key={item.id} className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2">
+              <div
+                key={item.id}
+                className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2"
+              >
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`px-1.5 py-0.5 text-[10px] font-bold border ${badgeColor}`}>[{tag}]</span>
-                  <span className="text-[var(--color-accent-cyan)] font-bold animate-pulse">WHALE ALERT</span>
-                  <span className="text-[var(--color-text-muted)] text-[11px] ml-auto">({time})</span>
+                  <span
+                    className={`px-1.5 py-0.5 text-[10px] font-bold border ${badgeColor}`}
+                  >
+                    [{tag}]
+                  </span>
+                  <span className="text-[var(--color-accent-cyan)] font-bold animate-pulse">
+                    WHALE ALERT
+                  </span>
+                  <span className="text-[var(--color-text-muted)] text-[11px] ml-auto">
+                    ({time})
+                  </span>
                 </div>
-                <p className="text-[var(--color-text-primary)] font-bold tracking-wide">{item.headline}</p>
+                <p className="text-[var(--color-text-primary)] font-bold tracking-wide">
+                  {item.headline}
+                </p>
               </div>
             );
           }
 
           return (
-            <div key={item.id} className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2.5 hover:bg-[var(--color-bg-elevated)] transition-colors">
+            <div
+              key={item.id}
+              className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2.5 hover:bg-[var(--color-bg-elevated)] transition-colors"
+            >
               <div className="flex items-center gap-2 mb-1.5">
-                <span className={`px-1.5 py-0.5 text-[10px] font-bold border ${badgeColor}`}>[{tag}]</span>
-                <span className="text-[var(--color-text-muted)] text-[11px] ml-auto">({time})</span>
+                <span
+                  className={`px-1.5 py-0.5 text-[10px] font-bold border ${badgeColor}`}
+                >
+                  [{tag}]
+                </span>
+                <span className="text-[var(--color-text-muted)] text-[11px] ml-auto">
+                  ({time})
+                </span>
               </div>
-              <p className="text-[var(--color-text-primary)] leading-relaxed">{item.headline}</p>
+              <p className="text-[var(--color-text-primary)] leading-relaxed">
+                {item.headline}
+              </p>
             </div>
           );
         })}

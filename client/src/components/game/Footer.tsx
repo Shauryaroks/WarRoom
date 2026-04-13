@@ -31,11 +31,17 @@ export function Footer() {
                 className={`flex items-center gap-3 cursor-pointer hover:bg-[var(--color-bg-interactive)] px-4 py-1.5 transition-colors border-l border-[var(--color-outline)] first:border-l-0 ${isPriority ? "bg-[var(--color-bg-elevated)]" : ""}`}
                 onClick={() => handleTickerClick(t.ticker)}
               >
-                <span className={`font-bold ${isPriority ? 'text-[var(--color-accent-cyan)]' : 'text-[var(--color-text-primary)]'}`}>${t.ticker}</span>
+                <span
+                  className={`font-bold ${isPriority ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-text-primary)]"}`}
+                >
+                  ${t.ticker}
+                </span>
                 <span className="tabular-nums font-medium text-[var(--color-text-muted)]">
                   ${t.price.toFixed(2)}
                 </span>
-                <span className={`${changeColor} font-bold flex items-center gap-1`}>
+                <span
+                  className={`${changeColor} font-bold flex items-center gap-1`}
+                >
                   {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : "−"}
                   {Math.abs(t.change_24h).toFixed(1)}%
                 </span>
@@ -53,11 +59,17 @@ export function Footer() {
                 className={`flex items-center gap-3 cursor-pointer hover:bg-[var(--color-bg-interactive)] px-4 py-1.5 transition-colors border-l border-[var(--color-outline)] ${isPriority ? "bg-[var(--color-bg-elevated)]" : ""}`}
                 onClick={() => handleTickerClick(t.ticker)}
               >
-                <span className={`font-bold ${isPriority ? 'text-[var(--color-accent-cyan)]' : 'text-[var(--color-text-primary)]'}`}>${t.ticker}</span>
+                <span
+                  className={`font-bold ${isPriority ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-text-primary)]"}`}
+                >
+                  ${t.ticker}
+                </span>
                 <span className="tabular-nums font-medium text-[var(--color-text-muted)]">
                   ${t.price.toFixed(2)}
                 </span>
-                <span className={`${changeColor} font-bold flex items-center gap-1`}>
+                <span
+                  className={`${changeColor} font-bold flex items-center gap-1`}
+                >
                   {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : "−"}
                   {Math.abs(t.change_24h).toFixed(1)}%
                 </span>

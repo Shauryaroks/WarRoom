@@ -15,7 +15,6 @@ export default function TeamsPage() {
   >({});
   const [availablePortfolios, setAvailablePortfolios] = useState<string[]>([]);
 
-
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,11 +36,13 @@ export default function TeamsPage() {
       if (filter === "PENDING") {
         const [pending, ready] = await Promise.all([
           api.getTeams("pending"),
-          api.getTeams("ready")
+          api.getTeams("ready"),
         ]);
         fetchedTeams = [...pending, ...ready];
       } else {
-        fetchedTeams = await api.getTeams(filter === "ALL" ? "" : filter.toLowerCase());
+        fetchedTeams = await api.getTeams(
+          filter === "ALL" ? "" : filter.toLowerCase(),
+        );
       }
       setTeams(fetchedTeams);
 
@@ -61,7 +62,8 @@ export default function TeamsPage() {
   };
 
   const handleApprove = async (teamId: string) => {
-    const portfolioId = selectedPortfolios[teamId] || availablePortfolios[0] || "PORT_TECH_01";
+    const portfolioId =
+      selectedPortfolios[teamId] || availablePortfolios[0] || "PORT_TECH_01";
     if (!portfolioId) return;
     try {
       await api.approveTeam(teamId, portfolioId);
@@ -109,14 +111,14 @@ export default function TeamsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-            {[
-              "ALL",
-              "PENDING",
-              "ACTIVE",
-              "COOLDOWN",
-              "BANKRUPT",
-              "ELIMINATED",
-            ].map((f) => (
+          {[
+            "ALL",
+            "PENDING",
+            "ACTIVE",
+            "COOLDOWN",
+            "BANKRUPT",
+            "ELIMINATED",
+          ].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -222,9 +224,13 @@ export default function TeamsPage() {
                             })
                           }
                         >
-                          <option value="" disabled>Select Portfolio</option>
+                          <option value="" disabled>
+                            Select Portfolio
+                          </option>
                           {availablePortfolios.map((p) => (
-                            <option key={p} value={p}>{p}</option>
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
                           ))}
                         </select>
                         <button

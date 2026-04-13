@@ -99,7 +99,9 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
     <div className="flex flex-col h-full w-full font-mono text-[13px] bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] relative border-l border-r border-[var(--color-outline)]">
       {/* Toolbar */}
       <div className="h-[40px] shrink-0 border-b border-[var(--color-outline)] flex items-center px-4 gap-4 bg-[var(--color-bg-dark)] text-[var(--color-text-secondary)] text-[12px]">
-        <button className="hover:text-[var(--color-text-primary)] transition-colors uppercase">[TEMPLATE ▼]</button>
+        <button className="hover:text-[var(--color-text-primary)] transition-colors uppercase">
+          [TEMPLATE ▼]
+        </button>
         <button
           onClick={() =>
             handleTemplate("# Price War\nWe will cut prices by 15%...")
@@ -123,7 +125,9 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           [PIVOT]
         </button>
         <div className="flex-1"></div>
-        <button className="hover:text-[var(--color-text-primary)] transition-colors uppercase">[? HELP]</button>
+        <button className="hover:text-[var(--color-text-primary)] transition-colors uppercase">
+          [? HELP]
+        </button>
       </div>
 
       {/* Editor Area */}
@@ -134,8 +138,15 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           style={{ transform: `translateY(-${scrollTop}px)` }}
         >
           {lines.map((n) => (
-            <div key={n} className={n === lineCount ? "text-[var(--color-text-secondary)] font-bold" : ""}>
-              {n.toString().padStart(2, '0')}
+            <div
+              key={n}
+              className={
+                n === lineCount
+                  ? "text-[var(--color-text-secondary)] font-bold"
+                  : ""
+              }
+            >
+              {n.toString().padStart(2, "0")}
             </div>
           ))}
         </div>
@@ -148,7 +159,9 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           disabled={activeCooldown}
           className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[var(--color-text-muted)] focus:ring-0 text-[var(--color-text-primary)]"
-          placeholder={"// INIT_STRATEGY: QUARTER_03\n# PRICING STRATEGY & COST LEADERSHIP\n- \n- "}
+          placeholder={
+            "// INIT_STRATEGY: QUARTER_03\n# PRICING STRATEGY & COST LEADERSHIP\n- \n- "
+          }
           spellCheck={false}
         />
 
@@ -184,14 +197,21 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         <span className="flex items-center gap-2">
           COMPLEXITY:
           <div className="w-[100px] h-[6px] bg-[var(--color-bg-dark)] border border-[var(--color-outline)] relative">
-            <div className="absolute top-0 left-0 h-full bg-[var(--color-accent-blue)] transition-all duration-300" style={{ width: `${complexityScore}%` }}></div>
+            <div
+              className="absolute top-0 left-0 h-full bg-[var(--color-accent-blue)] transition-all duration-300"
+              style={{ width: `${complexityScore}%` }}
+            ></div>
           </div>
-          <span className="text-[var(--color-accent-blue)] font-bold">SECURE</span>
+          <span className="text-[var(--color-accent-blue)] font-bold">
+            SECURE
+          </span>
         </span>
         {activeCooldown && (
           <>
             <span>|</span>
-            <span className="text-red-500 font-bold animate-pulse">COOLDOWN: {formatTime(displayCooldown)} REMAINING</span>
+            <span className="text-red-500 font-bold animate-pulse">
+              COOLDOWN: {formatTime(displayCooldown)} REMAINING
+            </span>
           </>
         )}
       </div>

@@ -94,7 +94,7 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
             (pt: any) => {
               // Lightweight charts requires time in seconds (UNIX timestamp)
               const time = Math.floor(
-                new Date(pt.timestamp).getTime() / 1000
+                new Date(pt.timestamp).getTime() / 1000,
               ) as Time;
               return {
                 time,
@@ -103,7 +103,7 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
                 low: pt.low,
                 close: pt.close,
               };
-            }
+            },
           );
           series.setData(formattedData);
         }
@@ -126,16 +126,16 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
 
   // Handle live updates — track OHLC within each 5-minute bucket
   useEffect(() => {
-    if (!seriesRef.current || !marketTickers || marketTickers.length === 0) return;
+    if (!seriesRef.current || !marketTickers || marketTickers.length === 0)
+      return;
 
-    const updatedTicker = marketTickers.find(
-      (t: any) => t.ticker === ticker
-    );
+    const updatedTicker = marketTickers.find((t: any) => t.ticker === ticker);
     if (!updatedTicker) return;
 
     const price = updatedTicker.price;
     const BUCKET_SECONDS = 5 * 60; // 5-minute buckets
-    const bucketTime = (Math.floor(Date.now() / 1000 / BUCKET_SECONDS) * BUCKET_SECONDS) as Time;
+    const bucketTime = (Math.floor(Date.now() / 1000 / BUCKET_SECONDS) *
+      BUCKET_SECONDS) as Time;
 
     const current = currentCandleRef.current;
     if (current && current.time === bucketTime) {
