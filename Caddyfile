@@ -1,7 +1,13 @@
 api-complex.helixtiet.in {
-  reverse_proxy api:80
+  reverse_proxy api:80 {
+    header_upstream Connection "Upgrade"
+    header_upstream Upgrade "websocket"
+  }
 }
 
 localhost {
-  reverse_proxy api:80
+  reverse_proxy api:80 {
+    header_upstream Connection "Upgrade"
+    header_upstream Upgrade "websocket"
+  }
 }
