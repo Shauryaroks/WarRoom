@@ -79,7 +79,7 @@ export const TeamDossierSchema = z.object({
   profile: TeamProfileSchema,
   financials: TeamFinancialsSchema,
   portfolio: PortfolioSchema,
-  last_directive: DirectiveSummarySchema.optional(),
+  last_directive: DirectiveSummarySchema.nullable().optional(),
   cooldown_status: CooldownStatusSchema,
 });
 export type TeamDossier = z.infer<typeof TeamDossierSchema>;
