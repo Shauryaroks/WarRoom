@@ -228,7 +228,7 @@ export const api = {
       status?: string;
       stock_price?: number;
       cash?: number;
-    }
+    },
   ): Promise<TeamSummary> {
     try {
       const res = await authFetch(`/teams/${teamId}`, {

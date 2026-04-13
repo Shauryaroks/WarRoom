@@ -147,7 +147,11 @@ export default function TeamsPage() {
   };
 
   const handleDelete = async (teamId: string) => {
-    if (window.confirm("Are you sure you want to delete this team? This action is irreversible.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this team? This action is irreversible.",
+      )
+    ) {
       try {
         await api.deleteTeam(teamId);
         fetchData();
@@ -360,7 +364,10 @@ export default function TeamsPage() {
           <div className="bg-[#111] border border-[#2a2a2a] rounded-[6px] w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#161616]">
               <h2 className="text-gray-200 text-lg font-medium">
-                Edit Team: <span className="font-['JetBrains_Mono',monospace] text-[#0077b6]">{editingTeam.ticker}</span>
+                Edit Team:{" "}
+                <span className="font-['JetBrains_Mono',monospace] text-[#0077b6]">
+                  {editingTeam.ticker}
+                </span>
               </h2>
               <button
                 onClick={closeEditModal}
@@ -369,35 +376,50 @@ export default function TeamsPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            
-            <form onSubmit={handleEditSubmit} className="p-4 flex flex-col gap-4">
+
+            <form
+              onSubmit={handleEditSubmit}
+              className="p-4 flex flex-col gap-4"
+            >
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Team Name</label>
+                <label className="text-xs text-gray-500 uppercase tracking-wider">
+                  Team Name
+                </label>
                 <input
                   type="text"
                   value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
                   className="bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-gray-200 text-sm outline-none focus:border-[#0077b6] transition-colors"
                   required
                 />
               </div>
-              
+
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Ticker</label>
+                <label className="text-xs text-gray-500 uppercase tracking-wider">
+                  Ticker
+                </label>
                 <input
                   type="text"
                   value={editForm.ticker}
-                  onChange={(e) => setEditForm({ ...editForm, ticker: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, ticker: e.target.value })
+                  }
                   className="bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-gray-200 text-sm outline-none focus:border-[#0077b6] transition-colors font-['JetBrains_Mono',monospace]"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Status</label>
+                <label className="text-xs text-gray-500 uppercase tracking-wider">
+                  Status
+                </label>
                 <select
                   value={editForm.status}
-                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, status: e.target.value })
+                  }
                   className="bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-gray-200 text-sm outline-none focus:border-[#0077b6] transition-colors"
                 >
                   <option value="PENDING">PENDING</option>
@@ -413,26 +435,42 @@ export default function TeamsPage() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Stock Price ($)</label>
+                <label className="text-xs text-gray-500 uppercase tracking-wider">
+                  Stock Price ($)
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   value={editForm.stock_price}
-                  onChange={(e) => setEditForm({ ...editForm, stock_price: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      stock_price: Number(e.target.value),
+                    })
+                  }
                   className="bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-gray-200 text-sm outline-none focus:border-[#0077b6] transition-colors font-['JetBrains_Mono',monospace]"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Cash Balance ($)</label>
+                <label className="text-xs text-gray-500 uppercase tracking-wider">
+                  Cash Balance ($)
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   value={editForm.cash}
-                  onChange={(e) => setEditForm({ ...editForm, cash: e.target.value === "" ? "" : Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      cash: e.target.value === "" ? "" : Number(e.target.value),
+                    })
+                  }
                   className="bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-gray-200 text-sm outline-none focus:border-[#0077b6] transition-colors font-['JetBrains_Mono',monospace]"
                 />
-                <p className="text-[10px] text-gray-600">Note: Leave blank if unchanged, or update explicitly.</p>
+                <p className="text-[10px] text-gray-600">
+                  Note: Leave blank if unchanged, or update explicitly.
+                </p>
               </div>
 
               <div className="flex justify-end gap-3 mt-4">
