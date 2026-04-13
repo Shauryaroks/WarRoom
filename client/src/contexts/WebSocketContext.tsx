@@ -44,6 +44,19 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
  * @param {ReactNode} props.children - Child components to be provided with WS state.
  * @returns A context provider component.
  */
+function getWsBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  // Derive from API URL: https://host/api/v1 -> wss://host, http://host:8080/api/v1 -> ws://host:8080
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  try {
+    const url = new URL(apiUrl);
+    const wsProto = url.protocol === "https:" ? "wss:" : "ws:";
+    return `${wsProto}//${url.host}`;
+  } catch {
+    return "ws://localhost:8080";
+  }
+}
+
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { setCooldownRemaining } = useGameContext();
@@ -74,8 +87,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const connectMarket = () => {
     if (marketWsRef.current?.readyState === WebSocket.OPEN) return;
 
-    // In a real app, use environment variables: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000"
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+    const wsUrl = getWsBaseUrl();
     const ws = new WebSocket(`${wsUrl}/ws/market`);
 
     ws.onopen = () => {
@@ -196,8 +208,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (!apiKey) return;
     if (teamWsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-    // using api_key from localStorage
+    const wsUrl = getWsBaseUrl();
     const ws = new WebSocket(`${wsUrl}/ws/team/${apiKey}`);
 
     ws.onopen = () => {
