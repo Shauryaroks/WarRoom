@@ -34,7 +34,7 @@ export function Footer() {
                 <span
                   className={`font-bold ${isPriority ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-text-primary)]"}`}
                 >
-                  ${t.ticker}
+                  {t.ticker}
                 </span>
                 <span className="tabular-nums font-medium text-[var(--color-text-muted)]">
                   ${t.price.toFixed(2)}
@@ -62,7 +62,7 @@ export function Footer() {
                 <span
                   className={`font-bold ${isPriority ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-text-primary)]"}`}
                 >
-                  ${t.ticker}
+                  {t.ticker}
                 </span>
                 <span className="tabular-nums font-medium text-[var(--color-text-muted)]">
                   ${t.price.toFixed(2)}

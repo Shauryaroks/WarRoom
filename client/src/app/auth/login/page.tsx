@@ -46,12 +46,16 @@ export default function LoginPage() {
         token: res.api_key,
       });
 
-      if (res.status === "PENDING_START") {
+      if (res.status === "PENDING_START" || res.status === "READY") {
         router.push("/lobby");
-      } else if (res.status === "ACTIVE") {
+      } else if (
+        res.status === "ACTIVE" ||
+        res.status === "COOLDOWN" ||
+        res.status === "BANKRUPT"
+      ) {
         router.push("/game");
       } else {
-        // Fallback for other statuses if needed
+        // Fallback for other statuses
         router.push("/lobby");
       }
     } catch (error: any) {

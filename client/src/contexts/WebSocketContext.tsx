@@ -46,16 +46,16 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
  * @returns A context provider component.
  */
 function getWsBaseUrl(): string {
-  // Derive from API URL: https://host/api/v1 -> wss://host, http://host:8080/api/v1 -> ws://host:8080
+  // Derive from API URL: https://host/api/v1 -> wss://host, http://host:80/api/v1 -> ws://host:80
   const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/api/v1";
   try {
     const url = new URL(apiUrl);
     const wsProto = url.protocol === "https:" ? "wss:" : "ws:";
     return `${wsProto}//${url.host}`;
   } catch {
-    console.log("WS apiUrl resolution failed: using ws://localhost:8080");
-    return "ws://localhost:8080";
+    console.log("WS apiUrl resolution failed: using ws://localhost:80");
+    return "ws://localhost:80";
   }
 }
 
@@ -166,41 +166,45 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               return updated;
             });
             break;
-          case "PURGE_COMPLETE":
-            console.log("Market Purge Complete:", data.payload);
-            setGlobalAnnouncement({
-              message: `PURGE PROTOCOL COMPLETE. ELIMINATED: ${data.payload.eliminated?.join(", ") || "NONE"}`,
-              type: "PURGE",
-            });
-            if (
-              data.payload.eliminated &&
-              Array.isArray(data.payload.eliminated)
-            ) {
-              setMarketTickers((prev) => {
-                return prev.map((t) =>
-                  data.payload.eliminated.includes(t.ticker)
-                    ? { ...t, status: "HALTED" }
-                    : t,
-                );
+          case "system_event": {
+            const eventType = data.payload?.event_type;
+
+            if (eventType === "PURGE_COMPLETE") {
+              console.log("Market Purge Complete:", data.payload);
+              const eliminated =
+                data.payload.eliminated_tickers ||
+                data.payload.eliminated ||
+                [];
+              setGlobalAnnouncement({
+                message: `PURGE PROTOCOL COMPLETE. ELIMINATED: ${eliminated.join(", ") || "NONE"}`,
+                type: "PURGE",
               });
+              if (Array.isArray(eliminated)) {
+                setMarketTickers((prev) =>
+                  prev.map((t) =>
+                    eliminated.includes(t.ticker)
+                      ? { ...t, status: "HALTED" }
+                      : t,
+                  ),
+                );
+              }
+              setTimeout(() => setGlobalAnnouncement(null), 5000);
             }
-            // Clear announcement after 5 seconds
-            setTimeout(() => setGlobalAnnouncement(null), 5000);
-            break;
-          case "system_event":
-            // E.g. purge
-            if (data.payload?.event_type === "BANKRUPTCY_DECLARATION") {
+
+            if (eventType === "BANKRUPTCY_DECLARATION") {
               console.log("System Event: Bankruptcy Declaration", data.payload);
               setGlobalAnnouncement({
-                message: `BANKRUPTCY DECLARED: TEAM ${data.payload.team_id}`,
+                message: `BANKRUPTCY DECLARED: ${data.payload.ticker || data.payload.team_id}`,
                 type: "BANKRUPTCY",
               });
               setTimeout(() => setGlobalAnnouncement(null), 5000);
             }
+
             if (data.payload?.game_state) {
               setGameState(data.payload.game_state);
             }
             break;
+          }
         }
       } catch (err) {
         console.error("[Market WS] Failed to process message logic:", err);
@@ -290,6 +294,30 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             break;
           case "directive_complete":
             console.log("Directive complete:", data.payload);
+            // Update dossier with latest directive info
+            if (data.payload) {
+              setDossier((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      last_directive: {
+                        id: data.payload.directive_id || data.payload.id || "",
+                        headline:
+                          data.payload.headline || data.payload.news_headline || "",
+                        feedback:
+                          data.payload.feedback || data.payload.board_feedback || "",
+                        submitted_at: data.payload.submitted_at || "",
+                        status: data.payload.status || "COMPLETED",
+                      },
+                      profile: {
+                        ...prev.profile,
+                        status:
+                          data.payload.team_status || prev.profile.status,
+                      },
+                    }
+                  : prev,
+              );
+            }
             break;
           case "trade_confirmation":
             console.log("Trade confirmation:", data.payload);

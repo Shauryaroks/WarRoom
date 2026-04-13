@@ -111,7 +111,7 @@ export default function MarketPage() {
 
           {/* Affected Sectors */}
           <div
-            className={`{impactType !== "SECTOR" ? "opacity-50 pointer-events-none" : ""} transition-opacity`}
+            className={`${impactType !== "SECTOR" ? "opacity-50 pointer-events-none" : ""} transition-opacity`}
           >
             <div className="flex justify-between items-center mb-2">
               <label className="text-[12px] font-['Inter',sans-serif] text-[#9ca3af] uppercase">

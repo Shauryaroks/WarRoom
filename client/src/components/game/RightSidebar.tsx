@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { NewsItem } from "@/lib/models";
+import { NewsDetailModal } from "./Modals";
 
 export function RightSidebar() {
   const [filter, setFilter] = useState<"ALL" | "GLOBAL" | "HOLDINGS">("ALL");
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const { marketNews: newsItems, dossier } = useWebSocket();
   const feedEndRef = useRef<HTMLDivElement>(null);
 
@@ -124,7 +126,8 @@ export function RightSidebar() {
             return (
               <div
                 key={item.id}
-                className="bg-[var(--color-bg-elevated)] border-l-2 border-l-[var(--color-accent-rose)] p-3 shadow-md"
+                className="bg-[var(--color-bg-elevated)] border-l-2 border-l-[var(--color-accent-rose)] p-3 shadow-md cursor-pointer hover:brightness-110 transition-all"
+                onClick={() => setSelectedNews(item)}
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-[var(--color-accent-rose)] font-bold text-sm">
@@ -135,7 +138,7 @@ export function RightSidebar() {
                   </span>
                 </div>
                 <p className="text-[var(--color-text-primary)] italic border-l-2 border-[var(--color-outline)] pl-3 ml-1 py-1">
-                  "{item.headline}"
+                  &quot;{item.headline}&quot;
                 </p>
               </div>
             );
@@ -145,7 +148,8 @@ export function RightSidebar() {
             return (
               <div
                 key={item.id}
-                className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2"
+                className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2 cursor-pointer hover:bg-[var(--color-bg-elevated)] transition-colors"
+                onClick={() => setSelectedNews(item)}
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <span
@@ -170,7 +174,8 @@ export function RightSidebar() {
           return (
             <div
               key={item.id}
-              className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2.5 hover:bg-[var(--color-bg-elevated)] transition-colors"
+              className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-2.5 hover:bg-[var(--color-bg-elevated)] transition-colors cursor-pointer"
+              onClick={() => setSelectedNews(item)}
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <span
@@ -190,6 +195,13 @@ export function RightSidebar() {
         })}
         <div ref={feedEndRef} />
       </div>
+
+      {selectedNews && (
+        <NewsDetailModal
+          item={selectedNews}
+          onClose={() => setSelectedNews(null)}
+        />
+      )}
     </aside>
   );
 }

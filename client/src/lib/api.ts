@@ -19,6 +19,24 @@ import {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/api/v1";
 
+function extractErrorMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== "object") return fallback;
+  const obj = data as Record<string, unknown>;
+  const detail = obj.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    // Pydantic validation errors: [{msg, loc, ...}, ...]
+    return detail
+      .map((e: any) => {
+        const field = e.loc?.slice(1).join(".") || "field";
+        return `${field}: ${e.msg}`;
+      })
+      .join("; ");
+  }
+  if (typeof obj.message === "string") return obj.message;
+  return fallback;
+}
+
 async function authFetch(endpoint: string, options: RequestInit = {}) {
   const token =
     typeof window !== "undefined"
@@ -47,7 +65,7 @@ async function authFetch(endpoint: string, options: RequestInit = {}) {
     let errorMessage = response.statusText;
     try {
       const errorData = await response.json();
-      errorMessage = errorData?.detail || errorData?.message || errorMessage;
+      errorMessage = extractErrorMessage(errorData, errorMessage);
     } catch {
       // Ignore JSON parse error if response is not JSON
     }
@@ -75,7 +93,7 @@ export const api = {
         let errMessage = res.statusText;
         try {
           const err = await res.json();
-          errMessage = err?.detail || errMessage;
+          errMessage = extractErrorMessage(err, errMessage);
         } catch {}
         throw new Error(`Registration failed: ${errMessage}`);
       }
@@ -103,7 +121,7 @@ export const api = {
         let errMessage = res.statusText;
         try {
           const err = await res.json();
-          errMessage = err?.detail || errMessage;
+          errMessage = extractErrorMessage(err, errMessage);
         } catch {}
         throw new Error(`Login failed: ${errMessage}`);
       }
@@ -318,6 +336,18 @@ export const api = {
       return await res.json();
     } catch (error) {
       console.error("[API Error] getMarketHistory:", error);
+      throw error;
+    }
+  },
+
+  async getTickerDetail(ticker: string): Promise<Record<string, unknown>> {
+    try {
+      const res = await authFetch(
+        `/market/ticker/${encodeURIComponent(ticker)}`,
+      );
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] getTickerDetail:", error);
       throw error;
     }
   },

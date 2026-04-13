@@ -132,8 +132,8 @@ export type Order = z.infer<typeof OrderSchema>;
 export const TickerSnapshotSchema = z.object({
   ticker: z.string(),
   price: z.number(),
-  change_24h: z.number(),
-  change_absolute: z.number(),
+  change_24h: z.number().nullable().optional().transform((v) => v ?? 0),
+  change_absolute: z.number().nullable().optional().transform((v) => v ?? 0),
   volume_24h: z.number(),
   market_cap: z.number(),
   status: z.enum(["ACTIVE", "COOLDOWN", "HALTED", "ELIMINATED", "BANKRUPT"]),
@@ -225,7 +225,7 @@ export const OrderResponseSchema = z.object({
   execution_price: z.number(),
   total_value: z.number(),
   updated_cash: z.number(),
-  updated_holdings: z.array(z.any()), // We can leave it loosely typed for now
+  updated_holdings: z.array(z.any()),
 });
 export type OrderResponse = z.infer<typeof OrderResponseSchema>;
 

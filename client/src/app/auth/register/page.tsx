@@ -45,7 +45,7 @@ export default function RegisterPage() {
 
       await api.registerTeam({
         team_name: teamName,
-        ticker: tickerInput,
+        ticker: tickerInput.toUpperCase(),
         email: email,
         password: password,
       });

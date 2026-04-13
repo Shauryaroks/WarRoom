@@ -8,10 +8,13 @@ import { CandlestickChart } from "./CandlestickChart";
 export function LeftSidebar() {
   const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } =
     useGameContext();
-  const { dossier } = useWebSocket();
-  const [activeTab, setActiveTab] = useState<"HOLDINGS" | "PORTFOLIO">(
-    "HOLDINGS",
-  );
+  const { dossier, marketTickers } = useWebSocket();
+  const [activeTab, setActiveTab] = useState<
+    "HOLDINGS" | "PORTFOLIO" | "MARKET"
+  >("HOLDINGS");
+  const [expandedMarketTicker, setExpandedMarketTicker] = useState<
+    string | null
+  >(null);
 
   const handleTradeClick = (symbol: string, presetShares?: number) => {
     setSelectedTicker(symbol);
@@ -32,6 +35,9 @@ export function LeftSidebar() {
 
   const formatK = (num: number) => {
     const absNum = Math.abs(num);
+    if (absNum >= 1_000_000) {
+      return (num / 1_000_000).toFixed(1) + "M";
+    }
     if (absNum >= 1000) {
       return (num / 1000).toFixed(1) + "k";
     }
@@ -51,6 +57,17 @@ export function LeftSidebar() {
   const totalUnrealizedPnlAbs = totalCurrentValue - totalCostBasis;
   const totalUnrealizedPnlPct =
     totalCostBasis > 0 ? (totalUnrealizedPnlAbs / totalCostBasis) * 100 : 0;
+
+  const getChangeColor = (change: number) => {
+    if (change > 0) return "text-[var(--color-accent-mint)]";
+    if (change < 0) return "text-[var(--color-accent-rose)]";
+    return "text-[var(--color-text-muted)]";
+  };
+
+  // Filter out own ticker from market view
+  const otherTickers = marketTickers.filter(
+    (t) => t.ticker !== teamTicker && t.status !== "ELIMINATED",
+  );
 
   return (
     <aside className="bg-[var(--color-bg-darkest)] flex flex-col h-full w-full font-mono text-[13px] text-[var(--color-text-primary)] border-r border-[var(--color-outline)]">
@@ -113,9 +130,9 @@ export function LeftSidebar() {
           </div>
         </section>
 
-        {/* Asset Cards */}
+        {/* Tabs */}
         <section className="flex flex-col gap-2">
-          <div className="flex h-[30px] shrink-0 border-b border-[var(--color-outline)] text-[12px] mb-2">
+          <div className="flex h-[30px] shrink-0 border-b border-[var(--color-outline)] text-[11px] mb-2">
             <button
               onClick={() => setActiveTab("HOLDINGS")}
               className={`flex-1 uppercase font-bold transition-colors ${activeTab === "HOLDINGS" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}
@@ -123,12 +140,20 @@ export function LeftSidebar() {
               [HOLDINGS]
             </button>
             <button
+              onClick={() => setActiveTab("MARKET")}
+              className={`flex-1 uppercase font-bold transition-colors ${activeTab === "MARKET" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}
+            >
+              [MARKET]
+            </button>
+            <button
               onClick={() => setActiveTab("PORTFOLIO")}
               className={`flex-1 uppercase font-bold transition-colors ${activeTab === "PORTFOLIO" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}
             >
-              [PORTFOLIO INFO]
+              [DOSSIER]
             </button>
           </div>
+
+          {/* HOLDINGS TAB */}
           {activeTab === "HOLDINGS" && (
             <div className="flex flex-col gap-2">
               {dossier?.portfolio.holdings.map((h, i) => {
@@ -175,8 +200,114 @@ export function LeftSidebar() {
                   No active holdings
                 </div>
               )}
+
+              {/* Own stock chart */}
+              <div className="mt-2">
+                <h3 className="text-[var(--color-text-muted)] uppercase tracking-wider text-[10px] mb-1">
+                  {teamTicker} / USD
+                </h3>
+                <div className="h-40 border border-[var(--color-outline)] bg-[var(--color-bg-dark)] p-2 rounded-sm">
+                  <div className="w-full h-full relative">
+                    {teamTicker !== "TICKER" ? (
+                      <CandlestickChart ticker={teamTicker} />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] italic text-xs">
+                        Awaiting Market Data
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* MARKET TAB - all companies */}
+          {activeTab === "MARKET" && (
+            <div className="flex flex-col gap-2">
+              {otherTickers.length === 0 && (
+                <div className="text-[var(--color-text-muted)] italic text-sm p-3 text-center border border-dashed border-[var(--color-outline)] rounded-sm">
+                  No other companies in the market
+                </div>
+              )}
+              {otherTickers.map((t) => {
+                const isExpanded = expandedMarketTicker === t.ticker;
+                const holding = dossier?.portfolio.holdings.find(
+                  (h) => h.ticker === t.ticker,
+                );
+
+                return (
+                  <div key={t.ticker} className="flex flex-col">
+                    <div
+                      className={`bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm flex items-center justify-between hover:border-[var(--color-accent-blue)] transition-colors cursor-pointer ${isExpanded ? "border-[var(--color-accent-blue)]" : ""}`}
+                      onClick={() =>
+                        setExpandedMarketTicker(isExpanded ? null : t.ticker)
+                      }
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[var(--color-accent-cyan)] font-bold text-sm">
+                            {t.ticker}
+                          </span>
+                          {holding && (
+                            <span className="text-[9px] px-1 py-0.5 bg-[var(--color-accent-blue)]/20 text-[var(--color-accent-blue)] font-bold">
+                              HELD
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[var(--color-text-muted)] text-[10px]">
+                          MCap ${formatK(t.market_cap)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="font-semibold text-sm tabular-nums">
+                          ${t.price.toFixed(2)}
+                        </span>
+                        <span
+                          className={`text-[11px] font-bold tabular-nums ${getChangeColor(t.change_24h)}`}
+                        >
+                          {t.change_24h > 0 ? "+" : ""}
+                          {t.change_24h.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Expanded: chart + trade buttons */}
+                    {isExpanded && (
+                      <div className="bg-[var(--color-bg-dark)] border border-t-0 border-[var(--color-accent-blue)] p-3 rounded-b-sm">
+                        <div className="h-36 mb-3">
+                          <CandlestickChart ticker={t.ticker} />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTradeClick(t.ticker);
+                            }}
+                            className="flex-1 py-2 border border-[var(--color-accent-mint)] text-[var(--color-accent-mint)] font-bold uppercase text-[11px] hover:bg-[var(--color-accent-mint)] hover:text-black transition-colors"
+                          >
+                            BUY
+                          </button>
+                          {holding && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTradeClick(t.ticker, holding.shares);
+                              }}
+                              className="flex-1 py-2 border border-[var(--color-accent-rose)] text-[var(--color-accent-rose)] font-bold uppercase text-[11px] hover:bg-[var(--color-accent-rose)] hover:text-black transition-colors"
+                            >
+                              SELL ({holding.shares})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* PORTFOLIO/DOSSIER TAB */}
           {activeTab === "PORTFOLIO" && (
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm font-mono text-[12px] whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[400px]">
               <div className="text-[var(--color-accent-blue)] font-bold mb-3">
@@ -226,27 +357,6 @@ export function LeftSidebar() {
             </div>
           )}
         </section>
-
-        {/* Market Data */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-[var(--color-text-muted)] uppercase tracking-wider text-xs mb-1">
-            Market Data
-          </h2>
-          <div className="h-40 border border-[var(--color-outline)] bg-[var(--color-bg-dark)] p-2 rounded-sm flex flex-col">
-            <span className="text-[var(--color-text-muted)] text-[10px] mb-2">
-              {teamTicker} / USD
-            </span>
-            <div className="flex-1 relative">
-              {teamTicker !== "TICKER" ? (
-                <CandlestickChart ticker={teamTicker} />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] italic text-xs">
-                  Awaiting Market Data
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
       </div>
 
       {/* Action Zone */}
@@ -259,7 +369,7 @@ export function LeftSidebar() {
           }}
           className="flex-1 bg-[var(--color-accent-blue)] text-white font-bold py-3 px-4 rounded-sm hover:opacity-90 transition-opacity uppercase text-sm tracking-wide"
         >
-          BUY ${teamTicker}
+          BUY {teamTicker}
         </button>
         <button
           onClick={() => {
