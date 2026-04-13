@@ -184,7 +184,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             break;
         }
       } catch (err) {
-        console.error("Failed to parse market WS message:", err);
+        console.warn("Failed to parse market WS message:", err);
       }
     };
 
@@ -193,8 +193,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       marketReconnectTimer.current = setTimeout(connectMarket, 3000); // basic backoff
     };
 
-    ws.onerror = (err) => {
-      console.error("Market WS Error:", err);
+    ws.onerror = () => {
+      console.warn("Market WS connection failed, will retry...");
     };
 
     marketWsRef.current = ws;
@@ -258,7 +258,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             break;
         }
       } catch (err) {
-        console.error("Failed to parse team WS message:", err);
+        console.warn("Failed to parse team WS message:", err);
       }
     };
 
@@ -267,8 +267,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       teamReconnectTimer.current = setTimeout(connectTeam, 3000);
     };
 
-    ws.onerror = (err) => {
-      console.error("Team WS Error:", err);
+    ws.onerror = () => {
+      console.warn("Team WS connection failed, will retry...");
     };
 
     teamWsRef.current = ws;
