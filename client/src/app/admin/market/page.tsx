@@ -23,7 +23,7 @@ export default function MarketPage() {
         affected_sectors: impactType === "SECTOR" ? sectors : undefined,
         affected_tickers:
           impactType === "TARGETED" && targetTicker
-            ? [`$${targetTicker}`]
+            ? [`${targetTicker}`]
             : undefined,
         scheduled_for:
           schedule === "DELAYED"
@@ -36,7 +36,9 @@ export default function MarketPage() {
       setTargetTicker("");
       setSectors([]);
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to inject news");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to inject news",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +111,7 @@ export default function MarketPage() {
 
           {/* Affected Sectors */}
           <div
-            className={`${impactType !== "SECTOR" ? "opacity-50 pointer-events-none" : ""} transition-opacity`}
+            className={`{impactType !== "SECTOR" ? "opacity-50 pointer-events-none" : ""} transition-opacity`}
           >
             <div className="flex justify-between items-center mb-2">
               <label className="text-[12px] font-['Inter',sans-serif] text-[#9ca3af] uppercase">

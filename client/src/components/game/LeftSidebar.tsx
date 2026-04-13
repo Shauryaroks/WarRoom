@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useGameContext } from "@/contexts/GameContext";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { CandlestickChart } from "./CandlestickChart";
@@ -7,6 +8,7 @@ import { CandlestickChart } from "./CandlestickChart";
 export function LeftSidebar() {
   const { setSelectedTicker, setIsTradeModalOpen, setTradePreset } = useGameContext();
   const { dossier } = useWebSocket();
+  const [activeTab, setActiveTab] = useState<"HOLDINGS" | "PORTFOLIO">("HOLDINGS");
 
   const handleTradeClick = (symbol: string, presetShares?: number) => {
     setSelectedTicker(symbol);
@@ -98,53 +100,73 @@ export function LeftSidebar() {
 
         {/* Asset Cards */}
         <section className="flex flex-col gap-2">
-          <h2 className="text-[var(--color-text-muted)] uppercase tracking-wider text-xs mb-1">
-            Holdings
-          </h2>
-          <div className="flex flex-col gap-2">
-            {dossier?.portfolio.holdings.map((h, i) => {
-              const value = h.shares * h.current_price;
-              const costBasis = value / (1 + h.unrealized_pnl / 100);
-              const absPnl = value - costBasis;
-              const isPositive = absPnl >= 0;
-
-              return (
-                <div
-                  key={i}
-                  className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm flex items-center justify-between hover:border-[var(--color-accent-blue)] transition-colors cursor-pointer"
-                  onClick={() => handleTradeClick(h.ticker)}
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[var(--color-accent-mint)] font-bold text-sm">
-                      {h.ticker}
-                    </span>
-                    <span className="text-[var(--color-text-muted)] text-[10px]">
-                      QTY {h.shares.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="font-semibold text-sm">${formatK(value)}</span>
-                    <span
-                      className={`text-[11px] font-medium ${
-                        isPositive
-                          ? "text-[var(--color-accent-mint)]"
-                          : "text-[var(--color-accent-rose)]"
-                      }`}
-                    >
-                      {isPositive ? "+" : "-"}${formatK(Math.abs(absPnl))} (
-                      {isPositive ? "+" : ""}
-                      {h.unrealized_pnl.toFixed(1)}%)
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-            {!dossier?.portfolio.holdings?.length && (
-              <div className="text-[var(--color-text-muted)] italic text-sm p-3 text-center border border-dashed border-[var(--color-outline)] rounded-sm">
-                No active holdings
-              </div>
-            )}
+          <div className="flex h-[30px] shrink-0 border-b border-[var(--color-outline)] text-[12px] mb-2">
+            <button onClick={() => setActiveTab("HOLDINGS")} className={`flex-1 uppercase font-bold transition-colors ${activeTab === "HOLDINGS" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}>[HOLDINGS]</button>
+            <button onClick={() => setActiveTab("PORTFOLIO")} className={`flex-1 uppercase font-bold transition-colors ${activeTab === "PORTFOLIO" ? "bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-b-2 border-b-[var(--color-accent-blue)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] border-b-2 border-b-transparent"}`}>[PORTFOLIO INFO]</button>
           </div>
+          {activeTab === "HOLDINGS" && (
+            <div className="flex flex-col gap-2">
+              {dossier?.portfolio.holdings.map((h, i) => {
+                const value = h.shares * h.current_price;
+                const costBasis = value / (1 + h.unrealized_pnl / 100);
+                const absPnl = value - costBasis;
+                const isPositive = absPnl >= 0;
+
+                return (
+                  <div
+                    key={i}
+                    className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm flex items-center justify-between hover:border-[var(--color-accent-blue)] transition-colors cursor-pointer"
+                    onClick={() => handleTradeClick(h.ticker)}
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[var(--color-accent-mint)] font-bold text-sm">
+                        {h.ticker}
+                      </span>
+                      <span className="text-[var(--color-text-muted)] text-[10px]">
+                        QTY {h.shares.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-semibold text-sm">${formatK(value)}</span>
+                      <span
+                        className={`text-[11px] font-medium ${
+                          isPositive
+                            ? "text-[var(--color-accent-mint)]"
+                            : "text-[var(--color-accent-rose)]"
+                        }`}
+                      >
+                        {isPositive ? "+" : "-"}${formatK(Math.abs(absPnl))} (
+                        {isPositive ? "+" : ""}
+                        {h.unrealized_pnl.toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {!dossier?.portfolio.holdings?.length && (
+                <div className="text-[var(--color-text-muted)] italic text-sm p-3 text-center border border-dashed border-[var(--color-outline)] rounded-sm">
+                  No active holdings
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === "PORTFOLIO" && (
+            <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm font-mono text-[12px] whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[400px]">
+              <div className="text-[var(--color-accent-blue)] font-bold mb-3"># CORPORATE DOSSIER: {teamTicker}</div>
+              
+              <div className="text-[var(--color-text-muted)] font-bold">## STRENGTHS</div>
+              <div className="text-[var(--color-accent-mint)] mb-3">{dossier?.profile?.swot?.strengths || "N/A"}</div>
+              
+              <div className="text-[var(--color-text-muted)] font-bold">## WEAKNESSES</div>
+              <div className="text-[var(--color-accent-rose)] mb-3">{dossier?.profile?.swot?.weaknesses || "N/A"}</div>
+              
+              <div className="text-[var(--color-text-muted)] font-bold">## OPPORTUNITIES</div>
+              <div className="text-[var(--color-text-primary)] mb-3">{dossier?.profile?.swot?.opportunities || "N/A"}</div>
+              
+              <div className="text-[var(--color-text-muted)] font-bold">## THREATS</div>
+              <div className="text-[var(--color-text-primary)] mb-1">{dossier?.profile?.swot?.threats || "N/A"}</div>
+            </div>
+          )}
         </section>
 
         {/* Market Data */}
