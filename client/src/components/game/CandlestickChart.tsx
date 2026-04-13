@@ -42,7 +42,7 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#0077b6",
+        textColor: "var(--color-accent-blue)",
       },
       grid: {
         vertLines: { color: "rgba(0, 119, 182, 0.2)" },
@@ -62,11 +62,11 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
+      upColor: "var(--color-accent-mint)",
+      downColor: "var(--color-accent-rose)",
       borderVisible: false,
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      wickUpColor: "var(--color-accent-mint)",
+      wickDownColor: "var(--color-accent-rose)",
     });
 
     chartRef.current = chart;
@@ -160,12 +160,12 @@ export function CandlestickChart({ ticker }: CandlestickChartProps) {
   return (
     <div className="relative w-full h-full flex flex-col min-h-[300px]">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center text-[#0077b6] z-10 bg-[#0a0a0a]/80">
+        <div className="absolute inset-0 flex items-center justify-center text-[var(--color-accent-blue)] z-10 bg-[var(--color-bg-darkest)]/80">
           Loading Data...
         </div>
       )}
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center text-red-500 z-10 bg-[#0a0a0a]/80">
+        <div className="absolute inset-0 flex items-center justify-center text-[var(--color-accent-rose)] z-10 bg-[var(--color-bg-darkest)]/80">
           {error}
         </div>
       )}

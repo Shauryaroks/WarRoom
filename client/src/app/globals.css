@@ -1,35 +1,48 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
 
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --font-body: "JetBrains Mono", monospace;
-  --font-headline: "JetBrains Mono", monospace;
+  --font-body: var(--font-sans);
+  --font-headline: var(--font-sans);
 
   /* Shared dark theme base */
-  --color-background: #0a0a0a;
-  --color-surface: #111111;
-  --color-surface-variant: #201f1f;
+  --color-bg-darkest: #0a0a0f;
+  --color-bg-dark: #121217;
+  --color-bg-elevated: #1a1a1f;
+  --color-bg-interactive: #22222a;
+  
+  --color-accent-cyan: #0080ff;
+  --color-accent-blue: #3b82f6;
+  --color-accent-mint: #00c853;
+  --color-accent-rose: #ff1744;
+  
+  --color-text-primary: #ffffff;
+  --color-text-muted: #6b7280;
+  --color-outline: #2d2d3a;
 
-  --color-outline: #333333;
-  --color-muted: #888888;
+  /* legacy overrides just in case */
+  --color-background: var(--color-bg-darkest);
+  --color-surface: var(--color-bg-dark);
+  --color-surface-variant: var(--color-bg-elevated);
 
-  /* Terminal page specific */
-  --color-primary: #0077b6;
-  --color-success: #00c853;
-  --color-error: #ff3333;
+  --color-primary: var(--color-accent-blue);
+  --color-success: var(--color-accent-mint);
+  --color-error: var(--color-accent-rose);
+  --color-muted: var(--color-text-muted);
 }
 
 html,
 body {
   height: 100%;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 }
 
 body {
-  background-color: var(--color-background);
-  color: #e5e2e1;
+  background-color: var(--color-bg-darkest);
+  color: var(--color-text-primary);
   overflow-x: hidden;
 }
 
@@ -40,7 +53,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-surface);
+  background: var(--color-bg-elevated);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -63,5 +76,5 @@ body {
 
 input,
 button {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 }

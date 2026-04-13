@@ -37,9 +37,9 @@ function GameLayout() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#0a0a0a] text-[#0077b6] font-mono text-[13px] leading-tight overflow-hidden select-none">
+    <div className="h-screen w-screen flex flex-col bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] font-mono text-[13px] leading-tight overflow-hidden select-none">
       {/* HEADER BAR */}
-      <div className="h-12 border-b border-[#2a2a2a] bg-[#0a0a0a] shrink-0">
+      <div className="h-16 border-b border-[var(--color-outline)] bg-[var(--color-bg-darkest)] shrink-0">
         <HeaderBar
           sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
           timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
@@ -52,23 +52,23 @@ function GameLayout() {
       {/* MIDDLE SECTION */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEDGER */}
-        <div className="w-1/4 h-full border-r border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden">
+        <div className="w-1/4 h-full border-r border-[var(--color-outline)] bg-[var(--color-bg-darkest)] overflow-hidden">
           <LeftSidebar />
         </div>
 
         {/* COMMAND LINE */}
-        <div className="w-2/4 h-full bg-[#0d0d0d] overflow-hidden">
+        <div className="w-2/4 h-full bg-[var(--color-bg-dark)] overflow-hidden">
           <DirectiveEditor maxChars={2000} />
         </div>
 
         {/* THE WIRE */}
-        <div className="w-1/4 h-full border-l border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden">
+        <div className="w-1/4 h-full border-l border-[var(--color-outline)] bg-[var(--color-bg-darkest)] overflow-hidden">
           <RightSidebar />
         </div>
       </div>
 
       {/* FOOTER TICKER */}
-      <div className="h-8 border-t border-[#2a2a2a] bg-black shrink-0">
+      <div className="h-14 border-t border-[var(--color-outline)] bg-[var(--color-bg-darkest)] shrink-0">
         <Footer />
       </div>
 

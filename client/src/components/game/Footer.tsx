@@ -9,9 +9,9 @@ export function Footer() {
   const { marketTickers: tickers } = useWebSocket();
 
   const getChangeColor = (change: number) => {
-    if (change > 0) return "text-green-500";
-    if (change < 0) return "text-red-500";
-    return "text-[#0077b6]";
+    if (change > 0) return "text-[var(--color-accent-mint)]";
+    if (change < 0) return "text-[var(--color-accent-rose)]";
+    return "text-[var(--color-text-muted)]";
   };
 
   const handleTickerClick = (symbol: string) => {
@@ -20,48 +20,48 @@ export function Footer() {
   };
 
   return (
-    <footer className="h-full w-full flex items-center overflow-hidden font-mono text-[13px] bg-[#0a0a0a] text-[#0077b6] border-t border-[#0077b6]">
+    <footer className="h-full w-full flex items-center overflow-hidden font-mono text-[13px] bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] border-t border-[var(--color-outline)]">
       <div className="flex items-center whitespace-nowrap ticker-scroll hover:[animation-play-state:paused] w-max">
         {tickers.map((t, i) => {
           const changeColor = getChangeColor(t.change_24h);
+          const isPriority = Math.abs(t.change_24h) > 5;
           return (
             <React.Fragment key={i}>
               <div
-                className="flex items-center gap-2 cursor-pointer hover:bg-[#0077b6] hover:text-black px-3 py-1 transition-colors"
+                className={`flex items-center gap-3 cursor-pointer hover:bg-[var(--color-bg-interactive)] px-4 py-1.5 transition-colors border-l border-[var(--color-outline)] first:border-l-0 ${isPriority ? "bg-[var(--color-bg-elevated)]" : ""}`}
                 onClick={() => handleTickerClick(t.ticker)}
               >
-                <span className="font-bold">${t.ticker}</span>
-                <span className="tabular-nums font-bold">
+                <span className={`font-bold ${isPriority ? 'text-[var(--color-accent-cyan)]' : 'text-[var(--color-text-primary)]'}`}>${t.ticker}</span>
+                <span className="tabular-nums font-medium text-[var(--color-text-muted)]">
                   ${t.price.toFixed(2)}
                 </span>
-                <span className={`${changeColor} font-bold`}>
-                  {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : ""}
+                <span className={`${changeColor} font-bold flex items-center gap-1`}>
+                  {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : "−"}
                   {Math.abs(t.change_24h).toFixed(1)}%
                 </span>
               </div>
-              <span className="text-[#0077b6] mx-1">|</span>
             </React.Fragment>
           );
         })}
         {/* Duplicate the list so it scrolls seamlessly. Optional, but good for marquee. */}
         {tickers.map((t, i) => {
           const changeColor = getChangeColor(t.change_24h);
+          const isPriority = Math.abs(t.change_24h) > 5;
           return (
             <React.Fragment key={`dup-${i}`}>
               <div
-                className="flex items-center gap-2 cursor-pointer hover:bg-[#0077b6] hover:text-black px-3 py-1 transition-colors"
+                className={`flex items-center gap-3 cursor-pointer hover:bg-[var(--color-bg-interactive)] px-4 py-1.5 transition-colors border-l border-[var(--color-outline)] ${isPriority ? "bg-[var(--color-bg-elevated)]" : ""}`}
                 onClick={() => handleTickerClick(t.ticker)}
               >
-                <span className="font-bold">${t.ticker}</span>
-                <span className="tabular-nums font-bold">
+                <span className={`font-bold ${isPriority ? 'text-[var(--color-accent-cyan)]' : 'text-[var(--color-text-primary)]'}`}>${t.ticker}</span>
+                <span className="tabular-nums font-medium text-[var(--color-text-muted)]">
                   ${t.price.toFixed(2)}
                 </span>
-                <span className={`${changeColor} font-bold`}>
-                  {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : ""}
+                <span className={`${changeColor} font-bold flex items-center gap-1`}>
+                  {t.change_24h > 0 ? "▲" : t.change_24h < 0 ? "▼" : "−"}
                   {Math.abs(t.change_24h).toFixed(1)}%
                 </span>
               </div>
-              <span className="text-[#0077b6] mx-1">|</span>
             </React.Fragment>
           );
         })}

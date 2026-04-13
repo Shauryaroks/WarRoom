@@ -17,65 +17,65 @@ interface HeaderBarProps {
  *
  * @param {HeaderBarProps} props - The properties for the HeaderBar.
  * @param {string} [props.sessionElapsed="00:00:00"] - The formatted elapsed game time.
- * @param {string} [props.timerSeq="2/4"] - The current round sequence.
- * @param {string} [props.ticker="$XXX"] - The player's team ticker.
+ * @param {string} [props.timerSeq="0/4"] - The current round sequence.
+ * @param {string} [props.ticker="$SSSS"] - The player's team ticker.
  * @param {boolean} [props.isMarketConnected=false] - Whether the market WS is connected.
  * @param {boolean} [props.isTeamConnected=false] - Whether the team WS is connected.
  * @returns The rendered header bar.
  */
 export function HeaderBar({
   sessionElapsed = "00:00:00",
-  timerSeq = "2/4",
-  ticker = "$XXX",
+  timerSeq = "0/4",
+  ticker = "$SSSS",
   isMarketConnected = false,
   isTeamConnected = false,
 }: HeaderBarProps) {
   const gameState = "ACTIVE"; // Could come from context
 
   return (
-    <header className="flex h-full w-full justify-between items-center px-4 font-mono text-[13px] bg-[#0a0a0a] text-[#e0e0e0]">
+    <header className="flex h-full w-full justify-between items-center px-4 font-mono text-[13px] bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] border-b border-[var(--color-outline)]">
       {/* Left Zone */}
       <div className="flex items-center gap-3 w-[380px]">
-        <div className="w-2 h-2 rounded-full bg-[#00c853] animate-pulse"></div>
-        <span className="font-bold tracking-wide">COMPLEX_TERMINAL</span>
-        <span className="text-[#505050] text-[11px]">v1.0.4</span>
         {gameState === "ACTIVE" && (
-          <span className="border border-[#00c853] text-[#00c853] px-1.5 py-0.5 text-[11px]">
-            [LIVE]
-          </span>
+          <div className="flex items-center gap-2 bg-[var(--color-accent-mint)]/10 text-[var(--color-accent-mint)] px-2 py-0.5 rounded-full border border-[var(--color-accent-mint)]/20">
+            <div className="w-2 h-2 rounded-full bg-[var(--color-accent-mint)] animate-pulse"></div>
+            <span className="font-bold text-[11px] tracking-wide">LIVE</span>
+          </div>
         )}
+        <span className="font-bold tracking-wide text-[var(--color-text-primary)]">COMPLEX_TERMINAL</span>
+        <span className="text-[var(--color-text-muted)] text-[11px]">v1.0.4</span>
       </div>
 
       {/* Center Zone */}
       <div className="flex items-center gap-6 justify-center flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-[#808080]">PHASE:</span>
-          <span className="bg-[#00c853]/10 text-[#00c853] px-2 py-0.5">
+          <span className="text-[var(--color-text-muted)]">PHASE:</span>
+          <span className="text-[var(--color-accent-mint)]">
             [{gameState}]
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[#808080]">T-MINUS:</span>
-          <span className="text-[#0077b6] tabular-nums font-bold">
+          <span className="text-[var(--color-text-muted)]">T-MINUS:</span>
+          <span className="text-[var(--color-accent-cyan)] tabular-nums font-bold">
             [{sessionElapsed}]
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[#808080]">ROUND:</span>
-          <span className="text-[#e0e0e0]">[{timerSeq}]</span>
+          <span className="text-[var(--color-text-muted)]">ROUND:</span>
+          <span className="text-[var(--color-text-primary)]">[{timerSeq}]</span>
         </div>
       </div>
 
       {/* Right Zone */}
       <div className="flex items-center gap-4 justify-end w-[380px]">
-        <span className="text-[#0077b6] font-bold text-[14px]">{ticker}</span>
-        <span className="text-[#505050]">|</span>
+        <span className="text-[var(--color-accent-cyan)] font-bold text-[14px]">{ticker}</span>
+        <span className="text-[var(--color-outline)]">|</span>
         <div className="flex items-center gap-2">
-          <span className="text-[#808080]">WS:</span>
+          <span className="text-[var(--color-text-muted)]">WS:</span>
           {isMarketConnected && isTeamConnected ? (
-            <span className="text-[#00c853]">CONNECTED</span>
+            <span className="text-[var(--color-accent-mint)] font-bold">LIVE</span>
           ) : (
-            <span className="text-[#ff3333] animate-pulse">
+            <span className="text-[var(--color-accent-rose)] animate-pulse font-bold">
               RECONNECTING...
             </span>
           )}
