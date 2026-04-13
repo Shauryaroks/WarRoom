@@ -274,6 +274,11 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
           case "connection_established":
             if (data.payload?.burst_sync?.dossier) {
               setDossier(data.payload.burst_sync.dossier);
+              // Initialize cooldown from dossier if active
+              const cd = data.payload.burst_sync.dossier.cooldown_status;
+              if (cd?.active && cd.seconds_remaining && cd.seconds_remaining > 0) {
+                setCooldownRemaining(cd.seconds_remaining);
+              }
             }
             break;
           case "cooldown_sync":
@@ -344,8 +349,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    ws.onerror = (error) => {
-      console.error("[Team WS] Connection error:", error);
+    ws.onerror = () => {
+      // Suppress — onclose handler below manages the actual error state
     };
 
     teamWsRef.current = ws;

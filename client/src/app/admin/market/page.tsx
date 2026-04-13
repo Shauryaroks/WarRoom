@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 
 export default function MarketPage() {
   const [headline, setHeadline] = useState("");
+  const [content, setContent] = useState("");
   const [impactType, setImpactType] = useState("GLOBAL");
   const [sectors, setSectors] = useState<string[]>([]);
   const [targetTicker, setTargetTicker] = useState("");
@@ -20,6 +21,7 @@ export default function MarketPage() {
     try {
       await api.injectNews({
         headline,
+        content: content || undefined,
         affected_sectors: impactType === "SECTOR" ? sectors : undefined,
         affected_tickers:
           impactType === "TARGETED" && targetTicker
@@ -33,6 +35,7 @@ export default function MarketPage() {
             : undefined,
       });
       setHeadline("");
+      setContent("");
       setTargetTicker("");
       setSectors([]);
     } catch (err: unknown) {
@@ -79,6 +82,20 @@ export default function MarketPage() {
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
               className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors"
+            />
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="text-[12px] font-['Inter',sans-serif] text-[#9ca3af] uppercase block mb-1">
+              Content (Optional)
+            </label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] px-3 py-2 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors resize-none"
+              placeholder="Detailed body text for the news article..."
             />
           </div>
 
@@ -229,17 +246,24 @@ export default function MarketPage() {
             <label className="text-[12px] font-['Inter',sans-serif] text-[#9ca3af] uppercase block mb-1">
               Preview
             </label>
-            <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] p-4 text-[13px] text-[#e5e5e5] font-['JetBrains_Mono',monospace] min-h-[60px] flex items-center">
-              <span className="text-[#6b7280] mr-2">
-                [
-                {new Date().toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                ]
-              </span>
-              <span className="text-[#0077b6] mr-2">[{impactType}]</span>
-              {headline || "Waiting for input..."}
+            <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] p-4 text-[13px] text-[#e5e5e5] font-['JetBrains_Mono',monospace] min-h-[60px]">
+              <div className="flex items-center">
+                <span className="text-[#6b7280] mr-2">
+                  [
+                  {new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  ]
+                </span>
+                <span className="text-[#0077b6] mr-2">[{impactType}]</span>
+                <span className="font-bold">{headline || "Waiting for input..."}</span>
+              </div>
+              {content && (
+                <div className="mt-2 text-[12px] text-[#9ca3af] border-l-2 border-[#2a2a2a] pl-3 whitespace-pre-wrap">
+                  {content}
+                </div>
+              )}
             </div>
           </div>
 

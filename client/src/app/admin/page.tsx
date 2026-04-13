@@ -13,10 +13,10 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Purge State
+  // Purge State — start READY (the "PENDING" safety check is cosmetic)
   const [purgeState, setPurgeState] = useState<
-    "PENDING" | "READY" | "CONFIRM" | "PROCESSING" | "COMPLETE"
-  >("PENDING");
+    "READY" | "CONFIRM" | "PROCESSING" | "COMPLETE"
+  >("READY");
   const [countdown, setCountdown] = useState(3);
 
   const fetchData = async () => {
@@ -42,14 +42,6 @@ export default function AdminDashboard() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (purgeState === "PENDING" && metrics) {
-      // Simulate safety check delay
-      const timer = setTimeout(() => setPurgeState("READY"), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [purgeState, metrics]);
 
   useEffect(() => {
     if (purgeState === "CONFIRM" && countdown > 0) {
@@ -312,27 +304,30 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTeams.map((team, idx) => (
+                {filteredTeams.map((team, idx) => {
+                  const isDead =
+                    team.status === "ELIMINATED" || team.status === "BANKRUPT";
+                  return (
                   <React.Fragment key={team.team_id}>
                     <tr
-                      className={`h-[56px] border-b border-[#2a2a2a]/50 cursor-pointer transition-colors ${idx % 2 === 0 ? "bg-[#0a0a0a]" : "bg-[#111111]"} hover:bg-[#1a1a1a]`}
+                      className={`h-[56px] border-b border-[#2a2a2a]/50 cursor-pointer transition-colors ${isDead ? "bg-[#1a0000]" : idx % 2 === 0 ? "bg-[#0a0a0a]" : "bg-[#111111]"} hover:bg-[#1a1a1a]`}
                       onClick={() =>
                         setExpandedTeamId(
                           expandedTeamId === team.team_id ? null : team.team_id,
                         )
                       }
                     >
-                      <td className="px-4 text-[13px] text-[#9ca3af] font-['Inter',sans-serif] whitespace-nowrap">
+                      <td className={`px-4 text-[13px] font-['Inter',sans-serif] whitespace-nowrap ${isDead ? "text-[#ff3333]/60 line-through" : "text-[#9ca3af]"}`}>
                         {team.name}
                       </td>
-                      <td className="px-4 text-[14px] text-[#0077b6] font-bold font-['JetBrains_Mono',monospace]">
+                      <td className={`px-4 text-[14px] font-bold font-['JetBrains_Mono',monospace] ${isDead ? "text-[#ff3333]" : "text-[#0077b6]"}`}>
                         {team.ticker}
                       </td>
-                      <td className="px-4 text-[14px] text-[#e0e0e0] font-['JetBrains_Mono',monospace] tabular-nums text-right">
-                        ${team.stock_price.toFixed(2)}
+                      <td className={`px-4 text-[14px] font-['JetBrains_Mono',monospace] tabular-nums text-right ${isDead ? "text-[#ff3333]" : "text-[#e0e0e0]"}`}>
+                        {isDead ? "$0.00" : `$${team.stock_price.toFixed(2)}`}
                       </td>
-                      <td className="px-4 text-[14px] text-[#e0e0e0] font-['JetBrains_Mono',monospace] tabular-nums text-right">
-                        {formatCurrency(team.market_cap || 0)}
+                      <td className={`px-4 text-[14px] font-['JetBrains_Mono',monospace] tabular-nums text-right ${isDead ? "text-[#ff3333]/50" : "text-[#e0e0e0]"}`}>
+                        {isDead ? "$0" : formatCurrency(team.market_cap || 0)}
                       </td>
                       <td className="px-4">
                         <div className="flex items-center h-[56px]">
@@ -346,10 +341,14 @@ export default function AdminDashboard() {
                               ◐
                             </span>
                           )}
-                          {(team.status === "BANKRUPT" ||
-                            team.status === "ELIMINATED") && (
-                            <span className="text-[#6b7280] text-[14px] mr-2 leading-none">
-                              ○
+                          {team.status === "BANKRUPT" && (
+                            <span className="text-[#ff3333] text-[14px] mr-2 leading-none animate-pulse">
+                              ✕
+                            </span>
+                          )}
+                          {team.status === "ELIMINATED" && (
+                            <span className="text-[#ff3333] text-[14px] mr-2 leading-none">
+                              ☠
                             </span>
                           )}
                           {team.status === "PENDING" && (
@@ -357,7 +356,12 @@ export default function AdminDashboard() {
                               ◑
                             </span>
                           )}
-                          <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif] capitalize">
+                          {team.status === "READY" && (
+                            <span className="text-[#00c853]/50 text-[14px] mr-2 leading-none">
+                              ◎
+                            </span>
+                          )}
+                          <span className={`text-[13px] font-['Inter',sans-serif] capitalize ${isDead ? "text-[#ff3333] font-bold" : "text-[#e5e5e5]"}`}>
                             {team.status.toLowerCase()}
                           </span>
                         </div>
@@ -398,7 +402,8 @@ export default function AdminDashboard() {
                       </tr>
                     )}
                   </React.Fragment>
-                ))}
+                  );
+                })}
                 {filteredTeams.length === 0 && (
                   <tr>
                     <td
@@ -426,21 +431,10 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              {purgeState === "PENDING" ? (
-                <span
-                  className="text-[#0077b6] text-[16px] material-symbols-outlined animate-spin"
-                  style={{ animationDuration: "2s" }}
-                >
-                  hourglass_empty
-                </span>
-              ) : (
-                <span className="text-[#00c853] text-[16px] material-symbols-outlined">
-                  check_box
-                </span>
-              )}
-              <span
-                className={`text-[13px] font-['Inter',sans-serif] ${purgeState === "PENDING" ? "text-[#9ca3af]" : "text-[#e5e5e5]"}`}
-              >
+              <span className="text-[#00c853] text-[16px] material-symbols-outlined">
+                check_box
+              </span>
+              <span className="text-[13px] font-['Inter',sans-serif] text-[#e5e5e5]">
                 Safe to execute purge
               </span>
             </div>
@@ -503,18 +497,16 @@ export default function AdminDashboard() {
             <button
               onClick={handlePurgeAction}
               disabled={
-                purgeState === "PENDING" ||
                 purgeState === "COMPLETE" ||
                 purgeState === "PROCESSING"
               }
               className={`w-full h-[48px] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 flex items-center justify-center uppercase
-                ${purgeState === "PENDING" || purgeState === "PROCESSING" ? "bg-[#2a2a2a] text-[#6b7280] cursor-not-allowed" : ""}
+                ${purgeState === "PROCESSING" ? "bg-[#2a2a2a] text-[#6b7280] cursor-not-allowed" : ""}
                 ${purgeState === "READY" ? "bg-[#0077b6] text-[#0a0a0a] hover:bg-[#0077b6]/90 shadow-[0_0_15px_rgba(255,176,0,0.3)] cursor-pointer" : ""}
                 ${purgeState === "CONFIRM" ? "bg-[#ff3333] text-[#e5e5e5] hover:bg-[#ff3333]/90 shadow-[0_0_15px_rgba(255,51,51,0.4)] cursor-pointer" : ""}
                 ${purgeState === "COMPLETE" ? "bg-[#00c853] text-[#0a0a0a] cursor-not-allowed" : ""}
               `}
             >
-              {purgeState === "PENDING" && "SAFETY CHECKS PENDING..."}
               {purgeState === "READY" && "INITIATE PURGE (1/2)"}
               {purgeState === "CONFIRM" &&
                 (countdown > 0

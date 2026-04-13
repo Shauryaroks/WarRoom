@@ -168,6 +168,8 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
 
     from app.websocket import manager
 
+    holdings_list = await _get_holdings(team, db)
+
     await manager.send_trade_confirmation(
         str(team.api_key),
         {
@@ -180,7 +182,34 @@ async def _execute_buy(order: OrderRequest, team: Team, target: Team, db: AsyncS
         },
     )
 
-    holdings_list = await _get_holdings(team, db)
+    # Push updated financials + portfolio to frontend via WS
+    market_cap = float(team.stock_price * team.shares_outstanding)
+    total_pv = sum(h["total_value"] for h in holdings_list)
+    await manager.send_portfolio_update(
+        str(team.api_key),
+        {
+            "cash": float(team.cash),
+            "stock_price": float(team.stock_price),
+            "market_cap": market_cap,
+            "liquidity": float(team.cash) + total_pv * 0.5,
+            "treasury_sale_limit_remaining": float(team.dilution_cap_percent),
+        },
+        {
+            "holdings": [
+                {
+                    **h,
+                    "cost_basis": 0,
+                    "unrealized_pnl": 0,
+                    "ownership_percentage": 0,
+                    "current_price": h["current_price"],
+                    "current_value": h["total_value"],
+                }
+                for h in holdings_list
+            ],
+            "total_portfolio_value": total_pv,
+            "total_unrealized_pnl": 0,
+        },
+    )
 
     return OrderResponse(
         order_id=str(transaction.id),
@@ -252,6 +281,8 @@ async def _execute_sell(
 
     from app.websocket import manager
 
+    holdings_list = await _get_holdings(team, db)
+
     await manager.send_trade_confirmation(
         str(team.api_key),
         {
@@ -264,7 +295,34 @@ async def _execute_sell(
         },
     )
 
-    holdings_list = await _get_holdings(team, db)
+    # Push updated financials + portfolio to frontend via WS
+    market_cap = float(team.stock_price * team.shares_outstanding)
+    total_pv = sum(h["total_value"] for h in holdings_list)
+    await manager.send_portfolio_update(
+        str(team.api_key),
+        {
+            "cash": float(team.cash),
+            "stock_price": float(team.stock_price),
+            "market_cap": market_cap,
+            "liquidity": float(team.cash) + total_pv * 0.5,
+            "treasury_sale_limit_remaining": float(team.dilution_cap_percent),
+        },
+        {
+            "holdings": [
+                {
+                    **h,
+                    "cost_basis": 0,
+                    "unrealized_pnl": 0,
+                    "ownership_percentage": 0,
+                    "current_price": h["current_price"],
+                    "current_value": h["total_value"],
+                }
+                for h in holdings_list
+            ],
+            "total_portfolio_value": total_pv,
+            "total_unrealized_pnl": 0,
+        },
+    )
 
     return OrderResponse(
         order_id=str(transaction.id),

@@ -107,6 +107,19 @@ async def _process_directive_async(task_self, directive_id: str):
 
             await generate_public_news(db, directive, team)
 
+            # Send directive feedback to team via WebSocket
+            try:
+                from app.websocket import manager
+                await manager.send_directive_complete(
+                    str(team.api_key),
+                    str(directive.id),
+                    directive.status,
+                    directive.news_headline or "",
+                    directive.board_feedback or "",
+                )
+            except Exception:
+                pass  # Non-fatal: team will see it on next dossier refresh
+
         except Exception as e:
             directive.status = "FAILED"
             directive.board_feedback = f"Processing failed: {str(e)}"
@@ -673,17 +686,25 @@ async def generate_public_news(db: AsyncSession, directive: Directive, team: Tea
     await db.commit()
     await db.refresh(news)
 
-    from app.worker.celery_app import redis_client
+    # Broadcast news to all connected WebSocket clients
+    try:
+        from app.websocket import manager
 
-    if redis_client:
-        payload = {
-            "type": "news_alert",
+        news_broadcast = {
+            "id": str(news.id),
             "headline": news.headline,
-            "source": news.source_type,
-            "ticker": team.ticker,
-            "timestamp": datetime.utcnow().isoformat(),
+            "content": None,
+            "source_type": news.source_type,
+            "source_ticker": team.ticker,
+            "sentiment_score": float(sentiment),
+            "affected_sectors": None,
+            "affected_tickers": [team.ticker],
+            "created_at": news.created_at.isoformat() if news.created_at else datetime.utcnow().isoformat(),
+            "relevance_decay": 1.0,
         }
-        await redis_client.publish("market_events", json.dumps(payload))
+        await manager.broadcast_news(news_broadcast)
+    except Exception:
+        pass  # Non-fatal: news is in DB, will show on next poll/refresh
 
 
 # ---------------------------------------------------------------------------

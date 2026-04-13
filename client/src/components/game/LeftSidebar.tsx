@@ -64,9 +64,9 @@ export function LeftSidebar() {
     return "text-[var(--color-text-muted)]";
   };
 
-  // Filter out own ticker from market view
+  // All other tickers (including eliminated — shown in red)
   const otherTickers = marketTickers.filter(
-    (t) => t.ticker !== teamTicker && t.status !== "ELIMINATED",
+    (t) => t.ticker !== teamTicker,
   );
 
   return (
@@ -234,33 +234,42 @@ export function LeftSidebar() {
                 const holding = dossier?.portfolio.holdings.find(
                   (h) => h.ticker === t.ticker,
                 );
+                const isDead =
+                  t.status === "HALTED" ||
+                  t.status === "ELIMINATED" ||
+                  t.status === "BANKRUPT";
 
                 return (
                   <div key={t.ticker} className="flex flex-col">
                     <div
-                      className={`bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm flex items-center justify-between hover:border-[var(--color-accent-blue)] transition-colors cursor-pointer ${isExpanded ? "border-[var(--color-accent-blue)]" : ""}`}
+                      className={`border p-3 rounded-sm flex items-center justify-between transition-colors cursor-pointer ${isDead ? "bg-red-950/20 border-[var(--color-accent-rose)]/30" : `bg-[var(--color-bg-dark)] border-[var(--color-outline)] hover:border-[var(--color-accent-blue)]`} ${isExpanded ? "border-[var(--color-accent-blue)]" : ""}`}
                       onClick={() =>
                         setExpandedMarketTicker(isExpanded ? null : t.ticker)
                       }
                     >
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-[var(--color-accent-cyan)] font-bold text-sm">
+                          <span className={`font-bold text-sm ${isDead ? "text-[var(--color-accent-rose)] line-through" : "text-[var(--color-accent-cyan)]"}`}>
                             {t.ticker}
                           </span>
-                          {holding && (
+                          {isDead && (
+                            <span className="text-[9px] px-1 py-0.5 bg-[var(--color-accent-rose)]/20 text-[var(--color-accent-rose)] font-bold">
+                              DEAD
+                            </span>
+                          )}
+                          {!isDead && holding && (
                             <span className="text-[9px] px-1 py-0.5 bg-[var(--color-accent-blue)]/20 text-[var(--color-accent-blue)] font-bold">
                               HELD
                             </span>
                           )}
                         </div>
                         <span className="text-[var(--color-text-muted)] text-[10px]">
-                          MCap ${formatK(t.market_cap)}
+                          {isDead ? "ELIMINATED" : `MCap $${formatK(t.market_cap)}`}
                         </span>
                       </div>
                       <div className="flex flex-col items-end gap-0.5">
-                        <span className="font-semibold text-sm tabular-nums">
-                          ${t.price.toFixed(2)}
+                        <span className={`font-semibold text-sm tabular-nums ${isDead ? "text-[var(--color-accent-rose)]" : ""}`}>
+                          {isDead ? "$0.00" : `$${t.price.toFixed(2)}`}
                         </span>
                         <span
                           className={`text-[11px] font-bold tabular-nums ${getChangeColor(t.change_24h)}`}

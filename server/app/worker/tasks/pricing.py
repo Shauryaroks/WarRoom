@@ -168,21 +168,24 @@ async def record_price_history(db: AsyncSession, team: Team, price: Decimal):
 
 
 async def broadcast_price_update(team: Team, price: Decimal):
-    """Broadcast price update via Redis Pub/Sub."""
-    from app.worker.celery_app import redis_client
+    """Broadcast price update via WebSocket."""
     import json
 
-    if not redis_client:
+    try:
+        from app.websocket import manager
+    except Exception:
         return
 
-    payload = {
-        "type": "price_update",
-        "ticker": team.ticker,
-        "price": float(price),
-        "timestamp": datetime.utcnow().isoformat(),
-    }
-
-    await redis_client.publish("market_events", json.dumps(payload))
+    market_cap = float(price) * float(team.shares_outstanding)
+    await manager.broadcast_price_update(
+        ticker=team.ticker,
+        price=float(price),
+        change_pct=0.0,
+        change_abs=0.0,
+        volume=team.public_float,
+        market_cap=market_cap,
+        status=team.status.value,
+    )
 
 
 @celery_app.task
