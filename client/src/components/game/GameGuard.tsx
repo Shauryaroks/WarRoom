@@ -55,33 +55,27 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
 
         <div className="mb-12 border border-[var(--color-accent-blue)]/50 p-6 max-w-2xl bg-[var(--color-accent-blue)]/5">
           <h2 className="text-2xl mb-4 underline decoration-[var(--color-accent-blue)]/50">
-            SWOT PROFILE (READ-ONLY)
+            PORTFOLIO DOSSIER (READ-ONLY)
           </h2>
           <div className="grid grid-cols-2 gap-8 text-left">
-            <div>
-              <h3 className="font-bold mb-2">STRENGTHS</h3>
-              <p className="opacity-80 text-sm whitespace-pre-wrap">
-                {dossier?.profile?.swot?.strengths || "No data"}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold mb-2">WEAKNESSES</h3>
-              <p className="opacity-80 text-sm whitespace-pre-wrap">
-                {dossier?.profile?.swot?.weaknesses || "No data"}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold mb-2">OPPORTUNITIES</h3>
-              <p className="opacity-80 text-sm whitespace-pre-wrap">
-                {dossier?.profile?.swot?.opportunities || "No data"}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold mb-2">THREATS</h3>
-              <p className="opacity-80 text-sm whitespace-pre-wrap">
-                {dossier?.profile?.swot?.threats || "No data"}
-              </p>
-            </div>
+            {(() => {
+              const portfolioEntries = Object.entries(dossier?.profile?.swot || {} as Record<string, string>);
+              if (portfolioEntries.length === 0) {
+                return (
+                  <div className="col-span-2 text-center text-[var(--color-text-muted)] italic">
+                    No data available
+                  </div>
+                );
+              }
+              return portfolioEntries.map(([key, value]) => (
+                <div key={key}>
+                  <h3 className="font-bold mb-2 uppercase">{key}</h3>
+                  <p className="opacity-80 text-sm whitespace-pre-wrap">
+                    {value || "No data"}
+                  </p>
+                </div>
+              ));
+            })()}
           </div>
         </div>
 

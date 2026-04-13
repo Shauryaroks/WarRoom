@@ -13,20 +13,15 @@ export const TeamStatusSchema = z.enum([
 ]);
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;
 
-export const SWOTProfileSchema = z.object({
-  strengths: z.string(),
-  weaknesses: z.string(),
-  opportunities: z.string(),
-  threats: z.string(),
-});
-export type SWOTProfile = z.infer<typeof SWOTProfileSchema>;
+export const PortfolioDataSchema = z.record(z.string(), z.string());
+export type PortfolioData = z.infer<typeof PortfolioDataSchema>;
 
 export const TeamProfileSchema = z.object({
   team_id: z.string().uuid(),
   name: z.string(),
   ticker: z.string(),
   status: TeamStatusSchema,
-  swot: SWOTProfileSchema.optional(),
+  swot: PortfolioDataSchema.optional(),
   portfolio_id: z.string().optional(),
 });
 export type TeamProfile = z.infer<typeof TeamProfileSchema>;

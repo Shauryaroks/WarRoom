@@ -154,17 +154,29 @@ export function LeftSidebar() {
             <div className="bg-[var(--color-bg-dark)] border border-[var(--color-outline)] p-3 rounded-sm font-mono text-[12px] whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[400px]">
               <div className="text-[var(--color-accent-blue)] font-bold mb-3"># CORPORATE DOSSIER: {teamTicker}</div>
               
-              <div className="text-[var(--color-text-muted)] font-bold">## STRENGTHS</div>
-              <div className="text-[var(--color-accent-mint)] mb-3">{dossier?.profile?.swot?.strengths || "N/A"}</div>
-              
-              <div className="text-[var(--color-text-muted)] font-bold">## WEAKNESSES</div>
-              <div className="text-[var(--color-accent-rose)] mb-3">{dossier?.profile?.swot?.weaknesses || "N/A"}</div>
-              
-              <div className="text-[var(--color-text-muted)] font-bold">## OPPORTUNITIES</div>
-              <div className="text-[var(--color-text-primary)] mb-3">{dossier?.profile?.swot?.opportunities || "N/A"}</div>
-              
-              <div className="text-[var(--color-text-muted)] font-bold">## THREATS</div>
-              <div className="text-[var(--color-text-primary)] mb-1">{dossier?.profile?.swot?.threats || "N/A"}</div>
+              {(() => {
+                const portfolioEntries = Object.entries(dossier?.profile?.swot || {} as Record<string, string>);
+                if (portfolioEntries.length === 0) {
+                  return <div className="text-[var(--color-text-muted)] italic">No data available</div>;
+                }
+                
+                return portfolioEntries.map(([key, value]) => {
+                  const lowerKey = key.toLowerCase();
+                  let colorClass = "text-[var(--color-text-primary)]";
+                  if (lowerKey.includes("strength") || lowerKey.includes("advantage") || lowerKey.includes("pro")) {
+                    colorClass = "text-[var(--color-accent-mint)]";
+                  } else if (lowerKey.includes("weakness") || lowerKey.includes("risk") || lowerKey.includes("con") || lowerKey.includes("threat")) {
+                    colorClass = "text-[var(--color-accent-rose)]";
+                  }
+                  
+                  return (
+                    <div key={key} className="mb-3">
+                      <div className="text-[var(--color-text-muted)] font-bold">## {key.toUpperCase()}</div>
+                      <div className={colorClass}>{value || "N/A"}</div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </section>
