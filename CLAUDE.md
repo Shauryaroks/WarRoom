@@ -9,6 +9,7 @@ WarRoom is a real-time multiplayer business simulation game. Teams register, rec
 ## Commands
 
 ### Frontend (`client/`)
+
 ```bash
 cd client && bun install        # Install dependencies
 npm run dev                     # Dev server on :3000
@@ -17,6 +18,7 @@ npm run lint                    # ESLint
 ```
 
 ### Backend (`server/`)
+
 ```bash
 cd server && uv sync                          # Install dependencies
 uv run uvicorn app.main:app --host 0.0.0.0 --port 80  # Start API server
@@ -30,6 +32,7 @@ uv run mypy                                   # Type check
 ```
 
 ### Docker (full stack)
+
 ```bash
 docker compose up -d            # Start all services (db, redis, api, worker, caddy)
 docker compose build api worker # Rebuild after code changes
@@ -46,29 +49,35 @@ docker compose build api worker # Rebuild after code changes
 **Background jobs**: Celery beat runs `periodic_price_sweep` (30s) and `periodic_bankruptcy_check` (10s). LLM directive processing is also a Celery task.
 
 ### Key data flow
+
 1. Client authenticates via `/api/v1/auth/` → receives `api_key` (stored in localStorage)
 2. Authenticated requests use `X-API-Key` header; admin endpoints use `X-Admin-Key`
 3. Game actions (trades, directives) go through REST; real-time updates push via WebSocket
 4. Celery workers handle LLM calls (directive evaluation), price recalculation, bankruptcy checks, and news generation
 
 ### API routers (`server/app/api/`)
+
 `auth.py`, `game.py`, `teams.py`, `trading.py`, `directive.py`, `market.py`, `news.py`, `admin.py` — all mounted under `/api/v1/`
 
 ### Frontend contexts (`client/src/contexts/`)
+
 `AuthContext` (login state + API key), `GameContext` (game state), `WebSocketContext` (real-time connection) — all mounted in root `layout.tsx`
 
 ### Frontend API client
+
 `client/src/lib/api.ts` — centralized `authFetch()` wrapper. `client/src/lib/models.ts` — Zod schemas and TypeScript types.
 
 ## Configuration
 
 Backend config via `server/.env` with pydantic-settings (`server/app/database.py`):
+
 - `DATABASE_URL` — PostgreSQL connection string (uses `postgresql+asyncpg://`)
 - `REDIS_URL` — Redis connection
 - `ADMIN_API_KEY` — admin auth token
 - `OPENROUTER_API_KEY` / `OPENROUTER_BASE_URL` — LLM API
 
 Frontend config via `client/.env` with `NEXT_PUBLIC_*` prefix:
+
 - `NEXT_PUBLIC_API_URL` — backend base URL
 
 ## Important Notes
