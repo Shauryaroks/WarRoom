@@ -46,7 +46,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         start = time.time()
-        
+
         # --- 1. Parse Request Body ---
         req_body_dict = None
         req_body_str = None
@@ -54,7 +54,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             try:
                 body_bytes = await request.body()
                 req_body_str = body_bytes.decode("utf-8", errors="replace")
-                
+
                 if req_body_str:
                     try:
                         req_body_dict = json.loads(req_body_str)
@@ -71,15 +71,19 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # --- 2. Extract Auth ---
         api_key = request.headers.get("X-API-Key", "")
         admin_key = "admin" if request.headers.get("X-Admin-Key") else ""
-        auth_tag = "admin" if admin_key else (f"...{api_key[-8:]}" if len(api_key) > 8 else "anonymous")
+        auth_tag = (
+            "admin"
+            if admin_key
+            else (f"...{api_key[-8:]}" if len(api_key) > 8 else "anonymous")
+        )
 
         # --- 3. Call Next ---
         response = await call_next(request)
-        
+
         # --- 4. Parse Response Body ---
         res_body_dict = None
         res_body_str = None
-        
+
         # Only attempt to read body if it's application/json to avoid breaking streams/SSE
         content_type = response.headers.get("content-type", "")
         if "application/json" in content_type:
@@ -88,15 +92,15 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 async for chunk in response.body_iterator:
                     response_body_chunks.append(chunk)
                 response_body = b"".join(response_body_chunks)
-                
+
                 # Reconstruct response so client still gets it
                 response = Response(
                     content=response_body,
                     status_code=response.status_code,
                     headers=dict(response.headers),
-                    media_type=response.media_type
+                    media_type=response.media_type,
                 )
-                
+
                 res_body_str = response_body.decode("utf-8", errors="replace")
                 if res_body_str:
                     try:
@@ -124,12 +128,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             "auth": auth_tag,
             "client_ip": request.client.host if request.client else None,
         }
-        
+
         if req_body_dict is not None:
             log_data["request_body"] = req_body_dict
         elif req_body_str:
             log_data["request_body_raw"] = req_body_str
-            
+
         if res_body_dict is not None:
             log_data["response_body"] = res_body_dict
         elif res_body_str:

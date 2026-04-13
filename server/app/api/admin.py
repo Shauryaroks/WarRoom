@@ -251,17 +251,16 @@ async def list_pending_teams(
     }
 
 
-
 # --- GET /admin/portfolios ---
+
 
 @router.get("/portfolios")
 async def get_portfolios(
     admin: bool = Depends(verify_admin_key),
 ):
     from app.api.teams import PORTFOLIO_TEMPLATES
-    return {
-        "portfolios": list(PORTFOLIO_TEMPLATES.keys())
-    }
+
+    return {"portfolios": list(PORTFOLIO_TEMPLATES.keys())}
 
 
 # --- Admin settings ---
