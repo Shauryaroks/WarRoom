@@ -220,6 +220,39 @@ export const api = {
     }
   },
 
+  async updateTeam(
+    teamId: string,
+    data: {
+      name?: string;
+      ticker?: string;
+      status?: string;
+      stock_price?: number;
+      cash?: number;
+    }
+  ): Promise<TeamSummary> {
+    try {
+      const res = await authFetch(`/teams/${teamId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (error) {
+      console.error("[API Error] updateTeam:", error);
+      throw error;
+    }
+  },
+
+  async deleteTeam(teamId: string): Promise<void> {
+    try {
+      await authFetch(`/teams/${teamId}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("[API Error] deleteTeam:", error);
+      throw error;
+    }
+  },
+
   // --- Directives ---
   async submitDirective(data: {
     directive_markdown: string;

@@ -511,13 +511,11 @@ async def reject_team(
             detail=f"Team is {team.status.value}, cannot reject",
         )
 
-    team.status = TeamStatus.REJECTED
-    team.rejection_reason = request.reason
-
+    await db.delete(team)
     await db.commit()
 
     return {
-        "message": "Team rejected",
+        "message": "Team rejected and deleted",
         "team_id": str(team.id),
         "reason": request.reason,
     }
@@ -580,6 +578,153 @@ async def force_bankrupt_team(
     }
 
 
+# --- GET /teams/{team_id} ---
+
+
+@router.get("/{team_id}", response_model=dict)
+async def get_team(
+    team_id: str,
+    admin: bool = Depends(verify_admin_key),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+
+    try:
+        team_uuid = _uuid.UUID(team_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await db.get(Team, team_uuid)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    return {
+        "team_id": str(team.id),
+        "name": team.name,
+        "ticker": team.ticker,
+        "email": team.email,
+        "status": team.status.value,
+        "portfolio_type": team.portfolio_type,
+        "cash": float(team.cash),
+        "stock_price": float(team.stock_price),
+        "shares_outstanding": team.shares_outstanding,
+        "public_float": team.public_float,
+        "treasury_shares": team.treasury_shares,
+        "cooldown_until": team.cooldown_until.isoformat()
+        if team.cooldown_until
+        else None,
+        "bankrupt_since": team.bankrupt_since.isoformat()
+        if team.bankrupt_since
+        else None,
+        "eliminated_at": team.eliminated_at.isoformat() if team.eliminated_at else None,
+        "elimination_reason": team.elimination_reason,
+        "rank_at_elimination": team.rank_at_elimination,
+    }
+
+
+# --- PUT /teams/{team_id} ---
+
+
+class TeamUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    ticker: Optional[str] = None
+    status: Optional[str] = None
+    cash: Optional[float] = None
+    stock_price: Optional[float] = None
+    portfolio_type: Optional[str] = None
+    shares_outstanding: Optional[int] = None
+    public_float: Optional[int] = None
+    treasury_shares: Optional[int] = None
+    email: Optional[str] = None
+
+
+@router.put("/{team_id}", response_model=dict)
+async def update_team(
+    team_id: str,
+    request: TeamUpdateRequest,
+    admin: bool = Depends(verify_admin_key),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+
+    try:
+        team_uuid = _uuid.UUID(team_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await db.get(Team, team_uuid)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if request.name is not None:
+        team.name = request.name
+    if request.ticker is not None:
+        team.ticker = request.ticker
+    if request.email is not None:
+        team.email = request.email
+    if request.status is not None:
+        try:
+            team.status = TeamStatus(request.status)
+        except ValueError:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid status: {request.status}"
+            )
+    if request.cash is not None:
+        team.cash = request.cash
+    if request.stock_price is not None:
+        team.stock_price = request.stock_price
+    if request.portfolio_type is not None:
+        team.portfolio_type = request.portfolio_type
+    if request.shares_outstanding is not None:
+        team.shares_outstanding = request.shares_outstanding
+    if request.public_float is not None:
+        team.public_float = request.public_float
+    if request.treasury_shares is not None:
+        team.treasury_shares = request.treasury_shares
+
+    await db.commit()
+
+    return {
+        "team_id": str(team.id),
+        "name": team.name,
+        "ticker": team.ticker,
+        "email": team.email,
+        "status": team.status.value,
+        "portfolio_type": team.portfolio_type,
+        "cash": float(team.cash),
+        "stock_price": float(team.stock_price),
+        "shares_outstanding": team.shares_outstanding,
+        "public_float": team.public_float,
+        "treasury_shares": team.treasury_shares,
+    }
+
+
+# --- DELETE /teams/{team_id} ---
+
+
+@router.delete("/{team_id}")
+async def delete_team(
+    team_id: str,
+    admin: bool = Depends(verify_admin_key),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+
+    try:
+        team_uuid = _uuid.UUID(team_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await db.get(Team, team_uuid)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    await db.delete(team)
+    await db.commit()
+
+    return {"message": "Team deleted"}
+
+
 # --- Portfolio templates ---
 
 
@@ -603,6 +748,7 @@ PORTFOLIO_TEMPLATES = {
         "threats": "Platform risk (TikTok algorithm changes). Copycat competitors with lower prices.",
     },
 }
+
 
 def get_portfolio_template(portfolio_type: str) -> dict:
     return PORTFOLIO_TEMPLATES.get(portfolio_type, PORTFOLIO_TEMPLATES["PORT_TECH_01"])

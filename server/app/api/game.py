@@ -429,26 +429,16 @@ async def initiate_market_purge(
         mc, liq = await _calculate_raw_scores(db, team)
         team_data.append((team, mc, liq))
 
-    # Find max values for normalization
-    max_mc = max((mc for _, mc, _ in team_data), default=1.0)
-    max_liq = max((liq for _, _, liq in team_data), default=1.0)
-    # Avoid division by zero
-    if max_mc == 0:
-        max_mc = 1.0
-    if max_liq == 0:
-        max_liq = 1.0
-
     # Record aggregate market cap at purge time
     total_mc = sum(mc for _, mc, _ in team_data)
     gs.aggregate_market_cap_at_purge = Decimal(str(total_mc))
 
-    # Normalize scores: SS_i = 0.5 * (MC_i / max(MC)) + 0.5 * (L_i / max(L))
+    # Use pure market cap for purges
     scored_teams = []
     for team, mc, liq in team_data:
-        normalized_score = 0.5 * (mc / max_mc) + 0.5 * (liq / max_liq)
-        scored_teams.append((team, normalized_score))
+        scored_teams.append((team, mc))
 
-    # Sort by strategic score descending (highest = best)
+    # Sort by market cap descending (highest = best)
     scored_teams.sort(key=lambda x: x[1], reverse=True)
 
     num_to_eliminate = len(scored_teams) // 2
