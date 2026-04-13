@@ -5,8 +5,13 @@ import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function GameGuard({ children }: { children: React.ReactNode }) {
-  const { gameState, dossier, isMarketConnected, isTeamConnected } =
-    useWebSocket();
+  const {
+    gameState,
+    dossier,
+    isMarketConnected,
+    isTeamConnected,
+    connectionError,
+  } = useWebSocket();
   const { user, logout } = useAuth();
 
   const [countdown, setCountdown] = useState(60);
@@ -28,7 +33,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
   const loading = !gameState?.status || !dossier?.profile?.status;
 
   useEffect(() => {
-    if (loading) {
+    if (loading && !connectionError) {
       const timer = setTimeout(() => {
         setConnectionTimeout(true);
       }, 10000);
@@ -36,7 +41,24 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
     } else {
       setConnectionTimeout(false);
     }
-  }, [loading]);
+  }, [loading, connectionError]);
+
+  if (connectionError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-bg-darkest)] text-red-500 font-mono">
+        <div className="text-3xl font-bold mb-4 text-center px-4">
+          CONNECTION REJECTED
+        </div>
+        <p className="mb-8 opacity-80">{connectionError}</p>
+        <button
+          onClick={logout}
+          className="px-6 py-2 bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+        >
+          CLEAR SESSION / LOGOUT
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

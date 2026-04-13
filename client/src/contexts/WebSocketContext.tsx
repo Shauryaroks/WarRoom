@@ -26,6 +26,7 @@ interface WebSocketContextType {
   dossier: TeamDossier | null;
   bankruptcyWarning: BankruptcyWarning | null;
   globalAnnouncement: { message: string; type: "PURGE" | "BANKRUPTCY" } | null;
+  connectionError: string | null;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
@@ -74,6 +75,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     message: string;
     type: "PURGE" | "BANKRUPTCY";
   } | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const marketWsRef = useRef<WebSocket | null>(null);
   const teamWsRef = useRef<WebSocket | null>(null);
@@ -303,7 +305,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         `[Team WS] Connection closed. Code: ${event.code}, Reason: ${event.reason}`,
       );
       setIsTeamConnected(false);
-      teamReconnectTimer.current = setTimeout(connectTeam, 3000);
+
+      // Stop reconnecting and show error for 400x WebSocket codes (e.g. 4001 Invalid API key)
+      if (event.code >= 4000 && event.code < 4010) {
+        setConnectionError(
+          event.reason || "Connection rejected by server (Invalid Token).",
+        );
+      } else {
+        teamReconnectTimer.current = setTimeout(connectTeam, 3000);
+      }
     };
 
     ws.onerror = (error) => {
@@ -348,6 +358,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         dossier,
         bankruptcyWarning,
         globalAnnouncement,
+        connectionError,
       }}
     >
       {children}
