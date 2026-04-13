@@ -53,6 +53,7 @@ function getWsBaseUrl(): string {
     const wsProto = url.protocol === "https:" ? "wss:" : "ws:";
     return `${wsProto}//${url.host}`;
   } catch {
+    console.log("WS apiUrl resolution failed: using ws://localhost:8080");
     return "ws://localhost:8080";
   }
 }
@@ -103,8 +104,24 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     };
 
     ws.onmessage = (event) => {
+      let data;
       try {
-        const data = JSON.parse(event.data);
+        data = JSON.parse(event.data);
+      } catch (err) {
+        console.error("[Market WS] Failed to parse message:", err);
+        console.error("[Market WS] Raw payload:", event.data);
+        return;
+      }
+
+      try {
+        if (data.type === "error") {
+          console.error(
+            "[Market WS] Received server error:",
+            data.payload || data.message || data,
+          );
+          return;
+        }
+
         if (data.sequence_id) marketSeqRef.current = data.sequence_id;
 
         switch (data.type) {
@@ -184,17 +201,20 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             break;
         }
       } catch (err) {
-        console.warn("Failed to parse market WS message:", err);
+        console.error("[Market WS] Failed to process message logic:", err);
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.warn(
+        `[Market WS] Connection closed. Code: ${event.code}, Reason: ${event.reason}`,
+      );
       setIsMarketConnected(false);
       marketReconnectTimer.current = setTimeout(connectMarket, 3000); // basic backoff
     };
 
-    ws.onerror = () => {
-      console.warn("Market WS connection failed, will retry...");
+    ws.onerror = (error) => {
+      console.error("[Market WS] Connection error:", error);
     };
 
     marketWsRef.current = ws;
@@ -224,8 +244,24 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     };
 
     ws.onmessage = (event) => {
+      let data;
       try {
-        const data = JSON.parse(event.data);
+        data = JSON.parse(event.data);
+      } catch (err) {
+        console.error("[Team WS] Failed to parse message:", err);
+        console.error("[Team WS] Raw payload:", event.data);
+        return;
+      }
+
+      try {
+        if (data.type === "error") {
+          console.error(
+            "[Team WS] Received server error:",
+            data.payload || data.message || data,
+          );
+          return;
+        }
+
         if (data.sequence_id) teamSeqRef.current = data.sequence_id;
 
         switch (data.type) {
@@ -258,17 +294,20 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             break;
         }
       } catch (err) {
-        console.warn("Failed to parse team WS message:", err);
+        console.error("[Team WS] Failed to process message logic:", err);
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.warn(
+        `[Team WS] Connection closed. Code: ${event.code}, Reason: ${event.reason}`,
+      );
       setIsTeamConnected(false);
       teamReconnectTimer.current = setTimeout(connectTeam, 3000);
     };
 
-    ws.onerror = () => {
-      console.warn("Team WS connection failed, will retry...");
+    ws.onerror = (error) => {
+      console.error("[Team WS] Connection error:", error);
     };
 
     teamWsRef.current = ws;
