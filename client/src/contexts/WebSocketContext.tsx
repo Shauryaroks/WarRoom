@@ -45,7 +45,6 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(
  * @returns A context provider component.
  */
 function getWsBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
   // Derive from API URL: https://host/api/v1 -> wss://host, http://host:8080/api/v1 -> ws://host:8080
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
   try {
