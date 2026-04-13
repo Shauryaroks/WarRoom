@@ -13,6 +13,7 @@ from app.models import (
     Directive,
     GameState,
     GameStatus,
+    PriceHistory,
     StockHolding,
     Team,
     TeamStatus,
@@ -149,6 +150,46 @@ async def start_game(
         team.shares_outstanding = gs.starting_shares or 1000000
         team.public_float = team.shares_outstanding // 10
         team.treasury_shares = team.shares_outstanding - team.public_float
+
+    # Seed initial PriceHistory so charts have data immediately
+    import random
+    from datetime import timedelta
+
+    now = datetime.utcnow()
+    for team in pending_teams:
+        starting_price = float(team.stock_price)
+        price = starting_price * 0.90  # start at 90% of starting price
+        num_points = 20
+        price_step = (starting_price - price) / num_points
+
+        for i in range(num_points):
+            noise = random.uniform(-0.5, 0.5) * (starting_price * 0.01)
+            price = price + price_step + noise
+            price = max(1.0, price)
+            ts = now - timedelta(minutes=(num_points - i) * 5)
+            mc = Decimal(str(round(price, 2))) * team.shares_outstanding
+            db.add(PriceHistory(
+                team_id=team.id,
+                price=Decimal(str(round(price, 2))),
+                market_cap=mc,
+                vibe_multiplier=Decimal("1.0"),
+                sentiment_multiplier=Decimal("1.0"),
+                profit_component=Decimal("0"),
+                cash_component=team.cash * Decimal("0.1"),
+                calculated_at=ts,
+            ))
+
+        # Final point at exact starting price at current time
+        db.add(PriceHistory(
+            team_id=team.id,
+            price=team.stock_price,
+            market_cap=team.stock_price * team.shares_outstanding,
+            vibe_multiplier=Decimal("1.0"),
+            sentiment_multiplier=Decimal("1.0"),
+            profit_component=Decimal("0"),
+            cash_component=team.cash * Decimal("0.1"),
+            calculated_at=now,
+        ))
 
     if request.initial_news_items:
         from app.models import MarketNews

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -13,25 +14,30 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
     connectionError,
   } = useWebSocket();
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const [countdown, setCountdown] = useState(60);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
 
-  // Simple countdown effect for Bankrupt state
+  const loading = !gameState?.status || !dossier?.profile?.status;
+  const teamStatus = dossier?.profile?.status;
+  const gameStatus = gameState?.status;
+
+  // ALL hooks must be above early returns — React rules of hooks
+
+  // Countdown effect for Bankrupt state
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (dossier?.profile?.status === "BANKRUPT") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (teamStatus === "BANKRUPT") {
       setCountdown(60);
       interval = setInterval(() => {
         setCountdown((prev) => Math.max(0, prev - 1));
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [dossier?.profile?.status]);
+  }, [teamStatus]);
 
-  const loading = !gameState?.status || !dossier?.profile?.status;
-
+  // Connection timeout
   useEffect(() => {
     if (loading && !connectionError) {
       const timer = setTimeout(() => {
@@ -42,6 +48,15 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
       setConnectionTimeout(false);
     }
   }, [loading, connectionError]);
+
+  // READY team on an ACTIVE game — redirect to lobby
+  useEffect(() => {
+    if (teamStatus === "READY" && gameStatus === "ACTIVE") {
+      router.replace("/lobby");
+    }
+  }, [teamStatus, gameStatus, router]);
+
+  // --- Early returns (no hooks below this line) ---
 
   if (connectionError) {
     return (
@@ -84,7 +99,7 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (dossier?.profile?.status === "REJECTED") {
+  if (teamStatus === "REJECTED") {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-bg-darkest)] text-red-500 font-mono">
         <div className="text-3xl font-bold mb-6 text-center px-4">
@@ -104,9 +119,8 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
 
   // State 1: Pre-Game Lobby
   if (
-    gameState?.status === "SETUP" &&
-    (dossier?.profile?.status === "PENDING_START" ||
-      dossier?.profile?.status === "READY")
+    gameStatus === "SETUP" &&
+    (teamStatus === "PENDING_START" || teamStatus === "READY")
   ) {
     return (
       <>
@@ -163,10 +177,10 @@ export function GameGuard({ children }: { children: React.ReactNode }) {
 
   // To render an overlay while keeping the game read-only behind it,
   // we render children and absolute overlays over them.
-  const isSpectator = dossier?.profile?.status === "ELIMINATED";
-  const isBankrupt = dossier?.profile?.status === "BANKRUPT";
-  const isPendingPurge = dossier?.profile?.status === "PENDING_PURGE";
-  const isPaused = gameState?.status === "PAUSED";
+  const isSpectator = teamStatus === "ELIMINATED";
+  const isBankrupt = teamStatus === "BANKRUPT";
+  const isPendingPurge = teamStatus === "PENDING_PURGE";
+  const isPaused = gameStatus === "PAUSED";
 
   const hasOverlay = isSpectator || isBankrupt || isPendingPurge || isPaused;
 

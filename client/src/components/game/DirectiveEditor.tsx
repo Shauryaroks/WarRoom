@@ -151,16 +151,34 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
           ))}
         </div>
 
-        {/* Textarea */}
+        {/* Cooldown Banner (non-blocking — sits above textarea) */}
+        {activeCooldown && (
+          <div className="absolute top-0 left-0 right-0 z-10 bg-red-950/90 border-b border-red-500/50 px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-red-500 text-[12px] font-bold tracking-widest">
+                BOARD REVIEWING
+              </span>
+              <span className="text-red-400 text-[11px] animate-pulse">
+                COOLDOWN ACTIVE
+              </span>
+            </div>
+            <span className="text-red-500 text-[18px] font-bold tracking-widest tabular-nums">
+              {formatTime(displayCooldown)}
+            </span>
+          </div>
+        )}
+
+        {/* Textarea — always editable so players can draft during cooldown */}
         <textarea
           ref={textareaRef}
           value={directive}
           onChange={handleChange}
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-          disabled={activeCooldown}
-          className="flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[var(--color-text-muted)] focus:ring-0 text-[var(--color-text-primary)]"
+          className={`flex-1 w-full h-full bg-transparent outline-none resize-none p-[20px] leading-[1.6] placeholder:text-[var(--color-text-muted)] focus:ring-0 text-[var(--color-text-primary)] ${activeCooldown ? "pt-[52px]" : ""}`}
           placeholder={
-            "// INIT_STRATEGY: QUARTER_03\n# PRICING STRATEGY & COST LEADERSHIP\n- \n- "
+            activeCooldown
+              ? "// DRAFT YOUR NEXT DIRECTIVE WHILE THE BOARD REVIEWS...\n# NEXT STRATEGY\n- "
+              : "// INIT_STRATEGY: QUARTER_03\n# PRICING STRATEGY & COST LEADERSHIP\n- \n- "
           }
           spellCheck={false}
         />
@@ -171,23 +189,6 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
         >
           {charCount} / {maxChars}
         </div>
-
-        {/* Cooldown Overlay */}
-        {activeCooldown && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10 backdrop-blur-sm">
-            <div className="border border-red-500/50 p-8 text-center bg-[var(--color-bg-darkest)] shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-              <div className="text-red-500 mb-4 text-[16px] tracking-widest font-bold">
-                [ BOARD REVIEWING DIRECTIVE ]
-              </div>
-              <div className="text-red-500 text-[48px] font-bold tracking-widest mb-4">
-                {formatTime(displayCooldown)}
-              </div>
-              <div className="text-red-400 text-[12px] tracking-widest animate-pulse">
-                COOLDOWN ACTIVE
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Status Bar */}
@@ -220,7 +221,7 @@ export function DirectiveEditor({ maxChars = 2000 }: { maxChars?: number }) {
       <div className="h-[60px] shrink-0 bg-[var(--color-bg-dark)] p-2 flex gap-2 border-t border-[var(--color-outline)]">
         <button
           onClick={handleSaveDraft}
-          disabled={activeCooldown || isSubmitting}
+          disabled={isSubmitting}
           className="flex-1 border border-[var(--color-outline)] bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] font-bold uppercase tracking-widest hover:bg-[var(--color-bg-elevated)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           [ SAVE DRAFT ]
