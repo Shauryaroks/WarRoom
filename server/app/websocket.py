@@ -356,6 +356,8 @@ class ConnectionManager:
 
     async def connect_team(self, websocket: WebSocket, api_key: str) -> bool:
         """Connect a team websocket. Returns True if valid, False if rejected."""
+        await websocket.accept()
+
         # Validate api_key against DB
         try:
             api_key_uuid = uuid.UUID(api_key)
@@ -371,8 +373,6 @@ class ConnectionManager:
         if not team:
             await websocket.close(code=4001, reason="Unknown API key")
             return False
-
-        await websocket.accept()
 
         team_id_str = str(team.id)
         async with self._lock:
