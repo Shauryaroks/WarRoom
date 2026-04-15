@@ -1,100 +1,132 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+
+import { useAuthStore } from "@/stores/auth-store";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { TeamList } from "@/components/lobby/team-list";
+import { ConnectionIndicator } from "@/components/lobby/connection-indicator";
 import { api } from "@/lib/api";
-import { TeamSummary } from "@/lib/models";
-import { useWebSocket, WebSocketProvider } from "@/contexts/WebSocketContext";
-import { GameProvider } from "@/contexts/GameContext";
-
-function LobbyContent() {
-  const router = useRouter();
-  const [players, setPlayers] = useState<TeamSummary[]>([]);
-  const { gameState } = useWebSocket();
-
-  useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const teams = await api.getTeams();
-        setPlayers(teams);
-      } catch (err) {
-        console.error("Failed to fetch teams:", err);
-      }
-    };
-    fetchTeams();
-    const interval = setInterval(fetchTeams, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (gameState?.status === "ACTIVE") {
-      router.push("/game");
-    }
-  }, [gameState, router]);
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#00FF00] font-mono flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl border border-[#333] p-6 bg-[#111]">
-        <div className="flex justify-between items-center mb-6 border-b border-[#333] pb-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-widest uppercase text-[#0077b6]">
-              &gt; WAITING_ROOM
-            </h1>
-            <p className="text-xs text-gray-500 mt-1">
-              Awaiting other operators...
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-sm">
-              STATUS:{" "}
-              <span className="text-[#00FF00] animate-pulse">ESTABLISHED</span>
-            </div>
-            <div className="text-xs text-gray-500">
-              PEERS: {players.length}/10
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-8 h-64 overflow-y-auto border border-[#222] p-2 bg-black">
-          {players.map((player) => (
-            <div
-              key={player.team_id}
-              className="flex justify-between items-center text-sm py-1 border-b border-[#111]"
-            >
-              <span className="text-gray-400">[{player.ticker}]</span>
-              <span className="flex-1 ml-4">{player.name}</span>
-              <span
-                className={`${player.status === "ACTIVE" || player.status === "READY" ? "text-[#00FF00]" : "text-[#FF0000]"}`}
-              >
-                {player.status}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between border-t border-[#333] pt-6">
-          <button
-            onClick={() => router.push("/auth/login")}
-            className="text-xs text-gray-500 hover:text-white uppercase tracking-wider"
-          >
-            [ ESC: DISCONNECT ]
-          </button>
-
-          <div className="text-[#0077b6] font-bold text-lg animate-pulse">
-            AWAITING SYSTEM START...
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import type { ApprovedTeam } from "@/lib/types";
 
 export default function LobbyPage() {
+  const router = useRouter();
+  const { isAuthenticated, teamName, ticker, logout } = useAuthStore();
+  const [teams, setTeams] = useState<ApprovedTeam[]>([]);
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+    }
+  }, [isAuthenticated, router]);
+
+  // Load initial approved teams
+  useEffect(() => {
+    if (isAuthenticated) {
+      api
+        .getApprovedTeams()
+        .then((data) => setTeams(data))
+        .catch(() => {
+          // Silently fail -- teams will populate via WebSocket
+        });
+    }
+  }, [isAuthenticated]);
+
+  // Handle WebSocket messages
+  const handleMessage = useCallback(
+    (data: Record<string, unknown>) => {
+      if (data.type === "team_approved") {
+        const team = data as unknown as {
+          type: string;
+          id: string;
+          name: string;
+          ticker: string;
+        };
+        setTeams((prev) => {
+          // Avoid duplicates
+          if (prev.some((t) => t.id === team.id)) return prev;
+          return [
+            ...prev,
+            { id: team.id, name: team.name, ticker: team.ticker },
+          ];
+        });
+      } else if (data.type === "game_starting") {
+        // Redirect to game after brief delay
+        setTimeout(() => router.push("/game"), 1000);
+      }
+    },
+    [router]
+  );
+
+  const { isConnected } = useWebSocket({
+    onMessage: handleMessage,
+    enabled: isAuthenticated,
+  });
+
+  function handleLogout() {
+    logout();
+    router.push("/auth/login");
+  }
+
+  // Don't render until auth check completes
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <GameProvider>
-      <WebSocketProvider>
-        <LobbyContent />
-      </WebSocketProvider>
-    </GameProvider>
+    <div className="bg-background min-h-screen flex flex-col items-center px-4 pt-16">
+      {/* Logout button */}
+      <div className="fixed top-4 right-4">
+        <button
+          onClick={handleLogout}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Log out
+        </button>
+      </div>
+
+      <div className="w-full max-w-[600px] space-y-8">
+        {/* Team identity + Status */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-foreground">
+              {teamName}
+            </h1>
+            <span className="font-mono text-sm font-bold text-primary">
+              {ticker}
+            </span>
+          </div>
+
+          {/* Status badge */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-primary/10 px-3 py-1">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+              </span>
+              <span className="font-mono text-xs font-medium text-primary">
+                WAITING
+              </span>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            Waiting for admin to start the game...
+          </p>
+        </div>
+
+        {/* Teams list */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Teams
+          </h2>
+          <TeamList teams={teams} />
+        </div>
+      </div>
+
+      <ConnectionIndicator isConnected={isConnected} />
+    </div>
   );
 }

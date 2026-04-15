@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 
 import { api } from "@/lib/api";
 import { loginSchema } from "@/lib/schemas";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface FieldErrors {
   email?: string;
@@ -20,6 +21,15 @@ interface FieldErrors {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isAuthenticated, login: storeLogin } = useAuthStore();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/lobby");
+    }
+  }, [isAuthenticated, router]);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -77,7 +87,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const response = await api.login(result.data);
-      localStorage.setItem("token", response.token);
+      storeLogin(response);
       router.push("/lobby");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong. Try again.";

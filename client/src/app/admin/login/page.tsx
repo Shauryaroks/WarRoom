@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 
 import { api } from "@/lib/api";
 import { adminLoginSchema } from "@/lib/schemas";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface FieldErrors {
   email?: string;
@@ -74,7 +75,7 @@ export default function AdminLoginPage() {
     setIsSubmitting(true);
     try {
       const response = await api.adminLogin(result.data);
-      localStorage.setItem("token", response.token);
+      useAuthStore.getState().adminLogin(response.token);
       router.push("/admin");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong. Try again.";
