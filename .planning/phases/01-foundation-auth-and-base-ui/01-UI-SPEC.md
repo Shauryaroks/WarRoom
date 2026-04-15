@@ -1,7 +1,7 @@
 ---
 phase: 1
 slug: foundation-auth-and-base-ui
-status: draft
+status: approved
 shadcn_initialized: false
 preset: pending-init
 created: 2026-04-16
@@ -56,11 +56,11 @@ Exceptions: none
 | Role | Size | Weight | Line Height | Font Family |
 |------|------|--------|-------------|-------------|
 | Body | 14px | 400 (regular) | 1.5 | Inter |
-| Label | 12px | 500 (medium) | 1.4 | Inter |
+| Label | 12px | 400 (regular) | 1.4 | Inter |
 | Heading | 20px | 600 (semibold) | 1.2 | Inter |
 | Data | 14px | 400 (regular) | 1.4 | JetBrains Mono |
 | Data Large | 20px | 600 (semibold) | 1.2 | JetBrains Mono |
-| Ticker | 14px | 700 (bold) | 1.0 | JetBrains Mono |
+| Ticker | 14px | 600 (semibold) | 1.0 | JetBrains Mono |
 
 **Font loading:** Load Inter and JetBrains Mono via `next/font/google`. Use `font-display: swap` for both. Assign CSS custom properties:
 - `--font-sans: Inter` (applied to body)
@@ -321,13 +321,29 @@ No third-party registries declared for Phase 1.
 
 ---
 
+## Stitch Design References
+
+Stitch MCP generated HTML mockups that serve as the **primary visual reference** for implementation. These files exist in git history and contain the exact design tokens, layout structure, and component styling to follow.
+
+| File | Page | Key Design Elements |
+|------|------|---------------------|
+| `data/docs/frontend-design-stitch/registration.html` | Auth (Register/Login) | Grid pattern overlay, centered card, amber accent buttons, JetBrains Mono throughout, 0px border-radius |
+| `data/docs/frontend-design-stitch/terminal.html` | Game Terminal | Multi-panel layout, ticker scroll animation, chart grid, heatmap grid, custom scrollbars |
+| `data/docs/frontend-design-stitch/admin_panel.html` | Admin Dashboard | Team management tables, metric cards, status badges, sidebar navigation |
+
+**Implementation rule:** When this spec and a Stitch mockup disagree, the Stitch mockup wins for visual styling. This spec wins for interaction states, copywriting, and validation behavior (Stitch doesn't define those).
+
+**Note on Stitch color tokens:** Stitch registration page uses a Material Design 3 extended palette (e.g., `surface-container-lowest: #0e0e0e`, `primary-container: #ffb000`). The terminal page simplifies to `background: #0a0a0a`, `primary: #FFB000`, `success: #00c853`, `error: #ff3333`. This spec aligns with the terminal page's simpler palette. Use the CSS custom properties defined in the Color section above.
+
+---
+
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: FLAG (non-blocking — "Log In" lacks noun but is conventional)
+- [x] Dimension 2 Visuals: FLAG (non-blocking — focal points inferable from accent usage)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS (2 weights: 400, 600)
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: SKIP (gate disabled)
 
-**Approval:** pending
+**Approval:** approved 2026-04-16
