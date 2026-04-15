@@ -36,8 +36,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md -- Backend infrastructure: models, migrations, Docker Compose, Caddy, Celery
 - [x] 01-02-PLAN.md -- Frontend scaffold: Next.js, shadcn, Bloomberg dark theme, fonts
-- [ ] 01-03-PLAN.md -- Auth API: JWT auth, registration, login, admin endpoints
-- [ ] 01-04-PLAN.md -- Auth UI: Register, Login, Admin Login pages with Zod validation
+- [x] 01-03-PLAN.md -- Auth API: JWT auth, registration, login, admin endpoints
+- [x] 01-04-PLAN.md -- Auth UI: Register, Login, Admin Login pages with Zod validation
 - [ ] 01-05-PLAN.md -- WebSocket infrastructure: ConnectionManager, Redis pub/sub relay
 - [ ] 01-06-PLAN.md -- Lobby UI, Zustand auth store, WebSocket client, session persistence
 
@@ -113,7 +113,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Auth, and Base UI | 2/6 | In Progress|  |
+| 1. Foundation, Auth, and Base UI | 4/6 | In Progress|  |
 | 2. Game State and Lobby | 0/TBD | Not started | - |
 | 3. Simulation Engine and Trading | 0/TBD | Not started | - |
 | 4. Solutions and LLM Evaluation | 0/TBD | Not started | - |
