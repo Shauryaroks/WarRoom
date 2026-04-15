@@ -1,12 +1,17 @@
+import asyncio
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api import admin, auth, teams
+from app.auth_utils import decode_token
+from app.redis_pubsub import start_redis_relay
+from app.websocket import manager
 
 logger = logging.getLogger("complex")
 
@@ -16,11 +21,17 @@ logger = logging.getLogger("complex")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: future Redis pub/sub subscription goes here
-    logger.info("Complex API starting up")
+    # Startup: start Redis pub/sub relay as background task
+    relay_task = asyncio.create_task(start_redis_relay())
+    logger.info("Redis pub/sub relay task started")
     yield
-    # Shutdown: cleanup
-    logger.info("Complex API shutting down")
+    # Shutdown: cancel relay
+    relay_task.cancel()
+    try:
+        await relay_task
+    except asyncio.CancelledError:
+        pass
+    logger.info("Redis pub/sub relay task stopped")
 
 
 # --- App ---
@@ -75,9 +86,75 @@ app.include_router(admin.router)
 app.include_router(teams.router)
 
 
+# --- WebSocket Endpoint ---
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+
+    # Step 1: Authenticate -- expect first message to be {"type": "auth", "token": "..."}
+    try:
+        auth_msg = await asyncio.wait_for(ws.receive_json(), timeout=10.0)
+    except (asyncio.TimeoutError, Exception):
+        await ws.close(code=4001, reason="Authentication timeout")
+        return
+
+    if auth_msg.get("type") != "auth" or "token" not in auth_msg:
+        await ws.close(code=4002, reason="Expected auth message")
+        return
+
+    try:
+        payload = decode_token(auth_msg["token"])
+    except HTTPException:
+        await ws.close(code=4003, reason="Invalid token")
+        return
+
+    role = payload.get("role", "")
+    team_id = None
+    if role in ("strategist", "trader"):
+        team_id_str = payload.get("team_id")
+        if team_id_str:
+            team_id = uuid.UUID(team_id_str)
+
+    # Step 2: Register connection
+    manager.add(ws, team_id, role)
+
+    # Step 3: Send welcome message
+    await ws.send_json({
+        "type": "connected",
+        "payload": {
+            "role": role,
+            "team_id": str(team_id) if team_id else None,
+            "connections": manager.connection_count,
+        }
+    })
+
+    # Step 4: Listen for messages + ping/pong heartbeat
+    try:
+        while True:
+            try:
+                data = await asyncio.wait_for(ws.receive_json(), timeout=30.0)
+                # Handle client messages (ping, sync_request, etc.)
+                if data.get("type") == "ping":
+                    await ws.send_json({"type": "pong"})
+            except asyncio.TimeoutError:
+                # Send server-initiated ping to keep connection alive through Caddy
+                try:
+                    await ws.send_json({"type": "ping"})
+                except Exception:
+                    break
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error("WebSocket error: %s", e)
+    finally:
+        manager.remove(ws)
+
+
 # --- Health Check ---
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "ws_connections": manager.connection_count}
