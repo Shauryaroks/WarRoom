@@ -12,7 +12,7 @@ This roadmap delivers a real-time case competition platform in 6 phases, progres
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation, Auth, and Base UI** - Dockerized backend, database schema, Redis pub/sub relay, team auth with role separation, Bloomberg dark theme scaffold
+- [x] **Phase 1: Foundation, Auth, and Base UI** - Dockerized backend, database schema, Redis pub/sub relay, team auth with role separation, Bloomberg dark theme scaffold (completed 2026-04-15)
 - [ ] **Phase 2: Game State and Lobby** - Game lifecycle state machine, lobby system, server-authoritative timer, WebSocket-driven state broadcast
 - [ ] **Phase 3: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking
 - [ ] **Phase 4: Solutions and LLM Evaluation** - Solution submission, LLM evaluation via OpenRouter, human-in-the-loop admin approval gate
@@ -38,8 +38,8 @@ Plans:
 - [x] 01-02-PLAN.md -- Frontend scaffold: Next.js, shadcn, Bloomberg dark theme, fonts
 - [x] 01-03-PLAN.md -- Auth API: JWT auth, registration, login, admin endpoints
 - [x] 01-04-PLAN.md -- Auth UI: Register, Login, Admin Login pages with Zod validation
-- [ ] 01-05-PLAN.md -- WebSocket infrastructure: ConnectionManager, Redis pub/sub relay
-- [ ] 01-06-PLAN.md -- Lobby UI, Zustand auth store, WebSocket client, session persistence
+- [x] 01-05-PLAN.md -- WebSocket infrastructure: ConnectionManager, Redis pub/sub relay
+- [x] 01-06-PLAN.md -- Lobby UI, Zustand auth store, WebSocket client, session persistence
 
 **UI hint**: yes
 
@@ -113,7 +113,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Auth, and Base UI | 4/6 | In Progress|  |
+| 1. Foundation, Auth, and Base UI | 6/6 | Complete   | 2026-04-15 |
 | 2. Game State and Lobby | 0/TBD | Not started | - |
 | 3. Simulation Engine and Trading | 0/TBD | Not started | - |
 | 4. Solutions and LLM Evaluation | 0/TBD | Not started | - |
