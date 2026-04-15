@@ -1,153 +1,216 @@
-from datetime import datetime, timezone
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Header, HTTPException, status
-from fastapi.security import APIKeyHeader
-from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-import bcrypt
+import re
 import uuid
+from typing import Literal
 
-from app.database import get_db, settings as app_settings
+import bcrypt
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, EmailStr, field_validator
+from sqlalchemy import select, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
 from app.models import Team, TeamStatus
+from app.auth_utils import create_access_token, get_current_user
 
-router = APIRouter(prefix="/auth", tags=["auth"])
-
-api_key_header = APIKeyHeader(name="X-API-Key")
-
-
-async def verify_admin_key(
-    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
-) -> bool:
-    """Dependency that verifies admin key from X-Admin-Key header. Raises 403 if invalid."""
-    if not x_admin_key or x_admin_key != app_settings.ADMIN_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid or missing admin key",
-        )
-    return True
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
-async def get_current_team(
-    api_key: str = Depends(api_key_header),
-    db: AsyncSession = Depends(get_db),
-) -> Team:
-    stmt = select(Team).where(Team.api_key == api_key)
-    result = await db.execute(stmt)
-    team = result.scalar_one_or_none()
-
-    if not team:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key",
-        )
-
-    return team
-
-
-# --- Registration ---
+# --- Pydantic Models ---
 
 
 class RegisterRequest(BaseModel):
-    team_name: str = Field(..., min_length=3, max_length=50)
-    ticker: str = Field(..., min_length=3, max_length=4, pattern=r"^[A-Z]{3,4}$")
+    team_name: str
+    ticker: str
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str
+
+    @field_validator("team_name")
+    @classmethod
+    def validate_team_name(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 3 or len(v) > 50:
+            raise ValueError("Team name must be 3-50 characters")
+        return v
+
+    @field_validator("ticker")
+    @classmethod
+    def validate_ticker(cls, v: str) -> str:
+        v = v.strip().upper()
+        if not re.match(r"^[A-Z]{3,5}$", v):
+            raise ValueError("Ticker must be 3-5 uppercase letters")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
 
 
 class RegisterResponse(BaseModel):
     message: str
-    registration_id: str
+    team_id: str
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=202)
-async def register_team(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    role: Literal["strategist", "trader"]
+
+
+class LoginResponse(BaseModel):
+    token: str
+    team_id: str
+    team_name: str
+    ticker: str
+    role: str
+
+
+class MeResponse(BaseModel):
+    team_id: str
+    team_name: str
+    ticker: str
+    role: str
+    status: str
+
+
+# --- Utility ---
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+
+
+# --- Endpoints ---
+
+
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """Register a new team. Creates both strategist and trader sub-accounts (D-02)."""
+
     # Check ticker uniqueness
-    stmt = select(Team).where(Team.ticker == "$" + request.ticker.upper())
-    result = await db.execute(stmt)
+    result = await db.execute(select(Team).where(Team.ticker == request.ticker))
     if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Ticker already exists",
-        )
+        raise HTTPException(status_code=409, detail="Ticker already taken")
 
-    # Check team name uniqueness
-    stmt = select(Team).where(Team.name == request.team_name)
-    result = await db.execute(stmt)
+    # Check email uniqueness across both strategist and trader emails
+    result = await db.execute(
+        select(Team).where(
+            or_(
+                Team.strategist_email == request.email,
+                Team.trader_email == request.email,
+            )
+        )
+    )
     if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Team name already exists",
-        )
+        raise HTTPException(status_code=409, detail="Email already registered")
 
-    password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+    # Hash password (same for both sub-accounts initially)
+    password_hash = hash_password(request.password)
 
+    # Create team with dual credentials (D-01)
     team = Team(
         name=request.team_name,
-        ticker="$" + request.ticker.upper(),
-        email=request.email,
-        password_hash=password_hash,
+        ticker=request.ticker,
+        strategist_email=request.email,
+        strategist_password_hash=password_hash,
+        trader_email=request.email,
+        trader_password_hash=password_hash,
         status=TeamStatus.PENDING,
     )
+
     db.add(team)
     await db.commit()
     await db.refresh(team)
 
     return RegisterResponse(
-        message="Registration pending admin approval",
-        registration_id=str(team.id),
+        message="Team registered successfully. Awaiting admin approval.",
+        team_id=str(team.id),
     )
 
 
-# --- Login ---
-
-
-class LoginRequest(BaseModel):
-    ticker: str
-    password: str
-
-
-class LoginResponse(BaseModel):
-    api_key: str
-    team_name: str
-    ticker: str
-    status: str
-    ws_endpoint: str
-
-
 @router.post("/login", response_model=LoginResponse)
-async def login_team(
-    request: LoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    # Normalize ticker: accept with or without $ prefix
-    ticker = request.ticker.upper()
-    if not ticker.startswith("$"):
-        ticker = "$" + ticker
+async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """Team login with role selection. Returns JWT with team_id and role claims."""
 
-    stmt = select(Team).where(Team.ticker == ticker)
-    result = await db.execute(stmt)
-    team = result.scalar_one_or_none()
-
-    if not team or not bcrypt.checkpw(
-        request.password.encode(), team.password_hash.encode()
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid ticker or password",
+    # Look up team by email matching the requested role
+    if request.role == "strategist":
+        result = await db.execute(
+            select(Team).where(Team.strategist_email == request.email)
+        )
+    else:
+        result = await db.execute(
+            select(Team).where(Team.trader_email == request.email)
         )
 
-    status_str = team.status.value
+    team = result.scalar_one_or_none()
+    if not team:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # Verify password against role-specific hash
+    if request.role == "strategist":
+        password_valid = verify_password(
+            request.password, team.strategist_password_hash
+        )
+    else:
+        password_valid = verify_password(request.password, team.trader_password_hash)
+
+    if not password_valid:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # Check team approval status
     if team.status == TeamStatus.PENDING:
-        status_str = "PENDING_APPROVAL"
-    elif team.status == TeamStatus.READY:
-        status_str = "PENDING_START"
+        raise HTTPException(
+            status_code=403, detail="Team not yet approved by admin"
+        )
+    if team.status == TeamStatus.REJECTED:
+        raise HTTPException(
+            status_code=403, detail="Team registration was rejected"
+        )
+
+    # Create JWT
+    token = create_access_token(
+        subject_id=team.id,
+        role=request.role,
+        team_id=team.id,
+    )
 
     return LoginResponse(
-        api_key=str(team.api_key),
+        token=token,
+        team_id=str(team.id),
         team_name=team.name,
         ticker=team.ticker,
-        status=status_str,
-        ws_endpoint=f"/ws/team/{team.api_key}",
+        role=request.role,
+    )
+
+
+@router.get("/me", response_model=MeResponse)
+async def me(current_user: dict = Depends(get_current_user)):
+    """Get current authenticated user info."""
+    entity = current_user["entity"]
+
+    if current_user["role"] == "admin":
+        return MeResponse(
+            team_id="",
+            team_name="Admin",
+            ticker="",
+            role="admin",
+            status="active",
+        )
+
+    return MeResponse(
+        team_id=str(entity.id),
+        team_name=entity.name,
+        ticker=entity.ticker,
+        role=current_user["role"],
+        status=entity.status.value,
     )
