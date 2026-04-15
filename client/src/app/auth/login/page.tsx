@@ -1,151 +1,206 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 import { api } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
+import { loginSchema } from "@/lib/schemas";
+
+interface FieldErrors {
+  email?: string;
+  password?: string;
+}
 
 export default function LoginPage() {
-  const [tickerInput, setTickerInput] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [pendingApproval, setPendingApproval] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [role, setRole] = useState<"strategist" | "trader">("strategist");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.toUpperCase();
-    if (val.startsWith("$")) {
-      val = val.substring(1);
+  function validateField(name: keyof typeof formData, value: string) {
+    const testData = { ...formData, [name]: value, role };
+    const result = loginSchema.safeParse(testData);
+    if (result.success) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    } else {
+      const fieldError = result.error.issues.find((issue) =>
+        issue.path.includes(name)
+      );
+      setErrors((prev) => ({
+        ...prev,
+        [name]: fieldError?.message,
+      }));
     }
-    setTickerInput(val);
-  };
+  }
 
-  const handleLogin = async (e: React.FormEvent) => {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof FieldErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  }
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    validateField(name as keyof typeof formData, value);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
-    setPendingApproval(false);
 
-    try {
-      const formattedTicker = tickerInput;
-      const res = await api.login({ ticker: formattedTicker, password });
-
-      if (res.status === "PENDING_APPROVAL") {
-        setPendingApproval(true);
-        setLoading(false);
-        return;
+    const submitData = { ...formData, role };
+    const result = loginSchema.safeParse(submitData);
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
       }
-
-      login({
-        id: "id-" + Date.now(),
-        teamName: res.team_name,
-        ticker: res.ticker,
-        role: "player",
-        token: res.api_key,
-      });
-
-      if (res.status === "PENDING_START" || res.status === "READY") {
-        router.push("/lobby");
-      } else if (
-        res.status === "ACTIVE" ||
-        res.status === "COOLDOWN" ||
-        res.status === "BANKRUPT"
-      ) {
-        router.push("/game");
-      } else {
-        // Fallback for other statuses
-        router.push("/lobby");
-      }
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      setErrorMsg(error.message || "Login failed.");
-    } finally {
-      setLoading(false);
+      setErrors(fieldErrors);
+      return;
     }
-  };
+
+    setIsSubmitting(true);
+    try {
+      const response = await api.login(result.data);
+      localStorage.setItem("token", response.token);
+      router.push("/lobby");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Try again.";
+      if (message.toLowerCase().includes("not yet approved") || message.toLowerCase().includes("not approved")) {
+        toast.warning("Team not yet approved by admin.", {
+          style: { borderLeft: "4px solid #FF9500" },
+          duration: 5000,
+        });
+      } else if (message.toLowerCase().includes("invalid") || message.toLowerCase().includes("credentials")) {
+        toast.error("Invalid email or password.", {
+          style: { borderLeft: "4px solid #FF1744" },
+          duration: 5000,
+        });
+      } else {
+        toast.error("Something went wrong. Try again.", {
+          style: { borderLeft: "4px solid #FF1744" },
+          duration: 5000,
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-primary)] font-mono flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md border border-[var(--color-outline)] p-6 bg-[var(--color-surface)]">
-        <div className="mb-6 border-b border-[var(--color-outline)] pb-4">
-          <h1 className="text-xl font-bold tracking-widest uppercase">
-            &gt; TERMINAL_LOGIN
-          </h1>
-          <p className="text-xs text-[var(--color-muted)] mt-1">
-            AUTHENTICATE TO ACCESS TERMINAL
-          </p>
-        </div>
-
-        {pendingApproval ? (
-          <div className="text-[var(--color-primary)] border border-[var(--color-primary)] p-4 text-center">
-            <p className="font-bold">STATUS: PENDING_APPROVAL</p>
-            <p className="text-sm mt-2">
-              YOUR REGISTRATION IS PENDING ADMIN APPROVAL.
+    <div className="bg-background min-h-screen flex items-center justify-center px-4">
+      <Card className="w-full max-w-[420px] rounded-none bg-card border border-border p-6 ring-0">
+        <CardContent className="p-0 space-y-6">
+          <div className="space-y-1">
+            <h1 className="font-mono text-xl font-semibold text-primary">
+              COMPLEX
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Case Competition Platform
             </p>
           </div>
-        ) : (
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1 relative">
-              <label className="text-xs uppercase tracking-wider text-[var(--color-muted)] block">
-                TICKER
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)] opacity-70">
-                  $
-                </span>
-                <input
-                  type="text"
-                  value={tickerInput}
-                  onChange={handleTickerChange}
-                  className="w-full bg-black border border-[var(--color-outline)] text-[var(--color-primary)] pl-7 pr-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors uppercase"
-                  required
-                  autoFocus
-                  maxLength={4}
-                />
-              </div>
-            </div>
 
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-[var(--color-muted)] block">
-                PASSCODE
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-black border border-[var(--color-outline)] text-[var(--color-primary)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                required
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-xs">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="team@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                aria-invalid={!!errors.email}
               />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email}</p>
+              )}
             </div>
 
-            {errorMsg && (
-              <div className="text-[var(--color-error)] text-xs mt-2 border border-[var(--color-error)] p-2">
-                &gt; ERROR: {errorMsg}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-xs">
+                Password
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                aria-invalid={!!errors.password}
+              />
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Role</Label>
+              <div className="flex w-full">
+                <button
+                  type="button"
+                  onClick={() => setRole("strategist")}
+                  className={`flex-1 h-10 text-sm font-medium transition-colors ${
+                    role === "strategist"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  Strategist
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("trader")}
+                  className={`flex-1 h-10 text-sm font-medium transition-colors ${
+                    role === "trader"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  Trader
+                </button>
               </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6 border border-[var(--color-primary)] text-[var(--color-primary)] font-bold uppercase tracking-widest py-3 text-sm hover:bg-[var(--color-primary)] hover:text-black transition-colors disabled:opacity-50"
-            >
-              {loading ? "AUTHENTICATING..." : "INITIATE_SESSION"}
-            </button>
-
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => router.push("/auth/register")}
-                className="text-xs text-[var(--color-muted)] hover:text-[var(--color-primary)] transition-colors"
-              >
-                &gt; NO_ACCOUNT? REGISTER_HERE
-              </button>
             </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primary text-primary-foreground h-10 px-4 font-medium w-full rounded-md hover:bg-primary/90"
+              style={isSubmitting ? { opacity: 0.7 } : undefined}
+            >
+              {isSubmitting ? "Logging in..." : "Log In"}
+            </Button>
           </form>
-        )}
-      </div>
+
+          <p className="text-sm text-muted-foreground text-center">
+            No team yet?{" "}
+            <Link href="/auth/register" className="text-[#2196F3] hover:underline">
+              Register
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

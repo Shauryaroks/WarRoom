@@ -1,182 +1,235 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 import { api } from "@/lib/api";
+import { registerSchema } from "@/lib/schemas";
+
+interface FieldErrors {
+  team_name?: string;
+  ticker?: string;
+  email?: string;
+  password?: string;
+}
 
 export default function RegisterPage() {
-  const [teamName, setTeamName] = useState("");
-  const [tickerInput, setTickerInput] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [success, setSuccess] = useState(false);
-
   const router = useRouter();
+  const [formData, setFormData] = useState({
+    team_name: "",
+    ticker: "",
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [serverErrors, setServerErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.toUpperCase();
-    if (val.startsWith("$")) {
-      val = val.substring(1);
+  function validateField(name: keyof typeof formData, value: string) {
+    const testData = { ...formData, [name]: value };
+    const result = registerSchema.safeParse(testData);
+    if (result.success) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    } else {
+      const fieldError = result.error.issues.find((issue) =>
+        issue.path.includes(name)
+      );
+      setErrors((prev) => ({
+        ...prev,
+        [name]: fieldError?.message,
+      }));
     }
-    setTickerInput(val);
-  };
+  }
 
-  const handleRegister = async (e: React.FormEvent) => {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    const newValue = name === "ticker" ? value.replace(/[^A-Za-z]/g, "").toUpperCase() : value;
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
+    // Clear errors when user modifies the field
+    if (errors[name as keyof FieldErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+    if (serverErrors[name as keyof FieldErrors]) {
+      setServerErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  }
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    validateField(name as keyof typeof formData, value);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
+    setServerErrors({});
 
-    try {
-      if (teamName.length < 3 || teamName.length > 50) {
-        throw new Error("Team Name must be 3-50 characters.");
+    const result = registerSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
       }
-      if (!/^[a-zA-Z0-9 ]+$/.test(teamName)) {
-        throw new Error("Team Name must be alphanumeric.");
-      }
-      if (tickerInput.length < 3 || tickerInput.length > 4) {
-        throw new Error("Ticker must be 3-4 characters.");
-      }
-      if (password.length < 8) {
-        throw new Error("Password must be at least 8 characters.");
-      }
-
-      await api.registerTeam({
-        team_name: teamName,
-        ticker: tickerInput.toUpperCase(),
-        email: email,
-        password: password,
-      });
-
-      setSuccess(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Registration failed:", error);
-      setErrorMsg(error.message || "Registration failed.");
-    } finally {
-      setLoading(false);
+      setErrors(fieldErrors);
+      return;
     }
-  };
+
+    setIsSubmitting(true);
+    try {
+      await api.register(result.data);
+      toast.success("Team registered. Awaiting admin approval.", {
+        style: { borderLeft: "4px solid #00C853" },
+      });
+      setTimeout(() => router.push("/auth/login"), 2000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Try again.";
+      if (message.toLowerCase().includes("ticker already taken")) {
+        setServerErrors((prev) => ({ ...prev, ticker: "Ticker already taken" }));
+      } else if (message.toLowerCase().includes("email already registered")) {
+        setServerErrors((prev) => ({ ...prev, email: "Email already registered" }));
+      } else {
+        toast.error("Something went wrong. Try again.", {
+          style: { borderLeft: "4px solid #FF1744" },
+          duration: 5000,
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function getFieldError(field: keyof FieldErrors): string | undefined {
+    return serverErrors[field] || errors[field];
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-primary)] font-mono flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md border border-[var(--color-outline)] p-6 bg-[var(--color-surface)]">
-        <div className="mb-6 border-b border-[var(--color-outline)] pb-4">
-          <h1 className="text-xl font-bold tracking-widest uppercase">
-            &gt; TERMINAL_REGISTER
-          </h1>
-          <p className="text-xs text-[var(--color-muted)] mt-1">
-            REQUEST NEW TERMINAL ACCESS
-          </p>
-        </div>
-
-        {success ? (
-          <div className="text-[var(--color-success)] border border-[var(--color-success)] p-4 text-center">
-            <p className="font-bold">REGISTRATION PENDING ADMIN APPROVAL</p>
-            <p className="text-sm mt-2 text-[var(--color-muted)]">
-              YOUR ACCESS REQUEST IS BEING REVIEWED. YOU WILL BE NOTIFIED.
+    <div className="bg-background min-h-screen flex items-center justify-center px-4">
+      <Card className="w-full max-w-[420px] rounded-none bg-card border border-border p-6 ring-0">
+        <CardContent className="p-0 space-y-6">
+          <div className="space-y-1">
+            <h1 className="font-mono text-xl font-semibold text-primary">
+              COMPLEX
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Case Competition Platform
             </p>
-            <button
-              onClick={() => router.push("/auth/login")}
-              className="mt-6 border border-[var(--color-success)] text-[var(--color-success)] hover:bg-[var(--color-success)] hover:text-black py-2 px-4 transition-colors text-sm uppercase"
-            >
-              &gt; RETURN_TO_LOGIN
-            </button>
           </div>
-        ) : (
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-[var(--color-muted)] block">
-                TEAM NAME (3-50 CHARS)
-              </label>
-              <input
-                type="text"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                className="w-full bg-black border border-[var(--color-outline)] text-[var(--color-primary)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                required
-                maxLength={50}
-                minLength={3}
-                pattern="[a-zA-Z0-9 ]+"
-                title="Alphanumeric characters and spaces only"
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="team_name" className="text-xs">
+                Team Name
+              </Label>
+              <Input
+                id="team_name"
+                name="team_name"
+                placeholder="e.g. Apex Capital"
+                value={formData.team_name}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                aria-invalid={!!getFieldError("team_name")}
               />
+              {getFieldError("team_name") && (
+                <p className="text-xs text-destructive">
+                  {getFieldError("team_name")}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-1 relative">
-              <label className="text-xs uppercase tracking-wider text-[var(--color-muted)] block">
-                TICKER (3-4 CHARS)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)] opacity-70">
-                  $
-                </span>
-                <input
-                  type="text"
-                  value={tickerInput}
-                  onChange={handleTickerChange}
-                  className="w-full bg-black border border-[var(--color-outline)] text-[var(--color-primary)] pl-7 pr-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors uppercase"
-                  required
-                  maxLength={4}
-                  minLength={3}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticker" className="text-xs">
+                Ticker Symbol
+              </Label>
+              <Input
+                id="ticker"
+                name="ticker"
+                placeholder="e.g. APEX"
+                value={formData.ticker}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                maxLength={5}
+                className="bg-secondary border border-input h-10 px-3 rounded-md font-mono uppercase"
+                aria-invalid={!!getFieldError("ticker")}
+              />
+              {getFieldError("ticker") && (
+                <p className="text-xs text-destructive">
+                  {getFieldError("ticker")}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-[var(--color-muted)] block">
-                CONTACT EMAIL
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-xs">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-black border border-[var(--color-outline)] text-[var(--color-primary)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                required
+                placeholder="team@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                aria-invalid={!!getFieldError("email")}
               />
+              {getFieldError("email") && (
+                <p className="text-xs text-destructive">
+                  {getFieldError("email")}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-wider text-[var(--color-muted)] block">
-                PASSCODE (MIN 8)
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-xs">
+                Password
+              </Label>
+              <Input
+                id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-black border border-[var(--color-outline)] text-[var(--color-primary)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors"
-                required
-                minLength={8}
+                placeholder=""
+                value={formData.password}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                aria-invalid={!!getFieldError("password")}
               />
+              {getFieldError("password") && (
+                <p className="text-xs text-destructive">
+                  {getFieldError("password")}
+                </p>
+              )}
             </div>
 
-            {errorMsg && (
-              <div className="text-[var(--color-error)] text-xs mt-2 border border-[var(--color-error)] p-2">
-                &gt; ERROR: {errorMsg}
-              </div>
-            )}
-
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full mt-6 border border-[var(--color-primary)] text-[var(--color-primary)] font-bold uppercase tracking-widest py-3 text-sm hover:bg-[var(--color-primary)] hover:text-black transition-colors disabled:opacity-50"
+              disabled={isSubmitting}
+              className="bg-primary text-primary-foreground h-10 px-4 font-medium w-full rounded-md hover:bg-primary/90"
+              style={isSubmitting ? { opacity: 0.7 } : undefined}
             >
-              {loading ? "PROCESSING..." : "SUBMIT_REGISTRATION"}
-            </button>
-
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => router.push("/auth/login")}
-                className="text-xs text-[var(--color-muted)] hover:text-[var(--color-primary)] transition-colors"
-              >
-                &gt; EXISTING_ACCOUNT? LOGIN_HERE
-              </button>
-            </div>
+              {isSubmitting ? "Registering..." : "Register Team"}
+            </Button>
           </form>
-        )}
-      </div>
+
+          <p className="text-sm text-muted-foreground text-center">
+            Already registered?{" "}
+            <Link href="/auth/login" className="text-[#2196F3] hover:underline">
+              Log in
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
