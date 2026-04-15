@@ -1,19 +1,12 @@
 import os
 from celery import Celery
-from celery.schedules import crontab
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
 celery_app = Celery(
-    "warroom",
+    "complex",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=[
-        "app.worker.tasks.directive",
-        "app.worker.tasks.pricing",
-        "app.worker.tasks.bankruptcy",
-        "app.worker.tasks.news",
-    ],
 )
 
 celery_app.conf.update(
@@ -23,20 +16,15 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
-    task_time_limit=300,
-    task_soft_time_limit=270,
-    worker_prefetch_multiplier=10,
-    worker_max_tasks_per_child=1000,
+    task_time_limit=60,  # 60s hard limit (reduced from 300s per PITFALLS.md)
+    task_soft_time_limit=45,
+    worker_prefetch_multiplier=1,
+    worker_max_tasks_per_child=100,  # restart worker after 100 tasks to prevent memory leaks
     broker_connection_retry_on_startup=True,
 )
 
-celery_app.conf.beat_schedule = {
-    "recalculate-prices-every-30-seconds": {
-        "task": "app.worker.tasks.pricing.periodic_price_sweep",
-        "schedule": 30.0,
-    },
-    "check-bankruptcies-every-10-seconds": {
-        "task": "app.worker.tasks.bankruptcy.periodic_bankruptcy_check",
-        "schedule": 10.0,
-    },
-}
+# Beat schedule -- empty for Phase 1, will be populated in Phase 2/3
+celery_app.conf.beat_schedule = {}
+
+# Auto-discover tasks in app.worker.tasks package
+celery_app.autodiscover_tasks(["app.worker.tasks"])
