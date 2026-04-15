@@ -31,7 +31,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Each team has Strategist and Trader sub-accounts that can log in separately and see role-appropriate UI (Strategist sees solution submission area + view-only market; Trader sees trading panel + news)
   4. Sessions persist across browser refresh without requiring re-login
   5. The Celery worker can publish a message to Redis pub/sub and the FastAPI process relays it to a connected WebSocket client (the relay pipeline works end-to-end)
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 01-01-PLAN.md -- Backend infrastructure: models, migrations, Docker Compose, Caddy, Celery
+- [ ] 01-02-PLAN.md -- Frontend scaffold: Next.js, shadcn, Bloomberg dark theme, fonts
+- [ ] 01-03-PLAN.md -- Auth API: JWT auth, registration, login, admin endpoints
+- [ ] 01-04-PLAN.md -- Auth UI: Register, Login, Admin Login pages with Zod validation
+- [ ] 01-05-PLAN.md -- WebSocket infrastructure: ConnectionManager, Redis pub/sub relay
+- [ ] 01-06-PLAN.md -- Lobby UI, Zustand auth store, WebSocket client, session persistence
+
 **UI hint**: yes
 
 ### Phase 2: Game State and Lobby
@@ -104,7 +113,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Auth, and Base UI | 0/TBD | Not started | - |
+| 1. Foundation, Auth, and Base UI | 0/6 | Planning complete | - |
 | 2. Game State and Lobby | 0/TBD | Not started | - |
 | 3. Simulation Engine and Trading | 0/TBD | Not started | - |
 | 4. Solutions and LLM Evaluation | 0/TBD | Not started | - |
