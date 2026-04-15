@@ -1,7 +1,7 @@
 # Requirements: Complex
 
 **Defined:** 2026-04-16
-**Core Value:** The simulation engine — teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time.
+**Core Value:** The simulation engine -- teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time.
 
 ## v1 Requirements
 
@@ -85,7 +85,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **INFRA-01**: Backend fully dockerized (FastAPI, PostgreSQL, Redis, Celery, Caddy)
 - [ ] **INFRA-02**: Frontend deployed on Vercel with API calls to dockerized backend
-- [ ] **INFRA-03**: WebSocket communication via Redis pub/sub relay (Celery workers → API server → clients)
+- [ ] **INFRA-03**: WebSocket communication via Redis pub/sub relay (Celery workers -> API server -> clients)
 - [ ] **INFRA-04**: Handles 80 concurrent WebSocket connections on 8GB/4vCPU VPS
 
 ## v2 Requirements
@@ -108,7 +108,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Feature | Reason |
 |---------|--------|
-| Order book / bid-ask trading | Complexity not justified — simple buy/sell at simulated price sufficient |
+| Order book / bid-ask trading | Complexity not justified -- simple buy/sell at simulated price sufficient |
 | Real-time chat between teams | Not relevant to case comp format, teams are co-located |
 | Mobile app | Web-only, two browser tabs per team |
 | OAuth / social login | Email/password sufficient for competition setting |
@@ -122,13 +122,60 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| *(populated during roadmap creation)* | | |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| AUTH-06 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Pending |
+| GAME-01 | Phase 2 | Pending |
+| GAME-02 | Phase 2 | Pending |
+| GAME-03 | Phase 2 | Pending |
+| GAME-04 | Phase 2 | Pending |
+| SIM-01 | Phase 3 | Pending |
+| SIM-02 | Phase 3 | Pending |
+| SIM-03 | Phase 3 | Pending |
+| SIM-04 | Phase 3 | Pending |
+| TRAD-01 | Phase 3 | Pending |
+| TRAD-02 | Phase 3 | Pending |
+| TRAD-03 | Phase 3 | Pending |
+| TRAD-04 | Phase 3 | Pending |
+| TRAD-05 | Phase 3 | Pending |
+| UI-02 | Phase 3 | Pending |
+| SOLN-01 | Phase 4 | Pending |
+| SOLN-02 | Phase 4 | Pending |
+| SOLN-03 | Phase 4 | Pending |
+| SOLN-04 | Phase 4 | Pending |
+| EVAL-01 | Phase 4 | Pending |
+| EVAL-02 | Phase 4 | Pending |
+| EVAL-03 | Phase 4 | Pending |
+| EVAL-04 | Phase 4 | Pending |
+| EVAL-05 | Phase 4 | Pending |
+| NEWS-01 | Phase 5 | Pending |
+| NEWS-02 | Phase 5 | Pending |
+| NEWS-03 | Phase 5 | Pending |
+| ADMN-01 | Phase 5 | Pending |
+| ADMN-02 | Phase 5 | Pending |
+| ADMN-03 | Phase 5 | Pending |
+| ADMN-05 | Phase 5 | Pending |
+| NEWS-04 | Phase 6 | Pending |
+| ADMN-04 | Phase 6 | Pending |
+| ELIM-01 | Phase 6 | Pending |
+| ELIM-02 | Phase 6 | Pending |
+| ELIM-03 | Phase 6 | Pending |
+| UI-03 | Phase 6 | Pending |
+| UI-04 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37 ⚠️
+- v1 requirements: 48 total
+- Mapped to phases: 48
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after initial definition*
+*Last updated: 2026-04-16 after roadmap creation*
