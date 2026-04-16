@@ -9,8 +9,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Admin, Team, TeamStatus
+from app.models import Admin, GameStatus, Team, TeamStatus
 from app.auth_utils import create_access_token, require_admin
+from app.services.game_service import (
+    calculate_elapsed_seconds,
+    get_game_state_readonly,
+    transition_state,
+)
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -52,6 +57,12 @@ class TeamActionResponse(BaseModel):
     message: str
     team_id: str
     new_status: str
+
+
+class GameStateResponse(BaseModel):
+    status: str
+    elapsed_seconds: int
+    current_round: int
 
 
 # --- Utility ---
@@ -200,4 +211,76 @@ async def reject_team(
         message=f"Team '{team.name}' rejected",
         team_id=str(team.id),
         new_status=TeamStatus.REJECTED.value,
+    )
+
+
+# --- Game Control Endpoints (per D-02: admin-only) ---
+
+
+@router.post("/game/start", response_model=GameStateResponse)
+async def start_game(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Start the game (SETUP -> ACTIVE). Requires admin."""
+    try:
+        state = await transition_state(db, GameStatus.ACTIVE)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    return GameStateResponse(
+        status=state.status.value,
+        elapsed_seconds=calculate_elapsed_seconds(state),
+        current_round=state.current_round,
+    )
+
+
+@router.post("/game/pause", response_model=GameStateResponse)
+async def pause_game(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pause the game (ACTIVE -> PAUSED). Requires admin."""
+    try:
+        state = await transition_state(db, GameStatus.PAUSED)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    return GameStateResponse(
+        status=state.status.value,
+        elapsed_seconds=calculate_elapsed_seconds(state),
+        current_round=state.current_round,
+    )
+
+
+@router.post("/game/resume", response_model=GameStateResponse)
+async def resume_game(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resume the game (PAUSED -> ACTIVE). Requires admin."""
+    try:
+        state = await transition_state(db, GameStatus.ACTIVE)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    return GameStateResponse(
+        status=state.status.value,
+        elapsed_seconds=calculate_elapsed_seconds(state),
+        current_round=state.current_round,
+    )
+
+
+@router.get("/game/state", response_model=GameStateResponse)
+async def get_game_state_endpoint(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current game state. Requires admin."""
+    state = await get_game_state_readonly(db)
+
+    return GameStateResponse(
+        status=state.status.value,
+        elapsed_seconds=calculate_elapsed_seconds(state),
+        current_round=state.current_round,
     )

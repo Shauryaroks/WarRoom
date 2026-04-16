@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api import admin, auth, teams
 from app.auth_utils import decode_token
 from app.redis_pubsub import start_redis_relay
+from app.services.game_service import warm_redis_cache
 from app.websocket import manager
 
 logger = logging.getLogger("complex")
@@ -21,6 +22,8 @@ logger = logging.getLogger("complex")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Warm Redis cache from DB on startup (Pitfall 4: prevents stale state after crash)
+    await warm_redis_cache()
     # Startup: start Redis pub/sub relay as background task
     relay_task = asyncio.create_task(start_redis_relay())
     logger.info("Redis pub/sub relay task started")
