@@ -13,7 +13,7 @@ This roadmap delivers a real-time case competition platform in 6 phases, progres
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation, Auth, and Base UI** - Dockerized backend, database schema, Redis pub/sub relay, team auth with role separation, Bloomberg dark theme scaffold (completed 2026-04-15)
-- [ ] **Phase 2: Game State and Lobby** - Game lifecycle state machine, lobby system, server-authoritative timer, WebSocket-driven state broadcast
+- [x] **Phase 2: Game State and Lobby** - Game lifecycle state machine, lobby system, server-authoritative timer, WebSocket-driven state broadcast (completed 2026-04-16)
 - [ ] **Phase 3: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking
 - [ ] **Phase 4: Solutions and LLM Evaluation** - Solution submission, LLM evaluation via OpenRouter, human-in-the-loop admin approval gate
 - [ ] **Phase 5: News and Admin Dashboard** - News feed (admin-injected + LLM-generated), admin live dashboard, approval queue, broadcast messages
@@ -56,7 +56,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Backend game lifecycle: state machine service, admin endpoints, Celery task guard, tests
-- [ ] 02-02-PLAN.md -- Frontend game lifecycle: game store, lobby redirect, admin controls, game page
+- [x] 02-02-PLAN.md -- Frontend game lifecycle: game store, lobby redirect, admin controls, game page
 
 **UI hint**: yes
 
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation, Auth, and Base UI | 6/6 | Complete    | 2026-04-15 |
-| 2. Game State and Lobby | 1/2 | In Progress|  |
+| 2. Game State and Lobby | 2/2 | Complete   | 2026-04-16 |
 | 3. Simulation Engine and Trading | 0/TBD | Not started | - |
 | 4. Solutions and LLM Evaluation | 0/TBD | Not started | - |
 | 5. News and Admin Dashboard | 0/TBD | Not started | - |
