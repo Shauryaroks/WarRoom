@@ -167,7 +167,13 @@ Plans:
   2. 4 pre-built archetype dossiers (Legacy Giant, D2C Challenger, Regional Leader, Premium Niche) are available with balance sheets, SWOT analyses, cost structures, and benchmark bands
   3. Each team's game view shows its archetype identity and key benchmark ranges
   4. Admin can view and edit archetype assignments from the admin portal
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md -- Backend: Archetype model, migration, admin CRUD/assign/seed endpoints, caseline response update
+- [ ] 07-02-PLAN.md -- Frontend: types, API client, admin Teams dropdown, Settings archetype form, game CaselinePanel badge
+
+**UI hint**: yes
 
 ### Phase 8: Decision Levers & Round Structure
 **Goal**: The game has structured rhythm -- admin controls War Room and Live Floor phases within each round, and teams submit strategic decisions across 5 lever categories every 20-minute cycle
@@ -242,7 +248,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12
 | 4. Simulation Engine and Trading | v1.0 | 5/5 | Complete | 2026-04-16 |
 | 5. Solutions and LLM Evaluation | v1.0 | 4/4 | Complete | 2026-04-16 |
 | 6. News, Elimination, and Polish | v1.0 | 4/4 | Complete | 2026-04-16 |
-| 7. Archetypes & Sample Portfolios | v2.0 | 0/0 | Not started | - |
+| 7. Archetypes & Sample Portfolios | v2.0 | 0/2 | Planning | - |
 | 8. Decision Levers & Round Structure | v2.0 | 0/0 | Not started | - |
 | 9. Enhanced Simulation Engine | v2.0 | 0/0 | Not started | - |
 | 10. Enhanced Trading | v2.0 | 0/0 | Not started | - |
