@@ -10,6 +10,24 @@ import type { IChartApi, ISeriesApi, Time } from "lightweight-charts";
 import type { CandleData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+// Generate placeholder candles when no real data exists
+function generatePlaceholderData(): CandleData[] {
+  const now = Math.floor(Date.now() / 1000);
+  const candles: CandleData[] = [];
+  let price = 100;
+  for (let i = 59; i >= 0; i--) {
+    const time = now - i * 300; // 5-min candles, 60 candles = 5 hours
+    const volatility = 2 + Math.random() * 3;
+    const open = price;
+    const close = open + (Math.random() - 0.48) * volatility;
+    const high = Math.max(open, close) + Math.random() * volatility * 0.5;
+    const low = Math.min(open, close) - Math.random() * volatility * 0.5;
+    candles.push({ time, open, high, low, close });
+    price = close;
+  }
+  return candles;
+}
+
 interface CandlestickChartProps {
   data: CandleData[]; // From market store candles[selectedCompanyId]
   className?: string;
@@ -83,13 +101,13 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
     };
   }, []);
 
-  // Update data when it changes
+  // Update data when it changes (use placeholder if empty)
   useEffect(() => {
-    if (!seriesRef.current || !chartRef.current || !data || data.length === 0) {
-      return;
-    }
+    if (!seriesRef.current || !chartRef.current) return;
 
-    const formattedData = data.map((c) => ({
+    const chartData = data && data.length > 0 ? data : generatePlaceholderData();
+
+    const formattedData = chartData.map((c) => ({
       time: c.time as Time,
       open: c.open,
       high: c.high,
@@ -121,7 +139,24 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
 
     prevDataLengthRef.current = data.length;
     prevFirstTimeRef.current = currentFirstTime;
-  }, [data]);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Render placeholder on mount if no data
+  useEffect(() => {
+    if (!seriesRef.current || !chartRef.current) return;
+    if (!data || data.length === 0) {
+      const placeholder = generatePlaceholderData();
+      const formatted = placeholder.map((c) => ({
+        time: c.time as Time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }));
+      seriesRef.current.setData(formatted);
+      chartRef.current.timeScale().fitContent();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
