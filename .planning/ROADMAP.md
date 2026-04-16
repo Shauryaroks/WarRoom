@@ -133,7 +133,14 @@ Plans:
   4. Eliminated teams can no longer trade or submit solutions but retain read-only access
   5. A leaderboard shows company rankings by stock price, updating in real-time
   6. The layout supports two-device concurrent play per team (Strategist on one screen, Trader on another) with responsive design
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 06-01-PLAN.md -- LLM service refactor, news generation Celery task, CrisisEvent model, migration
+- [ ] 06-02-PLAN.md -- Admin crisis/elimination/leaderboard endpoints, backend guards, approval-to-news wiring
+- [ ] 06-03-PLAN.md -- Frontend crisis overlay, elimination state, leaderboard widget and page, WebSocket wiring
+- [ ] 06-04-PLAN.md -- Two-device responsive layout polish
+
 **UI hint**: yes
 
 ## Progress
@@ -148,4 +155,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
 | 4. Simulation Engine and Trading | 5/5 | Complete    | 2026-04-16 |
 | 5. Solutions and LLM Evaluation | 4/4 | Complete    | 2026-04-16 |
-| 6. News, Elimination, and Polish | 0/TBD | Not started | - |
+| 6. News, Elimination, and Polish | 0/4 | Not started | - |
