@@ -301,7 +301,74 @@ def upgrade() -> None:
     )
 
 
+    # Activity events table (from migration 002)
+    op.create_table(
+        "activity_events",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("event_type", sa.String(50), nullable=False),
+        sa.Column("actor_type", sa.String(20), nullable=False),
+        sa.Column("actor_id", sa.String(36), nullable=True),
+        sa.Column("actor_name", sa.String(100), nullable=True),
+        sa.Column("description", sa.Text(), nullable=False),
+        sa.Column("metadata_json", sa.Text(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+    )
+
+    # Target price columns on teams (from migration 003)
+    op.add_column("teams", sa.Column("target_price", sa.Numeric(10, 2), nullable=True))
+    op.add_column("teams", sa.Column("ticks_to_target", sa.Integer(), nullable=True))
+
+    # Caseline columns on teams (from migration 004)
+    op.add_column("teams", sa.Column("caseline_document", sa.Text(), nullable=True))
+    op.add_column("teams", sa.Column("company_display_name", sa.String(100), nullable=True))
+
+    # Solutions table (from migration 004)
+    op.create_table(
+        "solutions",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+        sa.Column("content", sa.Text(), nullable=False),
+        sa.Column(
+            "solution_type",
+            sa.Enum("INITIAL", "MICROTWEAK", name="solutiontype"),
+            nullable=False,
+        ),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+    )
+
+    # Evaluations table (from migration 004)
+    op.create_table(
+        "evaluations",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("solution_id", UUID(as_uuid=True), sa.ForeignKey("solutions.id"), unique=True, nullable=False),
+        sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+        sa.Column(
+            "status",
+            sa.Enum("PROCESSING", "PENDING_APPROVAL", "APPROVED", "REJECTED", "FAILED", name="evaluationstatus"),
+            nullable=True,
+        ),
+        sa.Column("scoring_metrics", sa.Text(), nullable=True),
+        sa.Column("overall_score", sa.Float(), nullable=True),
+        sa.Column("price_timeline", sa.Text(), nullable=True),
+        sa.Column("news_headline", sa.String(120), nullable=True),
+        sa.Column("news_body", sa.Text(), nullable=True),
+        sa.Column("news_sentiment", sa.Numeric(3, 2), nullable=True),
+        sa.Column("llm_model", sa.String(100), nullable=True),
+        sa.Column("llm_latency_ms", sa.Integer(), nullable=True),
+        sa.Column("llm_cost", sa.Numeric(10, 6), nullable=True),
+        sa.Column("raw_response", sa.Text(), nullable=True),
+        sa.Column("approved_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("rejected_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("admin_notes", sa.Text(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
+    )
+
+
 def downgrade() -> None:
+    op.drop_table("evaluations")
+    op.drop_table("solutions")
+    op.drop_table("activity_events")
     op.drop_table("market_news")
     op.drop_table("price_history")
     op.drop_table("cash_ledger")
@@ -317,3 +384,5 @@ def downgrade() -> None:
     op.execute("DROP TYPE IF EXISTS gamestatus")
     op.execute("DROP TYPE IF EXISTS directivestatus")
     op.execute("DROP TYPE IF EXISTS transactiontype")
+    op.execute("DROP TYPE IF EXISTS solutiontype")
+    op.execute("DROP TYPE IF EXISTS evaluationstatus")
