@@ -160,6 +160,10 @@ export default function GamePage() {
     }
   }, []);
 
+  const activeCrisis = useGameStore((s) => s.activeCrisis);
+  const companies = useMarketStore((s) => s.companies);
+  const teamId = useAuthStore((s) => s.teamId);
+
   useWebSocket({
     onMessage: handleMessage,
     enabled: isAuthenticated,
@@ -169,10 +173,11 @@ export default function GamePage() {
     return null;
   }
 
-  // Get candle data for selected company
+  // Computed values (safe after hooks, before render)
   const chartData = selectedCompanyId ? (candles[selectedCompanyId] || []) : [];
+  const isEliminated = role !== "admin" &&
+    companies.find(c => c.team_id === teamId)?.status === "ELIMINATED";
 
-  // Render sidebar content based on active tab
   function renderSidebarContent() {
     switch (activeTab) {
       case "CASELINE":
@@ -192,13 +197,6 @@ export default function GamePage() {
         return null;
     }
   }
-
-  const isEliminated = useAuthStore.getState().role !== "admin" &&
-    useMarketStore.getState().companies.find(
-      c => c.team_id === useAuthStore.getState().teamId
-    )?.status === "ELIMINATED";
-
-  const activeCrisis = useGameStore((s) => s.activeCrisis);
 
   return (
     <div className="bg-[#131313] min-h-screen flex flex-col">
