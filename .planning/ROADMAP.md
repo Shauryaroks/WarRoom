@@ -70,7 +70,15 @@ Plans:
   3. Admin can broadcast text messages to all teams via WebSocket
   4. Admin can inject news events that appear in all teams' news feeds in real-time
   5. Admin has an evaluation approval queue UI (approve/edit/reject) — backend integration completes in Phase 5
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 03-01-PLAN.md -- Backend endpoints: team removal, news injection, broadcast, activity log, round advance
+- [ ] 03-02-PLAN.md -- Admin layout shell: sidebar navigation, topnav, admin store, API client
+- [ ] 03-03-PLAN.md -- Dashboard and Teams tabs: team overview, inline management actions
+- [ ] 03-04-PLAN.md -- News and Evaluations tabs: injection form, broadcast, eval empty state
+- [ ] 03-05-PLAN.md -- Markets, Settings, Activity tabs: stock overview, round controls, event feed
+
 **UI hint**: yes
 
 ### Phase 4: Simulation Engine and Trading
@@ -121,7 +129,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Foundation, Auth, and Base UI | 6/6 | Complete    | 2026-04-15 |
 | 2. Game State and Lobby | 2/2 | Complete    | 2026-04-16 |
-| 3. Admin Portal | 0/TBD | Not started | - |
+| 3. Admin Portal | 0/5 | Not started | - |
 | 4. Simulation Engine and Trading | 0/TBD | Not started | - |
 | 5. Solutions and LLM Evaluation | 0/TBD | Not started | - |
 | 6. News, Elimination, and Polish | 0/TBD | Not started | - |
