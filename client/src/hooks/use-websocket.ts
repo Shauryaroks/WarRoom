@@ -1,9 +1,144 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
+import { create } from "zustand";
 import { useAuthStore } from "@/stores/auth-store";
 
 type MessageHandler = (data: Record<string, unknown>) => void;
+
+interface WebSocketState {
+  isConnected: boolean;
+  ws: WebSocket | null;
+  listeners: Set<MessageHandler>;
+  addListener: (handler: MessageHandler) => void;
+  removeListener: (handler: MessageHandler) => void;
+}
+
+const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+
+// Singleton state — one WebSocket connection shared across all components
+const useWsStore = create<WebSocketState>((set, get) => ({
+  isConnected: false,
+  ws: null,
+  listeners: new Set(),
+  addListener: (handler) => {
+    get().listeners.add(handler);
+  },
+  removeListener: (handler) => {
+    get().listeners.delete(handler);
+  },
+}));
+
+let reconnectAttempts = 0;
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+let pingInterval: ReturnType<typeof setInterval> | null = null;
+let isConnecting = false;
+
+function cleanup() {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+  if (pingInterval) {
+    clearInterval(pingInterval);
+    pingInterval = null;
+  }
+}
+
+function connectSingleton(token: string) {
+  // Prevent duplicate connection attempts
+  if (isConnecting) return;
+  const existing = useWsStore.getState().ws;
+  if (existing && (existing.readyState === WebSocket.CONNECTING || existing.readyState === WebSocket.OPEN)) {
+    return;
+  }
+
+  isConnecting = true;
+
+  try {
+    const ws = new WebSocket(`${WS_BASE}/ws`);
+
+    ws.onopen = () => {
+      isConnecting = false;
+      ws.send(JSON.stringify({ type: "auth", token }));
+
+      pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "ping" }));
+        }
+      }, 25000);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "connected") {
+          useWsStore.setState({ isConnected: true });
+          reconnectAttempts = 0;
+        } else if (data.type === "pong") {
+          // keepalive response
+        } else if (data.type === "ping") {
+          ws.send(JSON.stringify({ type: "pong" }));
+        } else {
+          // Broadcast to all registered listeners
+          const { listeners } = useWsStore.getState();
+          listeners.forEach((handler) => {
+            try {
+              handler(data);
+            } catch {
+              // Listener error — don't break other listeners
+            }
+          });
+        }
+      } catch {
+        // malformed message
+      }
+    };
+
+    ws.onclose = (event) => {
+      isConnecting = false;
+      useWsStore.setState({ isConnected: false, ws: null });
+      cleanup();
+
+      // Don't reconnect on auth failures
+      if (event.code >= 4001 && event.code <= 4003) return;
+
+      // Exponential backoff
+      if (reconnectAttempts < 10) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        const jitter = Math.random() * 1000;
+        reconnectAttempts++;
+        reconnectTimeout = setTimeout(() => {
+          const currentToken = useAuthStore.getState().token;
+          if (currentToken) connectSingleton(currentToken);
+        }, delay + jitter);
+      }
+    };
+
+    ws.onerror = () => {
+      isConnecting = false;
+    };
+
+    useWsStore.setState({ ws });
+  } catch {
+    isConnecting = false;
+  }
+}
+
+function disconnectSingleton() {
+  cleanup();
+  const { ws } = useWsStore.getState();
+  if (ws) {
+    ws.onclose = null;
+    ws.close();
+    useWsStore.setState({ ws: null, isConnected: false });
+  }
+  reconnectAttempts = 0;
+  isConnecting = false;
+}
+
+// --- Public hook ---
 
 interface UseWebSocketOptions {
   onMessage?: MessageHandler;
@@ -15,101 +150,47 @@ interface UseWebSocketReturn {
   sendMessage: (data: Record<string, unknown>) => void;
 }
 
-const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
-
 export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const { onMessage, enabled = true } = options;
   const token = useAuthStore((s) => s.token);
-  const wsRef = useRef<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 10;
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  const pingIntervalRef = useRef<ReturnType<typeof setInterval>>();
-  const onMessageRef = useRef(onMessage);
-  onMessageRef.current = onMessage;
+  const isConnected = useWsStore((s) => s.isConnected);
 
-  const connect = useCallback(() => {
+  // Manage singleton connection lifecycle
+  useEffect(() => {
     if (!token || !enabled) return;
 
-    try {
-      const ws = new WebSocket(`${WS_BASE}/ws`);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        // Send auth message as first message
-        ws.send(JSON.stringify({ type: "auth", token }));
-
-        // Start client-side ping every 25s (server expects within 30s)
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 25000);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === "connected") {
-            setIsConnected(true);
-            reconnectAttempts.current = 0;
-          } else if (data.type === "pong") {
-            // Server responded to our ping -- connection alive
-          } else if (data.type === "ping") {
-            // Server-initiated ping -- respond with pong
-            ws.send(JSON.stringify({ type: "pong" }));
-          } else {
-            onMessageRef.current?.(data);
-          }
-        } catch {
-          // Ignore malformed messages
-        }
-      };
-
-      ws.onclose = (event) => {
-        setIsConnected(false);
-        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-
-        // Don't reconnect on auth failures (4001-4003)
-        if (event.code >= 4001 && event.code <= 4003) return;
-
-        // Exponential backoff reconnection
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          const jitter = Math.random() * 1000;
-          reconnectAttempts.current++;
-          reconnectTimeoutRef.current = setTimeout(connect, delay + jitter);
-        }
-      };
-
-      ws.onerror = () => {
-        // onclose will fire after onerror
-      };
-    } catch {
-      // Connection failed -- onclose reconnect logic handles retry
+    const { ws } = useWsStore.getState();
+    if (!ws || ws.readyState === WebSocket.CLOSED) {
+      connectSingleton(token);
     }
+
+    // No cleanup — singleton persists across component mounts/unmounts
+    // Disconnect happens on logout (auth store clear)
   }, [token, enabled]);
 
+  // Register/unregister message listener
   useEffect(() => {
-    connect();
+    if (!onMessage) return;
 
+    useWsStore.getState().addListener(onMessage);
     return () => {
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-      if (wsRef.current) {
-        wsRef.current.onclose = null; // prevent reconnect on intentional close
-        wsRef.current.close();
-      }
+      useWsStore.getState().removeListener(onMessage);
     };
-  }, [connect]);
+  }, [onMessage]);
 
   const sendMessage = useCallback((data: Record<string, unknown>) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
+    const { ws } = useWsStore.getState();
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(data));
     }
   }, []);
 
   return { isConnected, sendMessage };
 }
+
+// Disconnect on logout
+useAuthStore.subscribe((state, prev) => {
+  if (prev.token && !state.token) {
+    disconnectSingleton();
+  }
+});
