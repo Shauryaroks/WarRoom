@@ -26,6 +26,9 @@ import type {
   EvaluationActionResponse,
   CaselineAssignResponse,
   LeaderboardEntry,
+  ArchetypeResponse,
+  ArchetypeAssignResponse,
+  ArchetypeSeedResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -358,6 +361,50 @@ class ApiClient {
         method: "PUT",
         body: JSON.stringify(data),
       }
+    );
+  }
+
+  // === Phase 7: Archetype CRUD ===
+
+  async getArchetypes(): Promise<ArchetypeResponse[]> {
+    return this.request<ArchetypeResponse[]>("/api/v1/admin/archetypes");
+  }
+
+  async createArchetype(
+    data: Omit<ArchetypeResponse, "id" | "is_preset" | "created_at">
+  ): Promise<ArchetypeResponse> {
+    return this.request<ArchetypeResponse>("/api/v1/admin/archetypes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteArchetype(
+    archetypeId: string
+  ): Promise<{ message: string }> {
+    return this.request<{ message: string }>(
+      `/api/v1/admin/archetypes/${archetypeId}`,
+      { method: "DELETE" }
+    );
+  }
+
+  async assignArchetype(
+    teamId: string,
+    archetypeId: string
+  ): Promise<ArchetypeAssignResponse> {
+    return this.request<ArchetypeAssignResponse>(
+      `/api/v1/admin/teams/${teamId}/assign-archetype`,
+      {
+        method: "POST",
+        body: JSON.stringify({ archetype_id: archetypeId }),
+      }
+    );
+  }
+
+  async seedArchetypes(): Promise<ArchetypeSeedResponse> {
+    return this.request<ArchetypeSeedResponse>(
+      "/api/v1/admin/archetypes/seed",
+      { method: "POST" }
     );
   }
 }

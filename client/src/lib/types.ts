@@ -58,6 +58,8 @@ export interface AdminTeam {
   strategist_email: string;
   trader_email: string;
   created_at: string;
+  archetype_id: string | null;
+  archetype_name: string | null;
 }
 
 export interface NewsItem {
@@ -225,6 +227,14 @@ export interface CooldownResponse {
 export interface CaselineResponse {
   caseline_document: string | null;
   company_display_name: string | null;
+  archetype_name: string | null;
+  archetype_slug: string | null;
+  sector: string | null;
+  benchmark_bands: string | null;
+  swot_strengths: string | null;
+  swot_weaknesses: string | null;
+  swot_opportunities: string | null;
+  swot_threats: string | null;
 }
 
 export interface EvaluationListItem {
@@ -282,4 +292,46 @@ export interface LeaderboardEntry {
   stock_price: string;
   change_pct: string;
   status: string;
+}
+
+// === Phase 7: Archetype Types ===
+
+export interface ArchetypeResponse {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sector: string;
+  dossier_content: string;
+  benchmark_bands: string; // JSON
+  starting_cash: string;
+  starting_stock_price: string;
+  starting_shares: number;
+  swot_strengths: string | null;
+  swot_weaknesses: string | null;
+  swot_opportunities: string | null;
+  swot_threats: string | null;
+  real_world_inspiration: string | null;
+  is_preset: boolean;
+  created_at: string;
+}
+
+export interface ArchetypeAssignResponse {
+  message: string;
+  team_id: string;
+  archetype_name: string;
+}
+
+export interface ArchetypeSeedResponse {
+  message: string;
+  created: string[];
+  skipped: string[];
+}
+
+// Parsed benchmark bands for display
+export interface BenchmarkBands {
+  market_share: [number, number];
+  margin: [number, number];
+  growth: [number, number];
+  ops_efficiency: [number, number];
 }

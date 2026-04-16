@@ -10,6 +10,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
 import { TeamTable } from "@/components/admin/team-table";
 import { toast } from "sonner";
+import type { ArchetypeResponse } from "@/lib/types";
 
 export default function TeamsPage() {
   const router = useRouter();
@@ -24,7 +25,10 @@ export default function TeamsPage() {
     }
   }, [isAuthenticated, role, router]);
 
-  // Load teams on mount
+  // Archetypes state
+  const [archetypes, setArchetypes] = useState<ArchetypeResponse[]>([]);
+
+  // Load teams and archetypes on mount
   useEffect(() => {
     if (isAuthenticated && role === "admin") {
       api
@@ -35,6 +39,7 @@ export default function TeamsPage() {
         .catch(() => {
           // Will retry via WebSocket events
         });
+      api.getArchetypes().then(setArchetypes).catch(() => {});
     }
   }, [isAuthenticated, role, setTeams]);
 
@@ -179,10 +184,17 @@ export default function TeamsPage() {
       {caselineTeamId && (
         <div className="mt-6 bg-[#1c1b1b] p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-mono text-sm font-bold text-[#9ecaff] tracking-widest uppercase">
-              ASSIGN_CASELINE //{" "}
-              {caselineTeam?.name ?? caselineTeamId}
-            </h3>
+            <div className="flex items-center gap-3">
+              <h3 className="font-mono text-sm font-bold text-[#9ecaff] tracking-widest uppercase">
+                ASSIGN_CASELINE //{" "}
+                {caselineTeam?.name ?? caselineTeamId}
+              </h3>
+              {caselineTeam?.archetype_name && (
+                <span className="bg-[#2196f3]/20 text-[#2196f3] px-2 py-0.5 font-mono text-xs font-bold uppercase">
+                  {caselineTeam.archetype_name}
+                </span>
+              )}
+            </div>
             <button
               onClick={handleCaselineCancel}
               className="font-mono text-sm text-gray-500 hover:text-gray-300 transition-colors"
@@ -190,6 +202,46 @@ export default function TeamsPage() {
               CLOSE
             </button>
           </div>
+
+          {/* Archetype Dropdown - only during SETUP */}
+          {status === "SETUP" && archetypes.length > 0 && (
+            <div className="mb-6">
+              <label className="block font-mono text-xs text-gray-500 tracking-widest mb-2 uppercase">
+                ARCHETYPE // SELECT TO AUTO-FILL
+              </label>
+              <select
+                defaultValue=""
+                onChange={async (e) => {
+                  const archetypeId = e.target.value;
+                  if (!archetypeId || !caselineTeamId) return;
+                  const archetype = archetypes.find((a) => a.id === archetypeId);
+                  if (!archetype) return;
+                  try {
+                    const result = await api.assignArchetype(caselineTeamId, archetypeId);
+                    toast.success(`Archetype assigned: ${result.archetype_name}`);
+                    setCaselineDoc(archetype.dossier_content);
+                    setCompanyName(archetype.name);
+                    setStartingCash(archetype.starting_cash);
+                    setInitialStockPrice(archetype.starting_stock_price);
+                    // Refresh teams to show updated archetype_name
+                    api.getTeams().then(setTeams).catch(() => {});
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error ? err.message : "Failed to assign archetype"
+                    );
+                  }
+                }}
+                className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+              >
+                <option value="">-- No archetype --</option>
+                {archetypes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} [{a.sector}]
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Markdown textarea */}
           <div className="mb-6">

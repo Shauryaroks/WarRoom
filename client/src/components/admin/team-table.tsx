@@ -74,7 +74,12 @@ export function TeamTable({
               className="hover:bg-[#2a2a2a] transition-colors"
             >
               <td className="py-5 pr-4 font-mono font-bold text-[#e5e2e1] text-sm">
-                {team.name}
+                <span>{team.name}</span>
+                {team.archetype_name && (
+                  <span className="ml-2 text-[10px] font-normal text-[#2196f3]/70 uppercase">
+                    {team.archetype_name}
+                  </span>
+                )}
               </td>
               <td className="py-5 pr-4 font-mono text-gray-500 text-sm">
                 {team.ticker}
