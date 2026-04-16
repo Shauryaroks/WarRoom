@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/stores/auth-store";
+import { useGameStore } from "@/stores/game-store";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { TeamList } from "@/components/lobby/team-list";
 import { ConnectionIndicator } from "@/components/lobby/connection-indicator";
 import { api } from "@/lib/api";
-import type { ApprovedTeam } from "@/lib/types";
+import type { ApprovedTeam, GameStatePayload } from "@/lib/types";
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -52,9 +53,15 @@ export default function LobbyPage() {
             { id: team.id, name: team.name, ticker: team.ticker },
           ];
         });
-      } else if (data.type === "game_starting") {
-        // Redirect to game after brief delay
-        setTimeout(() => router.push("/game"), 1000);
+      } else if (data.type === "game_started" || data.type === "game_state_changed") {
+        const payload = data.payload as GameStatePayload;
+        if (payload) {
+          useGameStore.getState().setGameState(payload);
+        }
+        if (data.type === "game_started") {
+          // D-08: Instant redirect, no countdown
+          router.push("/game");
+        }
       }
     },
     [router]

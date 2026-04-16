@@ -1,111 +1,136 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
-import { GameProvider, useGameContext } from "@/contexts/GameContext";
-import { WebSocketProvider, useWebSocket } from "@/contexts/WebSocketContext";
-import {
-  HeaderBar,
-  LeftSidebar,
-  DirectiveEditor,
-  RightSidebar,
-  Footer,
-} from "@/components/game";
-import { GameGuard } from "@/components/game/GameGuard";
-import { TradeModal, BoardFeedbackModal } from "@/components/game/Modals";
+import { useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
-/**
- * The inner layout component for the main game dashboard.
- * Connects to the Auth, Game, and WebSocket contexts to retrieve the user,
- * game state, and modal statuses, and renders the terminal UI grid consisting
- * of the header, sidebars, directive editor, and footer ticker.
- *
- * @returns The rendered terminal layout.
- */
-function GameLayout() {
-  const { user } = useAuth();
-  const ticker = user?.ticker || "$BRBE";
-  const { isTradeModalOpen, isFeedbackModalOpen } = useGameContext();
-  const { gameState, isMarketConnected, isTeamConnected, globalAnnouncement } =
-    useWebSocket();
+import { useAuthStore } from "@/stores/auth-store";
+import { useGameStore } from "@/stores/game-store";
+import { useWebSocket } from "@/hooks/use-websocket";
+import type { GameStatePayload } from "@/lib/types";
 
-  const formatSeconds = (secs?: number) => {
-    if (!secs) return "00:00:00";
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
+function formatElapsed(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+export default function GamePage() {
+  const router = useRouter();
+  const { isAuthenticated, teamName, ticker } = useAuthStore();
+  const { status, elapsedSeconds, currentRound } = useGameStore();
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+    }
+  }, [isAuthenticated, router]);
+
+  // Redirect to lobby if game hasn't started
+  useEffect(() => {
+    if (isAuthenticated && status === "SETUP") {
+      router.push("/lobby");
+    }
+  }, [isAuthenticated, status, router]);
+
+  // Handle WebSocket messages
+  const handleMessage = useCallback((data: Record<string, unknown>) => {
+    if (data.type === "game_state_changed" || data.type === "game_started") {
+      const payload = data.payload as GameStatePayload;
+      if (payload) {
+        useGameStore.getState().setGameState(payload);
+      }
+    }
+  }, []);
+
+  useWebSocket({
+    onMessage: handleMessage,
+    enabled: isAuthenticated,
+  });
+
+  if (!isAuthenticated || status === "SETUP") {
+    return null;
+  }
+
+  const statusColor =
+    status === "ACTIVE"
+      ? "text-green-400 bg-green-400/10 border-green-400/30"
+      : status === "PAUSED"
+        ? "text-amber-400 bg-amber-400/10 border-amber-400/30"
+        : "text-red-400 bg-red-400/10 border-red-400/30";
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] font-mono text-[13px] leading-tight overflow-hidden select-none">
-      {/* HEADER BAR */}
-      <div className="h-16 border-b border-[var(--color-outline)] bg-[var(--color-bg-darkest)] shrink-0">
-        <HeaderBar
-          sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
-          timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
-          ticker={ticker}
-          isMarketConnected={isMarketConnected}
-          isTeamConnected={isTeamConnected}
-        />
-      </div>
-
-      {/* MIDDLE SECTION */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEDGER */}
-        <div className="w-1/4 h-full border-r border-[var(--color-outline)] bg-[var(--color-bg-darkest)] overflow-hidden">
-          <LeftSidebar />
-        </div>
-
-        {/* COMMAND LINE */}
-        <div className="w-2/4 h-full bg-[var(--color-bg-dark)] overflow-hidden">
-          <DirectiveEditor maxChars={2000} />
-        </div>
-
-        {/* THE WIRE */}
-        <div className="w-1/4 h-full border-l border-[var(--color-outline)] bg-[var(--color-bg-darkest)] overflow-hidden">
-          <RightSidebar />
-        </div>
-      </div>
-
-      {/* FOOTER TICKER */}
-      <div className="h-14 border-t border-[var(--color-outline)] bg-[var(--color-bg-darkest)] shrink-0">
-        <Footer />
-      </div>
-
-      {isTradeModalOpen && <TradeModal />}
-      {isFeedbackModalOpen && <BoardFeedbackModal />}
-      {globalAnnouncement && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center justify-center border-2 border-red-500 bg-black p-8 shadow-[0_0_30px_rgba(239,68,68,0.5)]">
-            <h1 className="text-4xl font-bold tracking-[0.2em] text-red-500 animate-pulse mb-4">
-              {globalAnnouncement.type === "PURGE"
-                ? "SYSTEM PURGE ALERT"
-                : "BANKRUPTCY ALERT"}
-            </h1>
-            <p className="text-xl text-red-400 font-mono text-center max-w-2xl">
-              {globalAnnouncement.message}
+    <div className="bg-background min-h-screen flex flex-col">
+      {/* Pause overlay */}
+      {status === "PAUSED" && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+          <div className="border border-amber-400/30 bg-background px-8 py-6 text-center">
+            <div className="font-mono text-2xl font-bold text-amber-400">
+              GAME PAUSED
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Waiting for admin to resume...
             </p>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-/**
- * The main entry point for the player game dashboard.
- * Wraps the `GameLayout` in the required context providers (GameProvider and WebSocketProvider).
- *
- * @returns The wrapped game page layout.
- */
-export default function GamePage() {
-  return (
-    <GameProvider>
-      <WebSocketProvider>
-        <GameGuard>
-          <GameLayout />
-        </GameGuard>
-      </WebSocketProvider>
-    </GameProvider>
+      {/* Header bar */}
+      <header className="border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1 className="font-mono text-sm font-bold text-primary">COMPLEX</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-foreground font-medium">
+              {teamName}
+            </span>
+            <span className="font-mono text-xs font-bold text-primary">
+              {ticker}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6">
+          {/* Quarter */}
+          <div className="text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Quarter
+            </div>
+            <div className="font-mono text-lg font-bold text-foreground">
+              Q{currentRound}
+            </div>
+          </div>
+
+          {/* Timer */}
+          <div className="text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Elapsed
+            </div>
+            <div className="font-mono text-lg font-bold text-foreground tabular-nums">
+              {formatElapsed(elapsedSeconds)}
+            </div>
+          </div>
+
+          {/* Status badge */}
+          <div
+            className={`font-mono text-xs font-bold px-3 py-1 border ${statusColor}`}
+          >
+            {status}
+          </div>
+        </div>
+      </header>
+
+      {/* Main content placeholder */}
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="font-mono text-sm text-muted-foreground">
+            Trading interface will appear here
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            Phase 3: Charts, order book, and portfolio
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }

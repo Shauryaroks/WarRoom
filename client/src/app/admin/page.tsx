@@ -1,522 +1,223 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+
+import { useAuthStore } from "@/stores/auth-store";
+import { useGameStore } from "@/stores/game-store";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
-import { TeamSummary, AdminMetrics, LLMStats, MarketStats } from "@/lib/models";
+import type { GameStatePayload } from "@/lib/types";
 
-export default function AdminDashboard() {
-  const [teams, setTeams] = useState<TeamSummary[]>([]);
-  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
-  const [llm, setLlm] = useState<LLMStats | null>(null);
-  const [market, setMarket] = useState<MarketStats | null>(null);
+function formatElapsed(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
-  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+export default function AdminPage() {
+  const router = useRouter();
+  const { isAuthenticated, role } = useAuthStore();
+  const { status, elapsedSeconds, currentRound, setGameState } = useGameStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Purge State — start READY (the "PENDING" safety check is cosmetic)
-  const [purgeState, setPurgeState] = useState<
-    "READY" | "CONFIRM" | "PROCESSING" | "COMPLETE"
-  >("READY");
-  const [countdown, setCountdown] = useState(3);
-
-  const fetchData = async () => {
-    try {
-      const [fetchedTeams, m, l, mk] = await Promise.all([
-        api.getTeams(),
-        api.adminGetMetrics(),
-        api.adminGetLLMStats(),
-        api.adminGetMarketStats(),
-      ]);
-      setTeams(fetchedTeams);
-      setMetrics(m);
-      setLlm(l);
-      setMarket(mk);
-    } catch (err) {
-      console.error("Failed to fetch data", err);
-    }
-  };
-
+  // Redirect non-admin users
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (purgeState === "CONFIRM" && countdown > 0) {
-      const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-      return () => clearTimeout(timer);
+    if (!isAuthenticated || role !== "admin") {
+      router.push("/admin/login");
     }
-  }, [purgeState, countdown]);
+  }, [isAuthenticated, role, router]);
 
-  const handlePurgeAction = async () => {
-    if (purgeState === "READY") {
-      setPurgeState("CONFIRM");
-      setCountdown(3);
-    } else if (purgeState === "CONFIRM" && countdown === 0) {
-      setPurgeState("PROCESSING");
-      try {
-        await api.initiatePurge({ confirmation: "PURGE", force: false });
-        setPurgeState("COMPLETE");
-        fetchData();
-      } catch (err) {
-        console.error(err);
-        setPurgeState("READY");
+  // Load initial game state on mount
+  useEffect(() => {
+    if (isAuthenticated && role === "admin") {
+      api
+        .getGameState()
+        .then((data) => {
+          setGameState({
+            status: data.status as GameStatePayload["status"],
+            elapsed_seconds: data.elapsed_seconds,
+            current_round: data.current_round,
+          });
+        })
+        .catch(() => {
+          // Will populate via WebSocket
+        });
+    }
+  }, [isAuthenticated, role, setGameState]);
+
+  // Handle WebSocket messages
+  const handleMessage = useCallback((data: Record<string, unknown>) => {
+    if (data.type === "game_state_changed" || data.type === "game_started") {
+      const payload = data.payload as GameStatePayload;
+      if (payload) {
+        useGameStore.getState().setGameState(payload);
       }
     }
-  };
+  }, []);
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      notation: "compact",
-    }).format(val);
-  };
-
-  const formatNumber = (val: number) => {
-    return new Intl.NumberFormat("en-US", { notation: "compact" }).format(val);
-  };
-
-  const filteredTeams = teams.filter((t) => {
-    if (statusFilter !== "all" && t.status.toLowerCase() !== statusFilter)
-      return false;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        t.name.toLowerCase().includes(query) ||
-        t.ticker.toLowerCase().includes(query)
-      );
-    }
-    return true;
+  useWebSocket({
+    onMessage: handleMessage,
+    enabled: isAuthenticated && role === "admin",
   });
 
+  async function handleStart() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.startGame();
+      setGameState({
+        status: data.status as GameStatePayload["status"],
+        elapsed_seconds: data.elapsed_seconds,
+        current_round: data.current_round,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start game");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handlePause() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.pauseGame();
+      setGameState({
+        status: data.status as GameStatePayload["status"],
+        elapsed_seconds: data.elapsed_seconds,
+        current_round: data.current_round,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to pause game");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleResume() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.resumeGame();
+      setGameState({
+        status: data.status as GameStatePayload["status"],
+        elapsed_seconds: data.elapsed_seconds,
+        current_round: data.current_round,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resume game");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (!isAuthenticated || role !== "admin") {
+    return null;
+  }
+
+  const statusColor =
+    status === "ACTIVE"
+      ? "text-green-400 bg-green-400/10 border-green-400/30"
+      : status === "PAUSED"
+        ? "text-amber-400 bg-amber-400/10 border-amber-400/30"
+        : status === "FINISHED"
+          ? "text-red-400 bg-red-400/10 border-red-400/30"
+          : "text-muted-foreground bg-muted/10 border-border";
+
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto pb-8 p-4">
-      {/* Top Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Game Controls Card */}
-        <div className="bg-[#141414] border border-[#2a2a2a] rounded-[6px] p-4 flex flex-col justify-between">
-          <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider mb-4 font-normal">
-            Game Controls
-          </h2>
-          <div className="grid grid-cols-2 gap-2 mt-auto">
-            <button
-              onClick={() =>
-                api.startGame({}).then(fetchData).catch(console.error)
-              }
-              className="bg-[#00c853]/10 hover:bg-[#00c853]/20 text-[#00c853] border border-[#00c853]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
+    <div className="bg-background min-h-screen flex flex-col items-center px-4 pt-16">
+      <div className="w-full max-w-[480px] space-y-8">
+        {/* Header */}
+        <div className="space-y-1">
+          <h1 className="font-mono text-xl font-semibold text-primary">
+            COMPLEX
+          </h1>
+          <p className="text-xs text-muted-foreground">Game Control Panel</p>
+        </div>
+
+        {/* Status card */}
+        <div className="border border-border bg-card p-6 space-y-6">
+          {/* Status badge */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">
+              Game Status
+            </span>
+            <div
+              className={`font-mono text-xs font-bold px-3 py-1 border ${statusColor}`}
             >
-              START GAME
-            </button>
-            <button
-              onClick={() => api.endGame().then(fetchData).catch(console.error)}
-              className="bg-[#ff3333]/10 hover:bg-[#ff3333]/20 text-[#ff3333] border border-[#ff3333]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
-            >
-              END GAME
-            </button>
-            <button
-              onClick={() =>
-                api.pauseGame().then(fetchData).catch(console.error)
-              }
-              className="bg-[#0077b6]/10 hover:bg-[#0077b6]/20 text-[#0077b6] border border-[#0077b6]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
-            >
-              PAUSE
-            </button>
-            <button
-              onClick={() =>
-                api.resumeGame().then(fetchData).catch(console.error)
-              }
-              className="bg-[#00bcd4]/10 hover:bg-[#00bcd4]/20 text-[#00bcd4] border border-[#00bcd4]/30 px-3 py-2 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
-            >
-              RESUME
-            </button>
+              {status}
+            </div>
+          </div>
+
+          {/* Timer */}
+          <div className="text-center py-4">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+              Elapsed Time
+            </div>
+            <div className="font-mono text-4xl font-bold text-foreground tabular-nums">
+              {formatElapsed(elapsedSeconds)}
+            </div>
+          </div>
+
+          {/* Quarter */}
+          <div className="flex items-center justify-between border-t border-border pt-4">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">
+              Current Quarter
+            </span>
+            <span className="font-mono text-lg font-bold text-foreground">
+              Q{currentRound}
+            </span>
           </div>
         </div>
 
-        {/* LLM Session Costs Card */}
-        <div className="bg-[#141414] border border-[#2a2a2a] rounded-[6px] p-4 flex flex-col justify-between">
-          <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider mb-4 font-normal">
-            LLM Session Costs
-          </h2>
-
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-end mb-1">
-                <span className="font-['JetBrains_Mono',monospace] text-[#e0e0e0] text-[14px] tabular-nums">
-                  ${llm?.total_cost_usd?.toFixed(2) || "0.00"}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-end mb-1">
-                <span className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif]">
-                  Total Requests: {llm?.total_requests || 0}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-end mb-1">
-                <span className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif]">
-                  Avg Latency:{" "}
-                  {llm?.avg_latency_ms
-                    ? `${(llm.avg_latency_ms / 1000).toFixed(1)}s`
-                    : "0s"}
-                </span>
-                <span
-                  className={`text-[12px] font-['Inter',sans-serif] ${!llm || llm.avg_latency_ms > 2000 ? "text-[#0077b6]" : "text-[#00c853]"}`}
-                >
-                  {!llm || llm.avg_latency_ms > 2000 ? "Warning" : "Good"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Market Health Card */}
-        <div className="bg-[#141414] border border-[#2a2a2a] rounded-[6px] p-4 flex flex-col">
-          <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider mb-4 font-normal">
-            Market Health
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <div className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif] mb-1">
-                Trades/hour
-              </div>
-              <div className="font-['JetBrains_Mono',monospace] text-[#e0e0e0] text-[14px] tabular-nums">
-                {market?.trades_last_hour
-                  ? formatNumber(market.trades_last_hour)
-                  : 0}
-              </div>
-            </div>
-            <div>
-              <div className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif] mb-1">
-                Total Trades
-              </div>
-              <div className="font-['JetBrains_Mono',monospace] text-[#e0e0e0] text-[14px] tabular-nums">
-                {market?.total_trades ? formatNumber(market.total_trades) : 0}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 min-h-[80px]">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-4 h-4 rounded-full bg-[#0077b6]/20 flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#0077b6] text-[12px]">
-                  warning
-                </span>
-              </div>
-              <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif] font-medium">
-                Anomalies Detected
-              </span>
-            </div>
-            <ul className="space-y-1">
-              {market?.anomaly_alerts && market.anomaly_alerts.length > 0 ? (
-                market.anomaly_alerts.map((anomaly, idx) => (
-                  <li
-                    key={idx}
-                    className="flex justify-between items-center text-[12px] group"
-                  >
-                    <div className="flex items-center text-[#e5e5e5] font-['Inter',sans-serif]">
-                      <span className="text-[#6b7280] mr-2">[-]</span>{" "}
-                      {anomaly.type} on {anomaly.ticker}: {anomaly.description}
-                    </div>
-                  </li>
-                ))
-              ) : (
-                <li className="text-[12px] text-[#6b7280] italic">
-                  No active anomalies
-                </li>
-              )}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Split Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Active Teams Column */}
-        <div className="col-span-1 lg:col-span-2 bg-[#141414] border border-[#2a2a2a] rounded-[6px] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-[#2a2a2a] flex justify-between items-center">
-            <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider font-normal">
-              Active Teams ({metrics?.active_teams || 0})
-            </h2>
+        {/* Controls */}
+        <div className="space-y-3">
+          {status === "SETUP" && (
             <button
-              onClick={fetchData}
-              className="text-[13px] text-[#9ca3af] hover:text-[#e5e5e5] font-['Inter',sans-serif] font-medium flex items-center gap-1 transition-colors"
+              onClick={handleStart}
+              disabled={isLoading}
+              className="w-full font-mono text-sm font-bold px-4 py-3 border border-green-400/30 bg-green-400/10 text-green-400 hover:bg-green-400/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="material-symbols-outlined text-[16px]">
-                refresh
-              </span>{" "}
-              Refresh
+              {isLoading ? "STARTING..." : "START GAME"}
             </button>
-          </div>
+          )}
 
-          <div className="p-4 border-b border-[#2a2a2a] flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] text-[16px]">
-                search
-              </span>
-              <input
-                type="text"
-                placeholder="Search teams..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] pl-9 pr-3 text-[13px] text-[#e5e5e5] placeholder-[#6b7280] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-[4px] h-[40px] px-3 text-[13px] text-[#e5e5e5] focus:outline-none focus:border-[#0077b6] font-['Inter',sans-serif] transition-colors min-w-[140px]"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="cooldown">Cooldown</option>
-              <option value="bankrupt">Bankrupt</option>
-              <option value="eliminated">Eliminated</option>
-            </select>
-          </div>
-
-          <div className="flex-1 overflow-x-auto">
-            <table className="min-w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#2a2a2a]">
-                  <th className="font-['Inter',sans-serif] text-[11px] font-normal text-[#6b7280] uppercase px-4 py-3 cursor-pointer hover:text-[#e5e5e5] select-none">
-                    Team <span className="text-[10px]">▲</span>
-                  </th>
-                  <th className="font-['Inter',sans-serif] text-[11px] font-normal text-[#6b7280] uppercase px-4 py-3">
-                    Ticker
-                  </th>
-                  <th className="font-['Inter',sans-serif] text-[11px] font-normal text-[#6b7280] uppercase px-4 py-3 cursor-pointer hover:text-[#e5e5e5] select-none text-right">
-                    Price
-                  </th>
-                  <th className="font-['Inter',sans-serif] text-[11px] font-normal text-[#6b7280] uppercase px-4 py-3 text-right">
-                    Market Cap
-                  </th>
-                  <th className="font-['Inter',sans-serif] text-[11px] font-normal text-[#6b7280] uppercase px-4 py-3">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTeams.map((team, idx) => {
-                  const isDead =
-                    team.status === "ELIMINATED" || team.status === "BANKRUPT";
-                  return (
-                  <React.Fragment key={team.team_id}>
-                    <tr
-                      className={`h-[56px] border-b border-[#2a2a2a]/50 cursor-pointer transition-colors ${isDead ? "bg-[#1a0000]" : idx % 2 === 0 ? "bg-[#0a0a0a]" : "bg-[#111111]"} hover:bg-[#1a1a1a]`}
-                      onClick={() =>
-                        setExpandedTeamId(
-                          expandedTeamId === team.team_id ? null : team.team_id,
-                        )
-                      }
-                    >
-                      <td className={`px-4 text-[13px] font-['Inter',sans-serif] whitespace-nowrap ${isDead ? "text-[#ff3333]/60 line-through" : "text-[#9ca3af]"}`}>
-                        {team.name}
-                      </td>
-                      <td className={`px-4 text-[14px] font-bold font-['JetBrains_Mono',monospace] ${isDead ? "text-[#ff3333]" : "text-[#0077b6]"}`}>
-                        {team.ticker}
-                      </td>
-                      <td className={`px-4 text-[14px] font-['JetBrains_Mono',monospace] tabular-nums text-right ${isDead ? "text-[#ff3333]" : "text-[#e0e0e0]"}`}>
-                        {isDead ? "$0.00" : `$${team.stock_price.toFixed(2)}`}
-                      </td>
-                      <td className={`px-4 text-[14px] font-['JetBrains_Mono',monospace] tabular-nums text-right ${isDead ? "text-[#ff3333]/50" : "text-[#e0e0e0]"}`}>
-                        {isDead ? "$0" : formatCurrency(team.market_cap || 0)}
-                      </td>
-                      <td className="px-4">
-                        <div className="flex items-center h-[56px]">
-                          {team.status === "ACTIVE" && (
-                            <span className="text-[#00c853] text-[14px] mr-2 leading-none">
-                              ●
-                            </span>
-                          )}
-                          {team.status === "COOLDOWN" && (
-                            <span className="text-[#0077b6] text-[14px] mr-2 leading-none">
-                              ◐
-                            </span>
-                          )}
-                          {team.status === "BANKRUPT" && (
-                            <span className="text-[#ff3333] text-[14px] mr-2 leading-none animate-pulse">
-                              ✕
-                            </span>
-                          )}
-                          {team.status === "ELIMINATED" && (
-                            <span className="text-[#ff3333] text-[14px] mr-2 leading-none">
-                              ☠
-                            </span>
-                          )}
-                          {team.status === "PENDING" && (
-                            <span className="text-[#00bcd4] text-[14px] mr-2 leading-none">
-                              ◑
-                            </span>
-                          )}
-                          {team.status === "READY" && (
-                            <span className="text-[#00c853]/50 text-[14px] mr-2 leading-none">
-                              ◎
-                            </span>
-                          )}
-                          <span className={`text-[13px] font-['Inter',sans-serif] capitalize ${isDead ? "text-[#ff3333] font-bold" : "text-[#e5e5e5]"}`}>
-                            {team.status.toLowerCase()}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedTeamId === team.team_id && (
-                      <tr className="bg-[#161616] border-b border-[#2a2a2a]">
-                        <td colSpan={5} className="px-4 py-4">
-                          <div className="flex justify-between items-start gap-4">
-                            <div>
-                              {/* Last Directive removed - not in spec */}
-                            </div>
-                            <div className="text-right flex flex-col items-end">
-                              <div className="text-[11px] text-[#6b7280] font-['Inter',sans-serif] uppercase mb-1">
-                                Available Cash
-                              </div>
-                              <div className="text-[14px] text-[#e0e0e0] font-['JetBrains_Mono',monospace] tabular-nums mb-4">
-                                {formatCurrency(0)}
-                              </div>
-
-                              <button
-                                className="bg-[#ff3333]/10 hover:bg-[#ff3333]/20 text-[#ff3333] border border-[#ff3333]/30 px-3 py-1.5 rounded-[4px] text-[12px] font-bold font-['Inter',sans-serif] transition-colors"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  try {
-                                    await api.forceBankruptTeam(team.team_id);
-                                    fetchData();
-                                  } catch (err) {
-                                    console.error(err);
-                                  }
-                                }}
-                              >
-                                FORCE BANKRUPT
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                  );
-                })}
-                {filteredTeams.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-8 text-center text-gray-500 font-['Inter',sans-serif]"
-                    >
-                      No teams match criteria.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Purge Control Column */}
-        <div className="col-span-1 lg:col-span-1 bg-[#141414] border border-[#2a2a2a] rounded-[6px] p-4 flex flex-col">
-          <h2 className="text-[11px] font-['Inter',sans-serif] text-[#6b7280] uppercase tracking-wider mb-6 font-normal">
-            Market Purge Control
-          </h2>
-
-          <div className="space-y-3 mb-8 flex-1">
-            <div className="text-[13px] text-[#9ca3af] font-['Inter',sans-serif] mb-4">
-              Status Check:
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-[#00c853] text-[16px] material-symbols-outlined">
-                check_box
-              </span>
-              <span className="text-[13px] font-['Inter',sans-serif] text-[#e5e5e5]">
-                Safe to execute purge
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {(metrics?.llm_queue_depth ?? 0) > 0 ? (
-                <span
-                  className="text-[#0077b6] text-[16px] material-symbols-outlined animate-spin"
-                  style={{ animationDuration: "2s" }}
-                >
-                  hourglass_empty
-                </span>
-              ) : (
-                <span className="text-[#00c853] text-[16px] material-symbols-outlined">
-                  check_box
-                </span>
-              )}
-              <span
-                className={`text-[13px] font-['Inter',sans-serif] ${(metrics?.llm_queue_depth ?? 0) > 0 ? "text-[#9ca3af]" : "text-[#e5e5e5]"}`}
-              >
-                No directives processing (queue: {metrics?.llm_queue_depth || 0}
-                )
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-[#00c853] text-[16px] material-symbols-outlined">
-                check_box
-              </span>
-              <span className="text-[13px] text-[#e5e5e5] font-['Inter',sans-serif]">
-                {metrics?.active_teams || 0} teams active
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-auto relative">
-            {/* Warning overlay after first click */}
-            {purgeState === "CONFIRM" && (
-              <div className="absolute -top-[4.5rem] left-0 right-0 bg-[#ff3333]/10 border border-[#ff3333]/30 p-3 rounded-[4px] text-center">
-                <span className="text-[#ff3333] text-[12px] font-bold font-['Inter',sans-serif] uppercase block">
-                  Warning: Irreversible Action
-                </span>
-                <span className="text-[#ff3333]/80 text-[11px] font-['Inter',sans-serif]">
-                  50% of active teams will be liquidated.
-                </span>
-              </div>
-            )}
-
-            {purgeState === "COMPLETE" && (
-              <div className="absolute -top-[3.5rem] left-0 right-0 bg-[#00c853]/10 border border-[#00c853]/30 p-3 rounded-[4px] text-center">
-                <span className="text-[#00c853] text-[12px] font-bold font-['Inter',sans-serif] uppercase block">
-                  Purge Executed
-                </span>
-                <span className="text-[#00c853]/80 text-[11px] font-['Inter',sans-serif]">
-                  Teams successfully eliminated.
-                </span>
-              </div>
-            )}
-
+          {status === "ACTIVE" && (
             <button
-              onClick={handlePurgeAction}
-              disabled={
-                purgeState === "COMPLETE" ||
-                purgeState === "PROCESSING"
-              }
-              className={`w-full h-[48px] rounded-[4px] font-bold text-[13px] tracking-widest font-['Inter',sans-serif] transition-all duration-200 flex items-center justify-center uppercase
-                ${purgeState === "PROCESSING" ? "bg-[#2a2a2a] text-[#6b7280] cursor-not-allowed" : ""}
-                ${purgeState === "READY" ? "bg-[#0077b6] text-[#0a0a0a] hover:bg-[#0077b6]/90 shadow-[0_0_15px_rgba(255,176,0,0.3)] cursor-pointer" : ""}
-                ${purgeState === "CONFIRM" ? "bg-[#ff3333] text-[#e5e5e5] hover:bg-[#ff3333]/90 shadow-[0_0_15px_rgba(255,51,51,0.4)] cursor-pointer" : ""}
-                ${purgeState === "COMPLETE" ? "bg-[#00c853] text-[#0a0a0a] cursor-not-allowed" : ""}
-              `}
+              onClick={handlePause}
+              disabled={isLoading}
+              className="w-full font-mono text-sm font-bold px-4 py-3 border border-amber-400/30 bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {purgeState === "READY" && "INITIATE PURGE (1/2)"}
-              {purgeState === "CONFIRM" &&
-                (countdown > 0
-                  ? `CONFIRM PURGE (${countdown})`
-                  : "CONFIRM PURGE (2/2)")}
-              {purgeState === "PROCESSING" && "PROCESSING..."}
-              {purgeState === "COMPLETE" && "PURGE COMPLETE"}
+              {isLoading ? "PAUSING..." : "PAUSE GAME"}
             </button>
-          </div>
+          )}
+
+          {status === "PAUSED" && (
+            <button
+              onClick={handleResume}
+              disabled={isLoading}
+              className="w-full font-mono text-sm font-bold px-4 py-3 border border-green-400/30 bg-green-400/10 text-green-400 hover:bg-green-400/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "RESUMING..." : "RESUME GAME"}
+            </button>
+          )}
+
+          {status === "FINISHED" && (
+            <div className="w-full font-mono text-sm text-center px-4 py-3 border border-red-400/30 bg-red-400/10 text-red-400">
+              GAME FINISHED
+            </div>
+          )}
         </div>
+
+        {/* Error display */}
+        {error && (
+          <div className="border border-red-400/30 bg-red-400/10 px-4 py-3">
+            <p className="font-mono text-xs text-red-400">{error}</p>
+          </div>
+        )}
       </div>
     </div>
   );
