@@ -99,3 +99,20 @@ export interface RoundAdvanceResponse {
   message: string;
   current_round: number;
 }
+
+export interface CandleData {
+  time: number; // Unix seconds (5-min bucket start)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+export interface CompanyInfo {
+  team_id: string;
+  name: string;
+  ticker: string;
+  stock_price: string;
+  market_cap: string;
+  change_pct: string;
+}
