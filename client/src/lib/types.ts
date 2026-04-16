@@ -254,3 +254,32 @@ export interface CaselineAssignResponse {
   message: string;
   team_id: string;
 }
+
+// === Phase 6: Crisis, Elimination, Leaderboard ===
+
+export interface CrisisPayload {
+  crisis_id: string;
+  scenario: string;
+  timer_seconds: number;
+  started_at: string;
+}
+
+export interface CrisisResolvedPayload {
+  crisis_id: string;
+}
+
+export interface TeamEliminatedPayload {
+  team_id: string;
+  ticker: string;
+  rank: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  team_id: string;
+  name: string;
+  ticker: string;
+  stock_price: string;
+  change_pct: string;
+  status: string;
+}
