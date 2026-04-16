@@ -4,6 +4,7 @@ import type {
   AdminLoginResponse,
   MeResponse,
   ApprovedTeam,
+  GameStateResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -83,6 +84,28 @@ class ApiClient {
 
   async getApprovedTeams(): Promise<ApprovedTeam[]> {
     return this.request<ApprovedTeam[]>("/api/v1/teams/approved");
+  }
+
+  async startGame(): Promise<GameStateResponse> {
+    return this.request<GameStateResponse>("/api/v1/admin/game/start", {
+      method: "POST",
+    });
+  }
+
+  async pauseGame(): Promise<GameStateResponse> {
+    return this.request<GameStateResponse>("/api/v1/admin/game/pause", {
+      method: "POST",
+    });
+  }
+
+  async resumeGame(): Promise<GameStateResponse> {
+    return this.request<GameStateResponse>("/api/v1/admin/game/resume", {
+      method: "POST",
+    });
+  }
+
+  async getGameState(): Promise<GameStateResponse> {
+    return this.request<GameStateResponse>("/api/v1/admin/game/state");
   }
 }
 

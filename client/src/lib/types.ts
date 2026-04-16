@@ -35,3 +35,17 @@ export interface ApprovedTeam {
 export interface ApiError {
   detail: string;
 }
+
+export type GameStatus = "SETUP" | "ACTIVE" | "PAUSED" | "FINISHED";
+
+export interface GameStatePayload {
+  status: GameStatus;
+  elapsed_seconds: number;
+  current_round: number;
+}
+
+export interface GameStateResponse {
+  status: string;
+  elapsed_seconds: number;
+  current_round: number;
+}
