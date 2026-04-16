@@ -8,6 +8,22 @@ A real-time case competition platform where 32-40 teams compete by solving busin
 
 The simulation engine — teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time. If this loop doesn't work, nothing else matters.
 
+## Current Milestone: v2.0 Final Integration
+
+**Goal:** Align platform with the "Bharat Bites & Brews" FMCG Stock Wars competition model — decision levers, enhanced simulation, archetype-relative scoring, short selling, admin-controlled dynamic event flow.
+
+**Target features:**
+- Decision Levers system (5 categories submitted every 20 min)
+- Enhanced price formula (4 weighted fundamentals + event shock + sentiment + noise)
+- Archetype benchmark system (relative scoring per team archetype)
+- Round/Quarter structure (War Room + Live Floor, admin-controlled)
+- Short selling with margin requirements
+- Enhanced dashboard tiles (revenue, margin, market share, NPS, cash, trading P&L)
+- Final scoring engine (50% stock + 25% trading P&L + 25% memo)
+- Press release channel
+- Sample archetype dossiers (4 pre-built)
+- Circuit breakers and distress triggers
+
 ## Requirements
 
 ### Validated
