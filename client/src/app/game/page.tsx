@@ -9,7 +9,7 @@ import { useMarketStore } from "@/stores/market-store";
 import { useTradingStore } from "@/stores/trading-store";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
-import type { GameStatePayload, PriceTickData, NewsItem } from "@/lib/types";
+import type { GameStatePayload, PriceTickData, NewsItem, GamePhaseChangedPayload } from "@/lib/types";
 
 import { GameHeader } from "@/components/game/GameHeader";
 import { GameSidebar, type SidebarTab } from "@/components/game/GameSidebar";
@@ -20,6 +20,8 @@ import { TradingPanel } from "@/components/game/TradingPanel";
 import { PortfolioTable } from "@/components/game/PortfolioTable";
 import { CaselinePanel } from "@/components/game/CaselinePanel";
 import { SolutionsPanel } from "@/components/game/SolutionsPanel";
+import { DecisionsPanel } from "@/components/game/DecisionsPanel";
+import { WarRoomPanel } from "@/components/game/WarRoomPanel";
 import { NewsOverlay } from "@/components/game/NewsOverlay";
 import { CrisisOverlay } from "@/components/game/CrisisOverlay";
 import { EliminatedBanner } from "@/components/game/EliminatedBanner";
@@ -157,10 +159,18 @@ export default function GamePage() {
           .catch(() => {});
         break;
       }
+      case "game_phase_changed": {
+        const phasePayload = data.payload as GamePhaseChangedPayload;
+        if (phasePayload) {
+          useGameStore.getState().setGamePhase(phasePayload.game_phase, phasePayload.macro_brief);
+        }
+        break;
+      }
     }
   }, []);
 
   const activeCrisis = useGameStore((s) => s.activeCrisis);
+  const gamePhase = useGameStore((s) => s.gamePhase);
   const companies = useMarketStore((s) => s.companies);
   const teamId = useAuthStore((s) => s.teamId);
 
@@ -179,6 +189,11 @@ export default function GamePage() {
     companies.find(c => c.team_id === teamId)?.status === "ELIMINATED";
 
   function renderSidebarContent() {
+    // War Room overrides normal tab content
+    if (gamePhase === "war_room") {
+      return <WarRoomPanel />;
+    }
+
     switch (activeTab) {
       case "CASELINE":
         return <CaselinePanel />;
@@ -193,6 +208,8 @@ export default function GamePage() {
         );
       case "SOLUTIONS":
         return <SolutionsPanel />;
+      case "DECISIONS":
+        return <DecisionsPanel />;
       default:
         return null;
     }

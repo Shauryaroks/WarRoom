@@ -8,3 +8,5 @@ export { CandlestickChart } from "./CandlestickChart";
 export { CompanyTabs } from "./CompanyTabs";
 export { PriceOverlay } from "./PriceOverlay";
 export * from "./Modals";
+export { DecisionsPanel } from "./DecisionsPanel";
+export { WarRoomPanel } from "./WarRoomPanel";

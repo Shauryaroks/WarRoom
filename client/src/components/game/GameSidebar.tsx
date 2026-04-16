@@ -1,9 +1,9 @@
 "use client";
 
-import { BookOpen, TrendingUp, FileText, Newspaper } from "lucide-react";
+import { BookOpen, TrendingUp, FileText, Sliders, Newspaper } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
-export type SidebarTab = "CASELINE" | "TRADING" | "SOLUTIONS";
+export type SidebarTab = "CASELINE" | "TRADING" | "SOLUTIONS" | "DECISIONS";
 
 interface GameSidebarProps {
   activeTab: SidebarTab;
@@ -24,6 +24,7 @@ const TABS: TabConfig[] = [
   { id: "CASELINE", label: "CASELINE", icon: BookOpen, roles: ["strategist", "trader"] },
   { id: "TRADING", label: "TRADING", icon: TrendingUp, roles: ["trader"] },
   { id: "SOLUTIONS", label: "SOLUTIONS", icon: FileText, roles: ["strategist"] },
+  { id: "DECISIONS", label: "DECISIONS", icon: Sliders, roles: ["strategist"] },
 ];
 
 export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, role }: GameSidebarProps) {
