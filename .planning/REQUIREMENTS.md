@@ -2,7 +2,7 @@
 
 **Defined:** 2026-04-16
 **Updated:** 2026-04-16 (v2.0 Final Integration)
-**Core Value:** The simulation engine — teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time.
+**Core Value:** The simulation engine -- teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time.
 
 ## v2 Requirements
 
@@ -11,14 +11,14 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 ### Decision Levers
 
 - [ ] **LEVER-01**: Teams submit decisions across 5 lever categories every 20 minutes (Pricing, Marketing, Supply Chain, New Product, Trading)
-- [ ] **LEVER-02**: Each lever has configurable options (price change ±15%, promo depth 0-40%, channel allocation, campaign theme)
+- [ ] **LEVER-02**: Each lever has configurable options (price change +/-15%, promo depth 0-40%, channel allocation, campaign theme)
 - [ ] **LEVER-03**: Decision budgets scale with team archetype and last-quarter revenue
 
 ### Simulation Engine (Enhanced)
 
 - [ ] **SIM-05**: Price formula uses 4 weighted fundamentals (Market Share 35%, Profitability 30%, Ops Efficiency 20%, Brand Health 15%)
 - [ ] **SIM-06**: Each fundamental scored relative to team's archetype benchmark band (not absolute)
-- [ ] **SIM-07**: Event shocks produce ±3% to ±15% discrete price jumps
+- [ ] **SIM-07**: Event shocks produce +/-3% to +/-15% discrete price jumps
 - [ ] **SIM-08**: Sentiment flow from net trading pressure (heavily shorted stock falls, longed rises)
 - [ ] **SIM-09**: Decision impact phases in over 3-5 minutes (smoothing prevents instant snaps)
 
@@ -39,7 +39,7 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 - [ ] **TRAD-06**: Short selling with 30% margin requirement on position value
 - [ ] **TRAD-07**: Position limit: max 15% of own market cap in any single stock
 - [ ] **TRAD-08**: Trading P&L tracked separately from operating P&L, feeds into final score
-- [ ] **TRAD-09**: Circuit breakers: ±25% per quarter price limits halt trading on that stock
+- [ ] **TRAD-09**: Circuit breakers: +/-25% per quarter price limits halt trading on that stock
 
 ### Dashboard (Enhanced)
 
@@ -51,7 +51,7 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 
 - [ ] **SCORE-01**: Final score = 50% stock price performance + 25% trading portfolio P&L + 25% strategy memo
 - [ ] **SCORE-02**: Final strategy memo submission (1000 words max, LLM + human scored)
-- [ ] **SCORE-03**: Distress triggers: 3 consecutive quarters missing archetype benchmark → forced divestment/dilution event
+- [ ] **SCORE-03**: Distress triggers: 3 consecutive quarters missing archetype benchmark -> forced divestment/dilution event
 
 ### Press & Communication
 
@@ -80,13 +80,39 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| *(populated during roadmap creation)* | | |
+| ARCH-01 | Phase 7 | Pending |
+| ARCH-02 | Phase 7 | Pending |
+| PORT-01 | Phase 7 | Pending |
+| LEVER-01 | Phase 8 | Pending |
+| LEVER-02 | Phase 8 | Pending |
+| LEVER-03 | Phase 8 | Pending |
+| ROUND-01 | Phase 8 | Pending |
+| ROUND-02 | Phase 8 | Pending |
+| ROUND-03 | Phase 8 | Pending |
+| SIM-05 | Phase 9 | Pending |
+| SIM-06 | Phase 9 | Pending |
+| SIM-07 | Phase 9 | Pending |
+| SIM-08 | Phase 9 | Pending |
+| SIM-09 | Phase 9 | Pending |
+| ARCH-03 | Phase 9 | Pending |
+| TRAD-06 | Phase 10 | Pending |
+| TRAD-07 | Phase 10 | Pending |
+| TRAD-08 | Phase 10 | Pending |
+| TRAD-09 | Phase 10 | Pending |
+| PRESS-01 | Phase 11 | Pending |
+| PRESS-02 | Phase 11 | Pending |
+| DASH-01 | Phase 11 | Pending |
+| DASH-02 | Phase 11 | Pending |
+| DASH-03 | Phase 11 | Pending |
+| SCORE-01 | Phase 12 | Pending |
+| SCORE-02 | Phase 12 | Pending |
+| SCORE-03 | Phase 12 | Pending |
 
 **Coverage:**
-- v2 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- v2 requirements: 27 total (9 categories)
+- Mapped to phases: 27
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after v2.0 milestone start*
+*Last updated: 2026-04-16 after v2.0 roadmap creation*

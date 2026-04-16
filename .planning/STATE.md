@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Milestone v2.0 started - defining requirements
-last_updated: "2026-04-16T16:57:39.253Z"
+milestone: v2.0
+milestone_name: Final Integration
+status: ready_to_plan
+stopped_at: Roadmap created for v2.0 Final Integration
+last_updated: "2026-04-16"
 last_activity: 2026-04-16
 progress:
   total_phases: 6
-  completed_phases: 6
-  total_plans: 26
-  completed_plans: 26
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** The simulation engine -- teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time.
-**Current focus:** Phase 6 — News, Elimination, and Polish
+**Current focus:** Phase 7 -- Archetypes & Sample Portfolios
 
 ## Current Position
 
-Phase: 6
+Phase: 7 of 12 (Archetypes & Sample Portfolios)
 Plan: Not started
-Status: Executing Phase 6
-Last activity: 2026-04-16
+Status: Ready to plan
+Last activity: 2026-04-16 -- Roadmap created for v2.0 milestone
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,20 +36,16 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 26
+- Total plans completed: 26 (all v1.0)
 - Average duration: -
-- Total execution time: 0 hours
+- Total execution time: -
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 6 | - | - |
-| 2 | 2 | - | - |
-| 3 | 5 | - | - |
-| 4 | 5 | - | - |
-| 5 | 4 | - | - |
-| 6 | 4 | - | - |
+| 1-6 (v1.0) | 26 | - | - |
+| 7-12 (v2.0) | 0 | - | - |
 
 **Recent Trend:**
 
@@ -65,10 +61,10 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: Redis pub/sub relay is Phase 1 deliverable (critical path for all real-time features)
-- [Roadmap]: Bloomberg dark theme established in Phase 1 (visual identity from day one)
-- [Roadmap]: Crisis events deferred to Phase 6 (requires almost every other system)
-- [Roadmap]: UI-02 (candlestick chart) grouped with Phase 3 (verifies simulation engine)
+- [v2.0 Roadmap]: Archetype system is Phase 7 foundation -- all scoring and simulation depends on benchmark bands
+- [v2.0 Roadmap]: Decision levers and round structure grouped together -- they define the new gameplay loop
+- [v2.0 Roadmap]: Enhanced sim engine (Phase 9) depends on both archetypes (Phase 7) and levers (Phase 8) being in place
+- [v2.0 Roadmap]: Phase 12 (Final Scoring) depends on both enhanced trading and dashboard -- last phase ties everything together
 
 ### Pending Todos
 
@@ -76,19 +72,19 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Research]: Worker-to-WebSocket broadcast is broken in existing codebase (Celery worker imports in-process singleton). Must fix with Redis pub/sub relay in Phase 1.
-- [Research]: Trading has no row-level locking for 30% cap enforcement. Must fix in Phase 3 with SELECT FOR UPDATE.
-- [Research]: Price formula double-counts vibe multiplier. Must fix in Phase 3.
-- [Research]: Celery tasks do not check game state before executing. Must fix in Phase 2.
+- [v1.0 carry-forward]: Existing price formula uses random walk + LLM quality. Phase 9 replaces this entirely with 4-fundamental weighted formula. Migration path needed.
+- [v2.0]: Short selling (Phase 10) requires margin accounting -- need to decide if margin comes from team cash or is a separate pool.
 
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| Future | M&A mechanics (acquire distressed rivals) | Deferred to v3 | v2.0 planning |
+| Future | Influence Points system (creator economy) | Deferred to v3 | v2.0 planning |
+| Future | Spectator mode for audience viewing | Deferred to v3 | v2.0 planning |
 
 ## Session Continuity
 
-Last session: 2026-04-16T16:57:39.246Z
-Stopped at: Milestone v2.0 started - defining requirements
-Resume file: .planning/PROJECT.md
+Last session: 2026-04-16
+Stopped at: Roadmap created for v2.0 Final Integration (6 phases, 27 requirements mapped)
+Resume file: .planning/ROADMAP.md
