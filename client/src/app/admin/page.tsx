@@ -128,104 +128,109 @@ export default function AdminPage() {
           : "text-[#89919d] bg-[#89919d]/10 border border-[#89919d]/30";
 
   return (
-    <div className="bg-[#131313] min-h-screen flex flex-col pt-12 pb-6">
-      {/* Fixed top header */}
-      <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50">
-        <div className="flex items-center gap-6">
-          <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
-          <span className="font-sans uppercase tracking-widest text-[0.75rem] font-bold text-[#2196f3] border-b-2 border-[#2196f3] pb-1">ADMIN</span>
+    <div className="grid grid-cols-12 gap-6 w-full">
+      {/* Game Control Station */}
+      <div className="col-span-12 lg:col-span-5 bg-[#1c1b1b] p-6 flex flex-col gap-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-base font-black font-mono tracking-widest text-[#9ecaff] uppercase">
+            GAME_CONTROL_STATION
+          </h2>
+          <span className="flex items-center gap-2 font-mono text-[11px] text-[#40e56c]">
+            <span className="w-2 h-2 bg-[#40e56c] animate-pulse" /> SYSTEM_LIVE
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] text-gray-600">TIME: {new Date().toLocaleTimeString("en-US", { hour12: false })} UTC</span>
-          <span className="w-1.5 h-1.5 bg-[#40e56c]" />
-        </div>
-      </header>
 
-      {/* Main content */}
-      <div className="max-w-[1200px] mx-auto p-6 grid grid-cols-12 gap-6 w-full">
-        {/* Game Control Station */}
-        <div className="col-span-12 lg:col-span-5 bg-[#1c1b1b] p-6 flex flex-col gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-sm font-black font-mono tracking-widest text-[#9ecaff] uppercase">GAME_CONTROL_STATION</h2>
-            <span className="flex items-center gap-2 font-mono text-[10px] text-[#40e56c]">
-              <span className="w-2 h-2 bg-[#40e56c] animate-pulse" /> SYSTEM_LIVE
+        {/* Control buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={handleStart}
+            disabled={isLoading || status !== "SETUP"}
+            className="bg-[#02c953] text-[#003912] py-5 flex flex-col items-center justify-center gap-1 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <span className="text-xl">&#9654;</span>
+            <span className="font-mono text-[13px] font-bold">START</span>
+          </button>
+          <button
+            onClick={handlePause}
+            disabled={isLoading || status !== "ACTIVE"}
+            className="bg-[#2a2a2a] text-[#e5e2e1] py-5 flex flex-col items-center justify-center gap-1 hover:brightness-125 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <span className="text-xl">&#9646;&#9646;</span>
+            <span className="font-mono text-[13px] font-bold">PAUSE</span>
+          </button>
+          <button
+            onClick={handleResume}
+            disabled={isLoading || status !== "PAUSED"}
+            className="bg-[#2a2a2a] text-[#e5e2e1] py-5 flex flex-col items-center justify-center gap-1 hover:brightness-125 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <span className="text-xl">&#8635;</span>
+            <span className="font-mono text-[13px] font-bold">RESUME</span>
+          </button>
+        </div>
+
+        {/* Broadcast input */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-[11px] text-gray-500 uppercase tracking-tighter">
+            GLOBAL_BROADCAST_CHANNEL
+          </label>
+          <div className="relative">
+            <textarea
+              className="w-full bg-[#0e0e0e] border-l-2 border-[#2196f3] text-sm font-mono p-4 text-[#2196f3] h-24 placeholder:text-gray-800 focus:outline-none focus:ring-0"
+              placeholder="ENTER MESSAGE TO ALL TEAMS..."
+              disabled
+            />
+            <span className="absolute bottom-4 right-4 font-mono text-[9px] text-gray-600 uppercase">
+              COMING_SOON
             </span>
           </div>
-
-          {/* Control buttons */}
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={handleStart}
-              disabled={isLoading || status !== "SETUP"}
-              className="bg-[#02c953] text-[#003912] py-4 flex flex-col items-center justify-center gap-1 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <span className="text-xl">&#9654;</span>
-              <span className="font-mono text-[10px] font-bold">START</span>
-            </button>
-            <button
-              onClick={handlePause}
-              disabled={isLoading || status !== "ACTIVE"}
-              className="bg-[#2a2a2a] text-[#e5e2e1] py-4 flex flex-col items-center justify-center gap-1 hover:brightness-125 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <span className="text-xl">&#9646;&#9646;</span>
-              <span className="font-mono text-[10px] font-bold">PAUSE</span>
-            </button>
-            <button
-              onClick={handleResume}
-              disabled={isLoading || status !== "PAUSED"}
-              className="bg-[#2a2a2a] text-[#e5e2e1] py-4 flex flex-col items-center justify-center gap-1 hover:brightness-125 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <span className="text-xl">&#8635;</span>
-              <span className="font-mono text-[10px] font-bold">RESUME</span>
-            </button>
-          </div>
-
-          {/* Broadcast input */}
-          <div className="flex flex-col gap-2">
-            <label className="font-mono text-[10px] text-gray-500 uppercase tracking-tighter">GLOBAL_BROADCAST_CHANNEL</label>
-            <div className="relative">
-              <textarea
-                className="w-full bg-[#0e0e0e] border-l-2 border-[#2196f3] text-sm font-mono p-4 text-[#2196f3] h-24 placeholder:text-gray-800 focus:outline-none focus:ring-0"
-                placeholder="ENTER MESSAGE TO ALL TEAMS..."
-                disabled
-              />
-              <span className="absolute bottom-4 right-4 font-mono text-[9px] text-gray-600 uppercase">COMING_SOON</span>
-            </div>
-          </div>
         </div>
-
-        {/* Status + Timer panel */}
-        <div className="col-span-12 lg:col-span-7 bg-[#1c1b1b] p-6">
-          <h2 className="text-sm font-black font-mono tracking-widest text-[#9ecaff] uppercase mb-6">GAME_STATE_MONITOR</h2>
-
-          {/* Status badge row */}
-          <div className="flex items-center justify-between mb-6">
-            <span className="font-mono text-[10px] text-gray-500 uppercase tracking-widest">STATUS</span>
-            <div className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}>
-              {status}
-            </div>
-          </div>
-
-          {/* Timer display */}
-          <div className="text-center py-8">
-            <div className="font-mono text-[10px] text-gray-500 uppercase tracking-widest mb-2">ELAPSED_TIME</div>
-            <div className="font-mono text-6xl font-black text-[#e5e2e1] tabular-nums">{formatElapsed(elapsedSeconds)}</div>
-          </div>
-
-          {/* Quarter display */}
-          <div className="flex items-center justify-between border-t border-[#404752] pt-4">
-            <span className="font-mono text-[10px] text-gray-500 uppercase tracking-widest">CURRENT_QUARTER</span>
-            <span className="font-mono text-2xl font-bold text-[#e5e2e1]">Q{currentRound}</span>
-          </div>
-        </div>
-
-        {/* Error display */}
-        {error && (
-          <div className="col-span-12 border border-[#FF1744]/30 bg-[#FF1744]/10 px-4 py-3">
-            <p className="font-mono text-xs text-[#FF1744]">{error}</p>
-          </div>
-        )}
       </div>
+
+      {/* Status + Timer panel */}
+      <div className="col-span-12 lg:col-span-7 bg-[#1c1b1b] p-6">
+        <h2 className="text-base font-black font-mono tracking-widest text-[#9ecaff] uppercase mb-6">
+          GAME_STATE_MONITOR
+        </h2>
+
+        {/* Status badge row */}
+        <div className="flex items-center justify-between mb-6">
+          <span className="font-mono text-[11px] text-gray-500 uppercase tracking-widest">
+            STATUS
+          </span>
+          <div
+            className={`font-mono text-[13px] font-bold px-3 py-1 ${statusStyles}`}
+          >
+            {status}
+          </div>
+        </div>
+
+        {/* Timer display */}
+        <div className="text-center py-8">
+          <div className="font-mono text-[11px] text-gray-500 uppercase tracking-widest mb-2">
+            ELAPSED_TIME
+          </div>
+          <div className="font-mono text-7xl font-black text-[#e5e2e1] tabular-nums">
+            {formatElapsed(elapsedSeconds)}
+          </div>
+        </div>
+
+        {/* Quarter display */}
+        <div className="flex items-center justify-between border-t border-[#404752] pt-4">
+          <span className="font-mono text-[11px] text-gray-500 uppercase tracking-widest">
+            CURRENT_QUARTER
+          </span>
+          <span className="font-mono text-3xl font-bold text-[#e5e2e1]">
+            Q{currentRound}
+          </span>
+        </div>
+      </div>
+
+      {/* Error display */}
+      {error && (
+        <div className="col-span-12 border border-[#FF1744]/30 bg-[#FF1744]/10 px-4 py-3">
+          <p className="font-mono text-[13px] text-[#FF1744]">{error}</p>
+        </div>
+      )}
     </div>
   );
 }
