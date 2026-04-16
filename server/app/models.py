@@ -421,6 +421,27 @@ class MarketNews(Base):
     )
 
 
+class ActivityEvent(Base):
+    __tablename__ = "activity_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    event_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # TEAM_APPROVED, TEAM_REJECTED, TEAM_REMOVED, NEWS_INJECTED, BROADCAST_SENT, ROUND_ADVANCED, GAME_STARTED, GAME_PAUSED, GAME_RESUMED
+    actor: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # "admin" or team name
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    metadata_json: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON for extra context
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
 class GameState(Base):
     __tablename__ = "game_state"
 
