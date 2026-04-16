@@ -21,6 +21,9 @@ import { PortfolioTable } from "@/components/game/PortfolioTable";
 import { CaselinePanel } from "@/components/game/CaselinePanel";
 import { SolutionsPanel } from "@/components/game/SolutionsPanel";
 import { NewsOverlay } from "@/components/game/NewsOverlay";
+import { CrisisOverlay } from "@/components/game/CrisisOverlay";
+import { EliminatedBanner } from "@/components/game/EliminatedBanner";
+import { LeaderboardWidget } from "@/components/game/LeaderboardWidget";
 
 export default function GamePage() {
   const router = useRouter();
@@ -126,7 +129,6 @@ export default function GamePage() {
       }
       case "news_injected":
       case "broadcast_message": {
-        // Push to news overlay if it has the addItem handler registered
         const newsPayload = data.payload as NewsItem;
         if (newsPayload && typeof window !== "undefined") {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,6 +137,24 @@ export default function GamePage() {
             addItem(newsPayload);
           }
         }
+        break;
+      }
+      case "crisis_injected": {
+        const crisis = data.payload as { id: string; scenario: string; warning_seconds: number };
+        if (crisis) {
+          useGameStore.getState().setCrisis(crisis);
+        }
+        break;
+      }
+      case "crisis_resolved": {
+        useGameStore.getState().clearCrisis();
+        break;
+      }
+      case "team_eliminated": {
+        // Refresh companies to get updated status
+        api.getCompanies()
+          .then((companies) => useMarketStore.getState().setCompanies(companies))
+          .catch(() => {});
         break;
       }
     }
@@ -173,10 +193,20 @@ export default function GamePage() {
     }
   }
 
+  const isEliminated = useAuthStore.getState().role !== "admin" &&
+    useMarketStore.getState().companies.find(
+      c => c.team_id === useAuthStore.getState().teamId
+    )?.status === "ELIMINATED";
+
+  const activeCrisis = useGameStore((s) => s.activeCrisis);
+
   return (
     <div className="bg-[#131313] min-h-screen flex flex-col">
-      {/* Pause overlay */}
-      {status === "PAUSED" && (
+      {/* Crisis overlay (takes priority over pause) */}
+      {activeCrisis && <CrisisOverlay crisis={activeCrisis} />}
+
+      {/* Pause overlay (only if no crisis) */}
+      {status === "PAUSED" && !activeCrisis && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
           <div className="border border-[#9ecaff]/30 bg-[#131313] px-8 py-6 text-center">
             <div className="font-mono text-2xl font-bold text-[#9ecaff]">GAME PAUSED</div>
@@ -184,6 +214,9 @@ export default function GamePage() {
           </div>
         </div>
       )}
+
+      {/* Eliminated banner */}
+      {isEliminated && <EliminatedBanner />}
 
       {/* Header */}
       <GameHeader />
@@ -213,6 +246,11 @@ export default function GamePage() {
           <div className="flex-1 relative">
             <PriceOverlay />
             <CandlestickChart data={chartData} />
+          </div>
+
+          {/* Leaderboard widget below chart */}
+          <div className="shrink-0 border-t border-[#404752]/20 p-2">
+            <LeaderboardWidget />
           </div>
         </div>
       </div>
