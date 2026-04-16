@@ -5,11 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
 import { api } from "@/lib/api";
 import { registerSchema } from "@/lib/schemas";
 
@@ -112,124 +107,145 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-background min-h-screen flex items-center justify-center px-4">
-      <Card className="w-full max-w-[420px] rounded-none bg-card border border-border p-6 ring-0">
-        <CardContent className="p-0 space-y-6">
-          <div className="space-y-1">
-            <h1 className="font-mono text-xl font-semibold text-primary">
-              COMPLEX
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Case Competition Platform
-            </p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#131313]">
+      {/* Top header bar */}
+      <header className="fixed top-0 left-0 w-full px-6 h-12 flex justify-between items-center bg-[#0e0e0e] z-50">
+        <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
+        <span className="font-mono text-[9px] font-medium text-[#40e56c] uppercase tracking-widest">SYSTEM_STABLE // NO_ACTIVE_SESSION</span>
+      </header>
+
+      {/* Main card */}
+      <main className="w-full max-w-[420px] bg-[#1c1b1b] relative shadow-2xl">
+        {/* Blue top strip */}
+        <div className="h-1 bg-[#2196f3] w-full" />
+
+        <div className="p-8">
+          {/* Card heading */}
+          <div className="mb-10">
+            <h1 className="font-sans font-extrabold text-2xl tracking-tight text-[#e5e2e1] mb-1">NEW_ENTITY_REGISTRATION</h1>
+            <p className="font-mono text-[10px] text-[#89919d] uppercase tracking-widest">SECURE_NODE_ENTRY // GATE_ALPHA</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="team_name" className="text-xs">
-                Team Name
-              </Label>
-              <Input
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Field_01 // TEAM_NAME */}
+            <div className="space-y-1">
+              <label htmlFor="team_name" className="font-mono text-[10px] text-[#2196f3] uppercase font-bold tracking-tighter">
+                Field_01 // TEAM_NAME
+              </label>
+              <input
                 id="team_name"
                 name="team_name"
-                placeholder="e.g. Apex Capital"
+                placeholder="Enter organizational name..."
                 value={formData.team_name}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                className="w-full bg-[#201f1f] h-11 px-4 border-0 text-sm text-[#e5e2e1] placeholder:text-[#404752] font-sans focus:outline-none focus:border-l-2 focus:border-l-[#2196f3]"
                 aria-invalid={!!getFieldError("team_name")}
               />
               {getFieldError("team_name") && (
-                <p className="text-xs text-destructive">
-                  {getFieldError("team_name")}
-                </p>
+                <p className="text-xs text-[#FF1744]">{getFieldError("team_name")}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ticker" className="text-xs">
-                Ticker Symbol
-              </Label>
-              <Input
-                id="ticker"
-                name="ticker"
-                placeholder="e.g. APEX"
-                value={formData.ticker}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                maxLength={5}
-                className="bg-secondary border border-input h-10 px-3 rounded-md font-mono uppercase"
-                aria-invalid={!!getFieldError("ticker")}
-              />
+            {/* Field_02 // TICKER_SYMBOL */}
+            <div className="space-y-1">
+              <label htmlFor="ticker" className="font-mono text-[10px] text-[#2196f3] uppercase font-bold tracking-tighter">
+                Field_02 // TICKER_SYMBOL
+              </label>
+              <div className="relative">
+                <input
+                  id="ticker"
+                  name="ticker"
+                  placeholder="e.g. KNTIC"
+                  value={formData.ticker}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  maxLength={5}
+                  className="w-full bg-[#201f1f] h-11 px-4 border-0 text-sm text-[#40e56c] placeholder:text-[#404752] font-mono uppercase tracking-[0.2em] focus:outline-none focus:border-l-2 focus:border-l-[#2196f3]"
+                  aria-invalid={!!getFieldError("ticker")}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[8px] text-[#404752]">
+                  [3-5_CHARS]
+                </div>
+              </div>
               {getFieldError("ticker") && (
-                <p className="text-xs text-destructive">
-                  {getFieldError("ticker")}
-                </p>
+                <p className="text-xs text-[#FF1744]">{getFieldError("ticker")}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs">
-                Email
-              </Label>
-              <Input
+            {/* Field_03 // AUTH_EMAIL */}
+            <div className="space-y-1">
+              <label htmlFor="email" className="font-mono text-[10px] text-[#2196f3] uppercase font-bold tracking-tighter">
+                Field_03 // AUTH_EMAIL
+              </label>
+              <input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="team@example.com"
+                placeholder="admin@terminal.local"
                 value={formData.email}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                className="w-full bg-[#201f1f] h-11 px-4 border-0 text-sm text-[#e5e2e1] placeholder:text-[#404752] font-sans focus:outline-none focus:border-l-2 focus:border-l-[#2196f3]"
                 aria-invalid={!!getFieldError("email")}
               />
               {getFieldError("email") && (
-                <p className="text-xs text-destructive">
-                  {getFieldError("email")}
-                </p>
+                <p className="text-xs text-[#FF1744]">{getFieldError("email")}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs">
-                Password
-              </Label>
-              <Input
+            {/* Field_04 // ACCESS_KEY */}
+            <div className="space-y-1">
+              <label htmlFor="password" className="font-mono text-[10px] text-[#2196f3] uppercase font-bold tracking-tighter">
+                Field_04 // ACCESS_KEY
+              </label>
+              <input
                 id="password"
                 name="password"
                 type="password"
-                placeholder=""
+                placeholder="••••••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className="bg-secondary border border-input h-10 px-3 rounded-md"
+                className="w-full bg-[#201f1f] h-11 px-4 border-0 text-sm text-[#e5e2e1] placeholder:text-[#404752] font-sans focus:outline-none focus:border-l-2 focus:border-l-[#2196f3]"
                 aria-invalid={!!getFieldError("password")}
               />
               {getFieldError("password") && (
-                <p className="text-xs text-destructive">
-                  {getFieldError("password")}
-                </p>
+                <p className="text-xs text-[#FF1744]">{getFieldError("password")}</p>
               )}
             </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primary text-primary-foreground h-10 px-4 font-medium w-full rounded-md hover:bg-primary/90"
-              style={isSubmitting ? { opacity: 0.7 } : undefined}
-            >
-              {isSubmitting ? "Registering..." : "Register Team"}
-            </Button>
-          </form>
+            {/* Submit button */}
+            <div className="pt-4 space-y-4">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="milled-metal-btn w-full h-12 text-white font-sans font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSubmitting ? "REGISTERING..." : "Register Team"}
+              </button>
 
-          <p className="text-sm text-muted-foreground text-center">
-            Already registered?{" "}
-            <Link href="/auth/login" className="text-[#2196F3] hover:underline">
-              Log in
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+              {/* Login link */}
+              <div className="flex items-center justify-between pt-2 border-t border-[#404752]/20">
+                <span className="font-mono text-[10px] text-[#89919d] uppercase">Existing entry?</span>
+                <Link href="/auth/login" className="font-mono text-[10px] text-[#2196f3] hover:text-[#9ecaff] uppercase font-bold tracking-tight">
+                  Execute_Login
+                </Link>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer decoration */}
+        <div className="flex justify-between items-center px-8 py-4 bg-[#0e0e0e] border-t border-[#404752]/10">
+          <div className="flex gap-2">
+            <div className="w-2 h-2 bg-[#40e56c]/20" />
+            <div className="w-2 h-2 bg-[#40e56c]/40" />
+            <div className="w-2 h-2 bg-[#40e56c]/80" />
+          </div>
+          <span className="font-mono text-[8px] text-[#404752] uppercase tracking-[0.3em]">ENCRYPTION_LAYER_AES256</span>
+        </div>
+      </main>
     </div>
   );
 }
