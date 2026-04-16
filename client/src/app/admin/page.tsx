@@ -38,7 +38,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated && role === "admin") {
       api
-        .getGameState()
+        .getAdminGameState()
         .then((data) => {
           setGameState({
             status: data.status as GameStatePayload["status"],

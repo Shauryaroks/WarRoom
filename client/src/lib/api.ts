@@ -125,6 +125,10 @@ class ApiClient {
   }
 
   async getGameState(): Promise<GameStateResponse> {
+    return this.request<GameStateResponse>("/api/v1/teams/game-state");
+  }
+
+  async getAdminGameState(): Promise<GameStateResponse> {
     return this.request<GameStateResponse>("/api/v1/admin/game/state");
   }
 

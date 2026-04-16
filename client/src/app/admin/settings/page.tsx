@@ -28,7 +28,7 @@ export default function SettingsPage() {
   // Load game state on mount
   useEffect(() => {
     api
-      .getGameState()
+      .getAdminGameState()
       .then((data) => {
         setGameState({
           status: data.status as GameStatePayload["status"],
