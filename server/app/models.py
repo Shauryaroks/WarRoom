@@ -79,6 +79,38 @@ class PortfolioType(str, enum.Enum):
     RETAIL = "RETAIL"
 
 
+class Archetype(Base):
+    __tablename__ = "archetypes"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sector: Mapped[str] = mapped_column(String(20), nullable=False, default="FOODS")
+    dossier_content: Mapped[str] = mapped_column(Text, nullable=False)
+    benchmark_bands: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
+    starting_cash: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    starting_stock_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    starting_shares: Mapped[int] = mapped_column(Integer, nullable=False, default=1000000)
+    swot_strengths: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_weaknesses: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_opportunities: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_threats: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    real_world_inspiration: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    is_preset: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    # Relationships
+    teams: Mapped[list["Team"]] = relationship("Team", back_populates="archetype")
+
+
 class Team(Base):
     __tablename__ = "teams"
 
@@ -159,6 +191,11 @@ class Team(Base):
     # Admin rejection reason
     rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # Archetype reference
+    archetype_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("archetypes.id"), nullable=True
+    )
+
     # Caseline document (per D-12, D-14)
     caseline_document: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     company_display_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -173,6 +210,9 @@ class Team(Base):
     )
 
     # Relationships
+    archetype: Mapped[Optional["Archetype"]] = relationship(
+        "Archetype", back_populates="teams"
+    )
     directives: Mapped[list["Directive"]] = relationship(
         "Directive", back_populates="team", order_by="desc(Directive.created_at)"
     )
