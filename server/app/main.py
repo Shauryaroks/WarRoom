@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import admin, auth, teams
+from app.api import admin, auth, market, teams, trading
 from app.auth_utils import decode_token
 from app.redis_pubsub import start_redis_relay
 from app.services.game_service import warm_redis_cache
@@ -87,6 +87,8 @@ app.add_middleware(RequestLoggingMiddleware)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(teams.router)
+app.include_router(trading.router)
+app.include_router(market.router)
 
 
 # --- WebSocket Endpoint ---
