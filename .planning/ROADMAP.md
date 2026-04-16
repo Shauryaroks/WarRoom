@@ -137,7 +137,7 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md -- LLM service refactor, news generation Celery task, CrisisEvent model, migration
-- [ ] 06-02-PLAN.md -- Admin crisis/elimination/leaderboard endpoints, backend guards, approval-to-news wiring
+- [x] 06-02-PLAN.md -- Admin crisis/elimination/leaderboard endpoints, backend guards, approval-to-news wiring
 - [ ] 06-03-PLAN.md -- Frontend crisis overlay, elimination state, leaderboard widget and page, WebSocket wiring
 - [ ] 06-04-PLAN.md -- Two-device responsive layout polish
 
@@ -155,4 +155,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
 | 4. Simulation Engine and Trading | 5/5 | Complete    | 2026-04-16 |
 | 5. Solutions and LLM Evaluation | 4/4 | Complete    | 2026-04-16 |
-| 6. News, Elimination, and Polish | 1/4 | In Progress|  |
+| 6. News, Elimination, and Polish | 2/4 | In Progress|  |
