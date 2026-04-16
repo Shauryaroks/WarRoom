@@ -12,8 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from app.auth_utils import require_team
 from app.database import get_db
+from app.models import Team, TeamStatus, StockHolding
 from app.redis_pubsub import publish_broadcast
 from app.services.trading_service import (
     execute_buy,
@@ -117,19 +120,31 @@ async def buy_shares(
             status_code=403, detail="Only traders can execute trades"
         )
 
+    # ELIM-03: Eliminated teams cannot trade
+    buyer_team = await db.scalar(
+        select(Team).where(Team.id == current_user["team_id"])
+    )
+    if buyer_team and buyer_team.status == TeamStatus.ELIMINATED:
+        raise HTTPException(status_code=403, detail="Eliminated teams cannot trade")
+
     try:
         import uuid
 
         target_id = uuid.UUID(req.target_team_id)
+
+        # D-09: Cannot buy eliminated team's stock
+        target_team = await db.scalar(
+            select(Team).where(Team.id == target_id)
+        )
+        if target_team and target_team.status == TeamStatus.ELIMINATED:
+            raise HTTPException(status_code=409, detail="Cannot trade eliminated company stock")
+
         txn = await execute_buy(
             db, current_user["team_id"], target_id, req.shares
         )
         await db.commit()
 
         # Get updated holding count for response
-        from sqlalchemy import select
-        from app.models import StockHolding
-
         holding = await db.scalar(
             select(StockHolding).where(
                 StockHolding.owner_team_id == current_user["team_id"],
@@ -139,8 +154,6 @@ async def buy_shares(
         shares_owned = holding.shares_owned if holding else 0
 
         # Get updated cash balance
-        from app.models import Team
-
         buyer = await db.scalar(
             select(Team).where(Team.id == current_user["team_id"])
         )
@@ -180,6 +193,13 @@ async def sell_shares(
             status_code=403, detail="Only traders can execute trades"
         )
 
+    # ELIM-03: Eliminated teams cannot trade
+    seller_team = await db.scalar(
+        select(Team).where(Team.id == current_user["team_id"])
+    )
+    if seller_team and seller_team.status == TeamStatus.ELIMINATED:
+        raise HTTPException(status_code=403, detail="Eliminated teams cannot trade")
+
     try:
         import uuid
 
@@ -190,9 +210,6 @@ async def sell_shares(
         await db.commit()
 
         # Get updated holding count for response
-        from sqlalchemy import select
-        from app.models import StockHolding
-
         holding = await db.scalar(
             select(StockHolding).where(
                 StockHolding.owner_team_id == current_user["team_id"],
@@ -202,8 +219,6 @@ async def sell_shares(
         shares_owned = holding.shares_owned if holding else 0
 
         # Get updated cash balance
-        from app.models import Team
-
         seller = await db.scalar(
             select(Team).where(Team.id == current_user["team_id"])
         )

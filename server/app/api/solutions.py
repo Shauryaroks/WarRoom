@@ -26,6 +26,7 @@ from app.models import (
     Solution,
     SolutionType,
     Team,
+    TeamStatus,
 )
 from app.services.game_service import calculate_elapsed_seconds, get_game_state_readonly
 
@@ -37,7 +38,7 @@ router = APIRouter(prefix="/api/v1/solutions", tags=["solutions"])
 
 class SubmitSolutionRequest(BaseModel):
     content: str = Field(min_length=10, max_length=50000)
-    solution_type: str = Field(pattern=r"^(INITIAL|MICROTWEAK)$")
+    solution_type: str = Field(pattern=r"^(INITIAL|MICROTWEAK|CRISIS_RESPONSE)$")
 
 
 class SolutionResponse(BaseModel):
@@ -79,20 +80,30 @@ async def submit_solution(
     if current_user["role"] != "strategist":
         raise HTTPException(status_code=403, detail="Only strategists can submit solutions")
 
-    # Validate game is ACTIVE
+    # Validate game is ACTIVE (crisis responses allowed during PAUSED)
     game_state = await get_game_state_readonly(db)
-    if game_state.status != GameStatus.ACTIVE:
-        raise HTTPException(status_code=409, detail="Game is not active")
+    sol_type = SolutionType(request.solution_type)
+
+    if sol_type == SolutionType.CRISIS_RESPONSE:
+        # Crisis responses allowed during PAUSED state (D-04 step 5)
+        if game_state.status not in (GameStatus.ACTIVE, GameStatus.PAUSED):
+            raise HTTPException(status_code=409, detail="Game is not active or paused")
+    else:
+        if game_state.status != GameStatus.ACTIVE:
+            raise HTTPException(status_code=409, detail="Game is not active")
 
     now = datetime.now(timezone.utc)
     elapsed_seconds = calculate_elapsed_seconds(game_state)
-    sol_type = SolutionType(request.solution_type)
 
     # Reload team from DB to get current state
     team_result = await db.execute(
         select(Team).where(Team.id == current_user["team_id"])
     )
     team = team_result.scalar_one()
+
+    # ELIM-03: Eliminated teams cannot submit solutions
+    if team.status == TeamStatus.ELIMINATED:
+        raise HTTPException(status_code=403, detail="Eliminated teams cannot submit solutions")
 
     # T-05-06: Server-side time window validation
     if sol_type == SolutionType.INITIAL:
@@ -109,6 +120,7 @@ async def submit_solution(
                 status_code=409,
                 detail=f"Cooldown active. {remaining} seconds remaining.",
             )
+    # CRISIS_RESPONSE: bypasses cooldown check (D-04 step 5)
 
     # Create Solution record
     solution = Solution(
