@@ -79,6 +79,57 @@ export function CaselinePanel() {
         </div>
       </div>
 
+      {/* Archetype Identity */}
+      {caseline?.archetype_name && (
+        <div className="space-y-3">
+          <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
+            ARCHETYPE IDENTITY
+          </div>
+          <div className="bg-[#201f1f] p-3 space-y-3">
+            {/* Archetype name badge + sector tag */}
+            <div className="flex items-center gap-2">
+              <span className="bg-[#2196f3]/20 text-[#2196f3] px-2 py-0.5 font-mono text-xs font-bold uppercase">
+                {caseline.archetype_name}
+              </span>
+              {caseline.sector && (
+                <span className="bg-[#89919d]/20 text-[#89919d] px-2 py-0.5 font-mono text-[10px] uppercase">
+                  {caseline.sector}
+                </span>
+              )}
+            </div>
+
+            {/* Benchmark bands summary */}
+            {caseline.benchmark_bands && (() => {
+              try {
+                const bands = JSON.parse(caseline.benchmark_bands);
+                return (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-[#89919d] uppercase">MKT SHARE</span>
+                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.market_share[0]}-{bands.market_share[1]}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-[#89919d] uppercase">MARGIN</span>
+                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.margin[0]}-{bands.margin[1]}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-[#89919d] uppercase">GROWTH</span>
+                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.growth[0]}-{bands.growth[1]}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-[#89919d] uppercase">OPS EFF</span>
+                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.ops_efficiency[0]}-{bands.ops_efficiency[1]}%</span>
+                    </div>
+                  </div>
+                );
+              } catch {
+                return null;
+              }
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Caseline document */}
       <div className="space-y-3">
         <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
@@ -106,22 +157,27 @@ export function CaselinePanel() {
         </div>
       </div>
 
-      {/* SWOT placeholder */}
+      {/* SWOT Profile */}
       <div className="space-y-3">
         <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
           SWOT PROFILE
         </div>
         <div className="grid grid-cols-2 gap-1">
-          {["STRENGTHS", "WEAKNESSES", "OPPORTUNITIES", "THREATS"].map(
-            (label) => (
-              <div key={label} className="bg-[#201f1f] p-2">
-                <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest mb-1">
-                  {label}
-                </div>
-                <div className="text-[10px] text-[#404752] font-mono">--</div>
+          {[
+            { label: "STRENGTHS", value: caseline?.swot_strengths },
+            { label: "WEAKNESSES", value: caseline?.swot_weaknesses },
+            { label: "OPPORTUNITIES", value: caseline?.swot_opportunities },
+            { label: "THREATS", value: caseline?.swot_threats },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-[#201f1f] p-2">
+              <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest mb-1">
+                {label}
               </div>
-            )
-          )}
+              <div className="text-[10px] text-[#e5e2e1] font-mono leading-relaxed">
+                {value || "--"}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

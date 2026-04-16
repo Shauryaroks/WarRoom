@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import type { GameStatePayload } from "@/lib/types";
+import type { GameStatePayload, ArchetypeResponse } from "@/lib/types";
 
 const CONFIG_ITEMS = [
   { label: "COOLDOWN_MINUTES", value: "10" },
@@ -19,13 +19,42 @@ export default function SettingsPage() {
   const { status, currentRound, setGameState, reset } = useGameStore();
   const [isAdvancing, setIsAdvancing] = useState(false);
 
+  // Archetype state
+  const [archetypes, setArchetypes] = useState<ArchetypeResponse[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Create form state
+  const [formName, setFormName] = useState("");
+  const [formSlug, setFormSlug] = useState("");
+  const [formSector, setFormSector] = useState("FOODS");
+  const [formDescription, setFormDescription] = useState("");
+  const [formDossier, setFormDossier] = useState("");
+  const [formMktShareMin, setFormMktShareMin] = useState("");
+  const [formMktShareMax, setFormMktShareMax] = useState("");
+  const [formMarginMin, setFormMarginMin] = useState("");
+  const [formMarginMax, setFormMarginMax] = useState("");
+  const [formGrowthMin, setFormGrowthMin] = useState("");
+  const [formGrowthMax, setFormGrowthMax] = useState("");
+  const [formOpsMin, setFormOpsMin] = useState("");
+  const [formOpsMax, setFormOpsMax] = useState("");
+  const [formCash, setFormCash] = useState("");
+  const [formStockPrice, setFormStockPrice] = useState("");
+  const [formShares, setFormShares] = useState("1000000");
+  const [formStrengths, setFormStrengths] = useState("");
+  const [formWeaknesses, setFormWeaknesses] = useState("");
+  const [formOpportunities, setFormOpportunities] = useState("");
+  const [formThreats, setFormThreats] = useState("");
+  const [formInspiration, setFormInspiration] = useState("");
+
   // Restart state
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [countdown, setCountdown] = useState(RESTART_COUNTDOWN);
   const [isRestarting, setIsRestarting] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load game state on mount
+  // Load game state and archetypes on mount
   useEffect(() => {
     api
       .getAdminGameState()
@@ -37,7 +66,107 @@ export default function SettingsPage() {
         });
       })
       .catch(() => {});
+    api.getArchetypes().then(setArchetypes).catch(() => {});
   }, [setGameState]);
+
+  function loadArchetypes() {
+    api.getArchetypes().then(setArchetypes).catch(() => {});
+  }
+
+  async function handleSeedArchetypes() {
+    setIsSeeding(true);
+    try {
+      const result = await api.seedArchetypes();
+      toast.success(
+        `Seeded ${result.created.length} archetypes, skipped ${result.skipped.length}`
+      );
+      loadArchetypes();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to seed archetypes"
+      );
+    } finally {
+      setIsSeeding(false);
+    }
+  }
+
+  async function handleDeleteArchetype(id: string) {
+    try {
+      await api.deleteArchetype(id);
+      toast.success("Archetype deleted");
+      loadArchetypes();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete archetype"
+      );
+    }
+  }
+
+  function resetCreateForm() {
+    setFormName("");
+    setFormSlug("");
+    setFormSector("FOODS");
+    setFormDescription("");
+    setFormDossier("");
+    setFormMktShareMin("");
+    setFormMktShareMax("");
+    setFormMarginMin("");
+    setFormMarginMax("");
+    setFormGrowthMin("");
+    setFormGrowthMax("");
+    setFormOpsMin("");
+    setFormOpsMax("");
+    setFormCash("");
+    setFormStockPrice("");
+    setFormShares("1000000");
+    setFormStrengths("");
+    setFormWeaknesses("");
+    setFormOpportunities("");
+    setFormThreats("");
+    setFormInspiration("");
+  }
+
+  async function handleCreateArchetype() {
+    if (!formName.trim() || !formDossier.trim() || !formCash || !formStockPrice) {
+      toast.error("Name, dossier, starting cash, and stock price are required");
+      return;
+    }
+    setIsCreating(true);
+    try {
+      const benchmarkBands = JSON.stringify({
+        market_share: [Number(formMktShareMin) || 0, Number(formMktShareMax) || 0],
+        margin: [Number(formMarginMin) || 0, Number(formMarginMax) || 0],
+        growth: [Number(formGrowthMin) || 0, Number(formGrowthMax) || 0],
+        ops_efficiency: [Number(formOpsMin) || 0, Number(formOpsMax) || 0],
+      });
+      await api.createArchetype({
+        name: formName.trim(),
+        slug: formSlug.trim() || formName.trim().toLowerCase().replace(/\s+/g, "-"),
+        sector: formSector,
+        description: formDescription.trim() || null,
+        dossier_content: formDossier,
+        benchmark_bands: benchmarkBands,
+        starting_cash: formCash,
+        starting_stock_price: formStockPrice,
+        starting_shares: Number(formShares) || 1000000,
+        swot_strengths: formStrengths.trim() || null,
+        swot_weaknesses: formWeaknesses.trim() || null,
+        swot_opportunities: formOpportunities.trim() || null,
+        swot_threats: formThreats.trim() || null,
+        real_world_inspiration: formInspiration.trim() || null,
+      });
+      toast.success("Archetype created");
+      resetCreateForm();
+      setShowCreateForm(false);
+      loadArchetypes();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create archetype"
+      );
+    } finally {
+      setIsCreating(false);
+    }
+  }
 
   // Countdown timer for restart confirmation
   useEffect(() => {
@@ -181,7 +310,242 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Section C: Danger Zone - Restart Game */}
+      {/* Section C: Archetype Management */}
+      <div className="bg-[#1c1b1b] p-6 flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold font-mono tracking-widest text-gray-500 uppercase">
+            ARCHETYPE_MANAGEMENT
+          </h3>
+          <button
+            onClick={handleSeedArchetypes}
+            disabled={isSeeding}
+            className="border border-[#2196f3]/40 text-[#2196f3] bg-[#2196f3]/10 px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-[#2196f3]/20 active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            {isSeeding ? "SEEDING..." : "SEED_PRESETS"}
+          </button>
+        </div>
+
+        {/* Existing archetypes list */}
+        {archetypes.length > 0 ? (
+          <div className="w-full overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#2a2a2a]">
+                  <th className="text-left text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">NAME</th>
+                  <th className="text-left text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">SECTOR</th>
+                  <th className="text-right text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">STARTING_CASH</th>
+                  <th className="text-right text-xs text-gray-600 uppercase font-mono tracking-widest py-2">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {archetypes.map((a) => (
+                  <tr key={a.id} className="hover:bg-[#2a2a2a] transition-colors">
+                    <td className="py-3 pr-4 font-mono font-bold text-[#e5e2e1] text-sm">{a.name}</td>
+                    <td className="py-3 pr-4">
+                      <span className="font-mono text-xs text-[#89919d] uppercase">{a.sector}</span>
+                    </td>
+                    <td className="py-3 pr-4 text-right font-mono text-sm text-[#e5e2e1]">{a.starting_cash}</td>
+                    <td className="py-3 text-right">
+                      {a.is_preset ? (
+                        <span className="font-mono text-[10px] text-[#2196f3]/60 uppercase px-2 py-1 bg-[#2196f3]/10">PRESET</span>
+                      ) : (
+                        <button
+                          onClick={() => handleDeleteArchetype(a.id)}
+                          className="font-mono text-xs font-bold px-3 py-1 text-[#FF1744] hover:bg-[#FF1744]/10 active:scale-95 transition-all"
+                        >
+                          DELETE
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <span className="font-mono text-xs text-gray-600 tracking-widest">NO_ARCHETYPES // CLICK SEED_PRESETS</span>
+          </div>
+        )}
+
+        {/* Toggle create form */}
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="border border-[#2a2a2a] text-gray-400 bg-transparent px-4 py-2.5 font-mono text-xs font-bold uppercase hover:border-[#2196f3] hover:text-[#2196f3] active:scale-[0.98] transition-all w-full"
+        >
+          {showCreateForm ? "COLLAPSE" : "NEW_ARCHETYPE"}
+        </button>
+
+        {/* Create archetype form */}
+        {showCreateForm && (
+          <div className="border border-[#2a2a2a] p-4 flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">NAME *</label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => {
+                    setFormName(e.target.value);
+                    setFormSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+                  }}
+                  className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">SLUG</label>
+                <input
+                  type="text"
+                  value={formSlug}
+                  onChange={(e) => setFormSlug(e.target.value)}
+                  className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">SECTOR</label>
+                <select
+                  value={formSector}
+                  onChange={(e) => setFormSector(e.target.value)}
+                  className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+                >
+                  <option value="FOODS">FOODS</option>
+                  <option value="BEVERAGES">BEVERAGES</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">DESCRIPTION</label>
+              <input
+                type="text"
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">DOSSIER_CONTENT * // MARKDOWN</label>
+              <textarea
+                value={formDossier}
+                onChange={(e) => setFormDossier(e.target.value)}
+                rows={8}
+                className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-xs px-3 py-2 focus:border-[#2196f3] focus:outline-none resize-y"
+              />
+            </div>
+
+            {/* Benchmark Bands */}
+            <div>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-2 uppercase">BENCHMARK_BANDS</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "MKT_SHARE", min: formMktShareMin, max: formMktShareMax, setMin: setFormMktShareMin, setMax: setFormMktShareMax },
+                  { label: "MARGIN", min: formMarginMin, max: formMarginMax, setMin: setFormMarginMin, setMax: setFormMarginMax },
+                  { label: "GROWTH", min: formGrowthMin, max: formGrowthMax, setMin: setFormGrowthMin, setMax: setFormGrowthMax },
+                  { label: "OPS_EFF", min: formOpsMin, max: formOpsMax, setMin: setFormOpsMin, setMax: setFormOpsMax },
+                ].map((band) => (
+                  <div key={band.label} className="flex flex-col gap-1">
+                    <span className="font-mono text-[9px] text-[#89919d] uppercase">{band.label}</span>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        value={band.min}
+                        onChange={(e) => band.setMin(e.target.value)}
+                        placeholder="min"
+                        className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-xs px-2 py-1.5 focus:border-[#2196f3] focus:outline-none"
+                      />
+                      <input
+                        type="number"
+                        value={band.max}
+                        onChange={(e) => band.setMax(e.target.value)}
+                        placeholder="max"
+                        className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-xs px-2 py-1.5 focus:border-[#2196f3] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Financial fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">STARTING_CASH *</label>
+                <input
+                  type="number"
+                  value={formCash}
+                  onChange={(e) => setFormCash(e.target.value)}
+                  placeholder="e.g. 4000000000"
+                  className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">STARTING_STOCK_PRICE *</label>
+                <input
+                  type="number"
+                  value={formStockPrice}
+                  onChange={(e) => setFormStockPrice(e.target.value)}
+                  placeholder="e.g. 100"
+                  className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">STARTING_SHARES</label>
+                <input
+                  type="number"
+                  value={formShares}
+                  onChange={(e) => setFormShares(e.target.value)}
+                  className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* SWOT fields */}
+            <div>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-2 uppercase">SWOT_ANALYSIS</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  { label: "STRENGTHS", value: formStrengths, set: setFormStrengths },
+                  { label: "WEAKNESSES", value: formWeaknesses, set: setFormWeaknesses },
+                  { label: "OPPORTUNITIES", value: formOpportunities, set: setFormOpportunities },
+                  { label: "THREATS", value: formThreats, set: setFormThreats },
+                ].map((swot) => (
+                  <div key={swot.label}>
+                    <span className="font-mono text-[9px] text-[#89919d] uppercase">{swot.label}</span>
+                    <textarea
+                      value={swot.value}
+                      onChange={(e) => swot.set(e.target.value)}
+                      rows={3}
+                      className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-xs px-2 py-1.5 focus:border-[#2196f3] focus:outline-none resize-y mt-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">REAL_WORLD_INSPIRATION</label>
+              <input
+                type="text"
+                value={formInspiration}
+                onChange={(e) => setFormInspiration(e.target.value)}
+                placeholder="e.g. Inspired by Parle / Britannia"
+                className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
+              />
+            </div>
+
+            <button
+              onClick={handleCreateArchetype}
+              disabled={isCreating}
+              className="bg-[#2196f3] text-white px-8 py-3 font-mono text-sm font-bold uppercase hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 w-full"
+            >
+              {isCreating ? "CREATING..." : "CREATE_ARCHETYPE"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Section D: Danger Zone - Restart Game */}
       <div className="bg-[#1c1b1b] p-6 flex flex-col gap-5 border border-[#FF1744]/20">
         <h3 className="text-sm font-bold font-mono tracking-widest text-[#FF1744]/60 uppercase">
           DANGER_ZONE
