@@ -5,6 +5,13 @@ import type {
   MeResponse,
   ApprovedTeam,
   GameStateResponse,
+  AdminTeam,
+  NewsItem,
+  ActivityEvent,
+  TeamRemoveResponse,
+  NewsInjectResponse,
+  BroadcastResponse,
+  RoundAdvanceResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -106,6 +113,73 @@ class ApiClient {
 
   async getGameState(): Promise<GameStateResponse> {
     return this.request<GameStateResponse>("/api/v1/admin/game/state");
+  }
+
+  // Team management
+  async getTeams(status?: string): Promise<AdminTeam[]> {
+    const query = status ? `?status=${status}` : "";
+    return this.request<AdminTeam[]>(`/api/v1/admin/teams${query}`);
+  }
+
+  async approveTeam(
+    teamId: string
+  ): Promise<{ message: string; team_id: string; new_status: string }> {
+    return this.request(`/api/v1/admin/teams/${teamId}/approve`, {
+      method: "POST",
+    });
+  }
+
+  async rejectTeam(
+    teamId: string
+  ): Promise<{ message: string; team_id: string; new_status: string }> {
+    return this.request(`/api/v1/admin/teams/${teamId}/reject`, {
+      method: "POST",
+    });
+  }
+
+  async removeTeam(teamId: string): Promise<TeamRemoveResponse> {
+    return this.request<TeamRemoveResponse>(
+      `/api/v1/admin/teams/${teamId}/remove`,
+      { method: "POST" }
+    );
+  }
+
+  // News
+  async injectNews(data: {
+    headline: string;
+    body: string;
+    news_type: string;
+    affected_tickers: string[];
+  }): Promise<NewsInjectResponse> {
+    return this.request<NewsInjectResponse>("/api/v1/admin/news/inject", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getNewsHistory(): Promise<NewsItem[]> {
+    return this.request<NewsItem[]>("/api/v1/admin/news/history");
+  }
+
+  // Broadcast
+  async broadcast(message: string): Promise<BroadcastResponse> {
+    return this.request<BroadcastResponse>("/api/v1/admin/broadcast", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  // Activity
+  async getActivityLog(): Promise<ActivityEvent[]> {
+    return this.request<ActivityEvent[]>("/api/v1/admin/activity");
+  }
+
+  // Round management
+  async advanceRound(): Promise<RoundAdvanceResponse> {
+    return this.request<RoundAdvanceResponse>(
+      "/api/v1/admin/game/advance-round",
+      { method: "POST" }
+    );
   }
 }
 
