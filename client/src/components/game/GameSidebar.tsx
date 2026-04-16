@@ -30,7 +30,7 @@ export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, ro
   const visibleTabs = TABS.filter((tab) => role && tab.roles.includes(role));
 
   return (
-    <div className="flex flex-col w-20 bg-[#0e0e0e] border-r border-[#2a2a2a] shrink-0 h-full">
+    <div className="flex flex-col w-[60px] md:w-20 bg-[#0e0e0e] border-r border-[#2a2a2a] shrink-0 h-full">
       <div className="flex flex-col flex-1 pt-2">
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -45,7 +45,7 @@ export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, ro
                   : "text-[#89919d] hover:bg-[#2a2a2a] border-l-2 border-transparent"
               }`}
             >
-              <Icon size={18} />
+              <Icon className="w-4 h-4 md:w-[18px] md:h-[18px]" />
               <span className="font-mono text-[9px] uppercase tracking-wide">{tab.label}</span>
             </button>
           );
@@ -61,7 +61,7 @@ export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, ro
             : "text-[#89919d] hover:bg-[#2a2a2a]"
         }`}
       >
-        <Newspaper size={18} />
+        <Newspaper className="w-4 h-4 md:w-[18px] md:h-[18px]" />
         <span className="font-mono text-[9px] uppercase tracking-wide">NEWS</span>
       </button>
     </div>

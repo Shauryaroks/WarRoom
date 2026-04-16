@@ -143,4 +143,11 @@
   .milled-metal-btn {
     background: linear-gradient(to bottom, #2196f3, #002c4f);
   }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

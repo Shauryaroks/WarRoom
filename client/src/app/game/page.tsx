@@ -199,8 +199,8 @@ export default function GamePage() {
           role={role}
         />
 
-        {/* Sidebar content panel -- 320px */}
-        <div className="w-80 bg-[#1c1b1b] border-r border-[#2a2a2a] overflow-y-auto shrink-0">
+        {/* Sidebar content panel -- 256px on md, 320px on lg+ */}
+        <div className="w-64 lg:w-80 bg-[#1c1b1b] border-r border-[#2a2a2a] overflow-y-auto shrink-0">
           {renderSidebarContent()}
         </div>
 

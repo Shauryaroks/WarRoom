@@ -31,13 +31,13 @@ export function GameHeader() {
         : "text-[#FF1744] bg-[#FF1744]/10 border border-[#FF1744]/30";
 
   return (
-    <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] border-b border-[#2a2a2a] z-50 shrink-0">
-      <div className="flex items-center gap-6">
-        <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
-        <div className="flex items-center gap-4 border-l border-[#2a2a2a] pl-6">
-          <div className="flex flex-col">
+    <header className="flex justify-between items-center w-full px-2 md:px-4 h-12 bg-[#0e0e0e] border-b border-[#2a2a2a] z-50 shrink-0">
+      <div className="flex items-center gap-3 md:gap-6 min-w-0">
+        <span className="text-xl font-black tracking-tighter text-[#2196f3] shrink-0">COMPLEX</span>
+        <div className="flex items-center gap-2 md:gap-4 border-l border-[#2a2a2a] pl-3 md:pl-6 min-w-0">
+          <div className="flex flex-col min-w-0">
             <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TEAM</span>
-            <span className="font-mono text-xs font-bold text-[#9ecaff]">{teamName}</span>
+            <span className="font-mono text-xs font-bold text-[#9ecaff] truncate max-w-[120px] md:max-w-none">{teamName}</span>
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TICKER</span>
@@ -45,7 +45,7 @@ export function GameHeader() {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-4 md:gap-8 shrink-0">
         <div className="flex items-center gap-3 bg-[#1c1b1b] px-3 py-1 border border-[#404752]/20">
           {status === "ACTIVE" && (
             <span className="relative flex h-2 w-2">

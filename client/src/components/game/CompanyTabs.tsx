@@ -19,7 +19,7 @@ export function CompanyTabs() {
   }
 
   return (
-    <div className="flex gap-0 overflow-x-auto bg-[#0e0e0e]">
+    <div className="flex gap-0 overflow-x-auto scrollbar-hide bg-[#0e0e0e]">
       {companies.map((company) => {
         const isActive = company.team_id === selectedCompanyId;
         const priceInfo = currentPrices[company.team_id];
