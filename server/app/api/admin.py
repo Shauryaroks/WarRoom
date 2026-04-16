@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -708,7 +708,7 @@ async def advance_round(
 
 @router.post("/game/war-room", response_model=GamePhaseResponse)
 async def enter_war_room(
-    request: SetGamePhaseRequest = SetGamePhaseRequest(phase="war_room"),
+    macro_brief: str | None = Body(None, embed=True),
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -718,7 +718,7 @@ async def enter_war_room(
         raise HTTPException(status_code=409, detail="Game must be ACTIVE to enter War Room")
 
     try:
-        state = await set_game_phase(db, "war_room", macro_brief=request.macro_brief)
+        state = await set_game_phase(db, "war_room", macro_brief=macro_brief)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
