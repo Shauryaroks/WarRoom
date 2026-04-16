@@ -50,8 +50,9 @@ class TransactionType(str, enum.Enum):
 
 
 class SolutionType(str, enum.Enum):
-    INITIAL = "INITIAL"          # Full strategic roadmap (per D-02)
-    MICROTWEAK = "MICROTWEAK"    # Additive tweak (per D-03)
+    INITIAL = "INITIAL"              # Full strategic roadmap (per D-02)
+    MICROTWEAK = "MICROTWEAK"        # Additive tweak (per D-03)
+    CRISIS_RESPONSE = "CRISIS_RESPONSE"  # Crisis event response (per D-04)
 
 
 class EvaluationStatus(str, enum.Enum):
@@ -552,6 +553,25 @@ class ActivityEvent(Base):
     )  # JSON for extra context
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
+    )
+
+
+class CrisisEvent(Base):
+    __tablename__ = "crisis_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    scenario: Mapped[str] = mapped_column(Text, nullable=False)
+    timer_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), default="ACTIVE"
+    )  # ACTIVE, RESOLVED
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
 

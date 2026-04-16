@@ -101,6 +101,7 @@ async def call_openrouter(
     model: str | None = None,
     max_tokens: int = 2000,
     temperature: float = 0.7,
+    json_schema: dict | None = None,
 ) -> tuple[dict, dict]:
     """Call OpenRouter API with structured JSON output.
 
@@ -109,10 +110,12 @@ async def call_openrouter(
         model: Model identifier. Falls back to default if None.
         max_tokens: Maximum tokens for response.
         temperature: Sampling temperature.
+        json_schema: Custom JSON schema for response_format. Defaults to
+            EVALUATION_SCHEMA when None (backward compatible).
 
     Returns:
         Tuple of (parsed_output, metadata) where:
-        - parsed_output: Dict conforming to EVALUATION_SCHEMA
+        - parsed_output: Dict conforming to the provided schema
         - metadata: Dict with model, latency_ms, prompt_tokens, completion_tokens
 
     Raises:
@@ -138,7 +141,7 @@ async def call_openrouter(
         "temperature": temperature,
         "response_format": {
             "type": "json_schema",
-            "json_schema": EVALUATION_SCHEMA,
+            "json_schema": json_schema if json_schema is not None else EVALUATION_SCHEMA,
         },
     }
 
@@ -161,13 +164,15 @@ async def call_openrouter(
         )
 
     # Validate required top-level keys (T-05-01: validate before saving)
-    required_keys = {"scoring_metrics", "price_timeline", "news_article"}
-    missing = required_keys - set(parsed_output.keys())
-    if missing:
-        raise ValueError(
-            f"LLM response missing required keys: {missing}\n"
-            f"Raw content: {raw_content}"
-        )
+    # Only check EVALUATION_SCHEMA-specific keys when using the default schema
+    if json_schema is None:
+        required_keys = {"scoring_metrics", "price_timeline", "news_article"}
+        missing = required_keys - set(parsed_output.keys())
+        if missing:
+            raise ValueError(
+                f"LLM response missing required keys: {missing}\n"
+                f"Raw content: {raw_content}"
+            )
 
     # Extract usage info
     usage = data.get("usage", {})
