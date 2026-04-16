@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -5,14 +6,29 @@ from typing import Optional
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Admin, GameStatus, Team, TeamStatus
+from app.models import (
+    ActivityEvent,
+    Admin,
+    CashLedger,
+    Directive,
+    GameState,
+    GameStatus,
+    MarketNews,
+    PriceHistory,
+    StockHolding,
+    Team,
+    TeamStatus,
+    Transaction,
+)
 from app.auth_utils import create_access_token, require_admin
+from app.redis_pubsub import publish_broadcast
 from app.services.game_service import (
     calculate_elapsed_seconds,
+    get_game_state,
     get_game_state_readonly,
     transition_state,
 )
@@ -63,6 +79,56 @@ class GameStateResponse(BaseModel):
     status: str
     elapsed_seconds: int
     current_round: int
+
+
+class NewsInjectRequest(BaseModel):
+    headline: str
+    body: str
+    news_type: str  # "GLOBAL" or "LOCAL"
+    affected_tickers: list[str] = []
+
+
+class NewsInjectResponse(BaseModel):
+    message: str
+    news_id: str
+
+
+class BroadcastRequest(BaseModel):
+    message: str
+
+
+class BroadcastResponse(BaseModel):
+    message: str
+    news_id: str
+
+
+class TeamRemoveResponse(BaseModel):
+    message: str
+    team_id: str
+    remove_type: str  # "hard" or "soft"
+
+
+class ActivityEventItem(BaseModel):
+    id: str
+    event_type: str
+    actor: str
+    description: str
+    metadata_json: str | None
+    created_at: str
+
+
+class RoundAdvanceResponse(BaseModel):
+    message: str
+    current_round: int
+
+
+class NewsHistoryItem(BaseModel):
+    id: str
+    headline: str
+    content: str | None
+    source_type: str
+    affected_tickers: list[str]
+    created_at: str
 
 
 # --- Utility ---
@@ -179,6 +245,12 @@ async def approve_team(
 
     team.status = TeamStatus.READY
     team.approved_at = datetime.now(timezone.utc)
+
+    db.add(ActivityEvent(
+        event_type="TEAM_APPROVED",
+        actor="admin",
+        description=f"Team '{team.name}' approved",
+    ))
     await db.commit()
 
     return TeamActionResponse(
@@ -205,6 +277,12 @@ async def reject_team(
         raise HTTPException(status_code=409, detail="Team is not in pending status")
 
     team.status = TeamStatus.REJECTED
+
+    db.add(ActivityEvent(
+        event_type="TEAM_REJECTED",
+        actor="admin",
+        description=f"Team '{team.name}' rejected",
+    ))
     await db.commit()
 
     return TeamActionResponse(
@@ -212,6 +290,150 @@ async def reject_team(
         team_id=str(team.id),
         new_status=TeamStatus.REJECTED.value,
     )
+
+
+# --- Team Removal (per D-04) ---
+
+
+@router.post("/teams/{team_id}/remove", response_model=TeamRemoveResponse)
+async def remove_team(
+    team_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a team. Hard delete in SETUP, soft bankrupt in ACTIVE/PAUSED."""
+    result = await db.execute(select(Team).where(Team.id == team_id))
+    team = result.scalar_one_or_none()
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    game_state = await get_game_state_readonly(db)
+
+    if game_state.status == GameStatus.FINISHED:
+        raise HTTPException(status_code=409, detail="Cannot remove teams from a finished game")
+
+    team_name = team.name
+
+    if game_state.status == GameStatus.SETUP:
+        # Hard delete: remove related records first to avoid FK violations
+        await db.execute(delete(Directive).where(Directive.team_id == team_id))
+        await db.execute(delete(StockHolding).where(StockHolding.owner_team_id == team_id))
+        await db.execute(delete(StockHolding).where(StockHolding.target_team_id == team_id))
+        await db.execute(delete(Transaction).where(Transaction.buyer_team_id == team_id))
+        await db.execute(delete(Transaction).where(Transaction.seller_team_id == team_id))
+        await db.execute(delete(Transaction).where(Transaction.target_team_id == team_id))
+        await db.execute(delete(CashLedger).where(CashLedger.team_id == team_id))
+        await db.execute(delete(PriceHistory).where(PriceHistory.team_id == team_id))
+        await db.delete(team)
+        remove_type = "hard"
+    else:
+        # Soft remove: mark as BANKRUPT
+        team.status = TeamStatus.BANKRUPT
+        team.bankrupt_since = datetime.now(timezone.utc)
+        remove_type = "soft"
+
+    db.add(ActivityEvent(
+        event_type="TEAM_REMOVED",
+        actor="admin",
+        description=f"Team '{team_name}' removed ({remove_type} delete)",
+        metadata_json=json.dumps({"team_id": str(team_id), "remove_type": remove_type}),
+    ))
+    await db.commit()
+
+    await publish_broadcast({
+        "type": "team_removed",
+        "payload": {"team_id": str(team_id), "remove_type": remove_type},
+    })
+
+    return TeamRemoveResponse(
+        message=f"Team '{team_name}' {'permanently removed' if remove_type == 'hard' else 'marked as bankrupt'}",
+        team_id=str(team_id),
+        remove_type=remove_type,
+    )
+
+
+# --- News Injection (per D-06, NEWS-01) ---
+
+
+@router.post("/news/inject", response_model=NewsInjectResponse)
+async def inject_news(
+    request: NewsInjectRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Inject a news event. Creates MarketNews record and broadcasts via WebSocket."""
+    news = MarketNews(
+        headline=request.headline,
+        content=request.body,
+        source_type="ADMIN_INJECTED",
+        affected_tickers=json.dumps(request.affected_tickers) if request.affected_tickers else None,
+    )
+    db.add(news)
+
+    db.add(ActivityEvent(
+        event_type="NEWS_INJECTED",
+        actor="admin",
+        description=f"News injected: {request.headline}",
+    ))
+    await db.commit()
+    await db.refresh(news)
+
+    await publish_broadcast({
+        "type": "news_injected",
+        "payload": {
+            "id": str(news.id),
+            "headline": news.headline,
+            "content": news.content,
+            "source_type": "ADMIN_INJECTED",
+            "news_type": request.news_type,
+            "affected_tickers": request.affected_tickers,
+            "created_at": news.created_at.isoformat(),
+        },
+    })
+
+    return NewsInjectResponse(message="News injected", news_id=str(news.id))
+
+
+# --- Broadcast (per D-05: broadcasts ARE news items) ---
+
+
+@router.post("/broadcast", response_model=BroadcastResponse)
+async def broadcast_message(
+    request: BroadcastRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Broadcast a message to all teams. Creates MarketNews with ADMIN_BROADCAST source."""
+    news = MarketNews(
+        headline=request.message,
+        content=None,
+        source_type="ADMIN_BROADCAST",
+    )
+    db.add(news)
+
+    db.add(ActivityEvent(
+        event_type="BROADCAST_SENT",
+        actor="admin",
+        description=f"Broadcast: {request.message[:80]}",
+    ))
+    await db.commit()
+    await db.refresh(news)
+
+    await publish_broadcast({
+        "type": "news_injected",
+        "payload": {
+            "id": str(news.id),
+            "headline": news.headline,
+            "content": None,
+            "source_type": "ADMIN_BROADCAST",
+            "news_type": "GLOBAL",
+            "affected_tickers": [],
+            "created_at": news.created_at.isoformat(),
+        },
+    })
+
+    return BroadcastResponse(message="Broadcast sent", news_id=str(news.id))
 
 
 # --- Game Control Endpoints (per D-02: admin-only) ---
@@ -227,6 +449,13 @@ async def start_game(
         state = await transition_state(db, GameStatus.ACTIVE)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="GAME_STARTED",
+        actor="admin",
+        description="Game started",
+    ))
+    await db.commit()
 
     return GameStateResponse(
         status=state.status.value,
@@ -246,6 +475,13 @@ async def pause_game(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
+    db.add(ActivityEvent(
+        event_type="GAME_PAUSED",
+        actor="admin",
+        description="Game paused",
+    ))
+    await db.commit()
+
     return GameStateResponse(
         status=state.status.value,
         elapsed_seconds=calculate_elapsed_seconds(state),
@@ -263,6 +499,13 @@ async def resume_game(
         state = await transition_state(db, GameStatus.ACTIVE)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="GAME_RESUMED",
+        actor="admin",
+        description="Game resumed",
+    ))
+    await db.commit()
 
     return GameStateResponse(
         status=state.status.value,
@@ -284,3 +527,92 @@ async def get_game_state_endpoint(
         elapsed_seconds=calculate_elapsed_seconds(state),
         current_round=state.current_round,
     )
+
+
+# --- Round Advancement ---
+
+
+@router.post("/game/advance-round", response_model=RoundAdvanceResponse)
+async def advance_round(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Advance to the next round. Increments GameState.current_round."""
+    state = await get_game_state(db)
+    state.current_round += 1
+
+    db.add(ActivityEvent(
+        event_type="ROUND_ADVANCED",
+        actor="admin",
+        description=f"Advanced to Q{state.current_round}",
+    ))
+    await db.commit()
+    await db.refresh(state)
+
+    await publish_broadcast({
+        "type": "round_advanced",
+        "payload": {"current_round": state.current_round},
+    })
+
+    return RoundAdvanceResponse(
+        message=f"Advanced to round {state.current_round}",
+        current_round=state.current_round,
+    )
+
+
+# --- Activity Log ---
+
+
+@router.get("/activity", response_model=list[ActivityEventItem])
+async def get_activity_log(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get recent activity events. Returns last 200 events."""
+    result = await db.execute(
+        select(ActivityEvent)
+        .order_by(ActivityEvent.created_at.desc())
+        .limit(200)
+    )
+    events = result.scalars().all()
+
+    return [
+        ActivityEventItem(
+            id=str(e.id),
+            event_type=e.event_type,
+            actor=e.actor,
+            description=e.description,
+            metadata_json=e.metadata_json,
+            created_at=e.created_at.isoformat(),
+        )
+        for e in events
+    ]
+
+
+# --- News History ---
+
+
+@router.get("/news/history", response_model=list[NewsHistoryItem])
+async def get_news_history(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get recent news items. Returns last 100 news entries."""
+    result = await db.execute(
+        select(MarketNews)
+        .order_by(MarketNews.created_at.desc())
+        .limit(100)
+    )
+    news_items = result.scalars().all()
+
+    return [
+        NewsHistoryItem(
+            id=str(n.id),
+            headline=n.headline,
+            content=n.content,
+            source_type=n.source_type,
+            affected_tickers=json.loads(n.affected_tickers) if n.affected_tickers else [],
+            created_at=n.created_at.isoformat(),
+        )
+        for n in news_items
+    ]
