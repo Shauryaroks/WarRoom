@@ -17,6 +17,7 @@ interface TeamTableProps {
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onRemove: (id: string) => void;
+  onCaseline?: (teamId: string) => void;
   compact?: boolean;
 }
 
@@ -26,6 +27,7 @@ export function TeamTable({
   onApprove,
   onReject,
   onRemove,
+  onCaseline,
   compact = false,
 }: TeamTableProps) {
   if (teams.length === 0) {
@@ -108,6 +110,14 @@ export function TeamTable({
                           REJECT
                         </button>
                       </>
+                    )}
+                    {gameStatus === "SETUP" && onCaseline && (
+                      <button
+                        onClick={() => onCaseline(team.id)}
+                        className="font-mono text-sm font-bold px-5 py-2.5 bg-[#2a2a2a] text-[#2196f3] hover:bg-[#2196f3]/10 active:scale-95 transition-all"
+                      >
+                        CASELINE
+                      </button>
                     )}
                     {team.status !== "BANKRUPT" &&
                       team.status !== "ELIMINATED" && (
