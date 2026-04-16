@@ -39,11 +39,13 @@ from app.services.evaluation_service import (
     approve_evaluation as _approve_evaluation,
     reject_evaluation as _reject_evaluation,
 )
+from app.schemas.decisions import GamePhaseResponse, SetGamePhaseRequest
 from app.services.game_service import (
     REDIS_GAME_STATUS_KEY,
     calculate_elapsed_seconds,
     get_game_state,
     get_game_state_readonly,
+    set_game_phase,
     transition_state,
 )
 
@@ -697,6 +699,82 @@ async def advance_round(
 
     return RoundAdvanceResponse(
         message=f"Advanced to round {state.current_round}",
+        current_round=state.current_round,
+    )
+
+
+# --- War Room / Live Floor Phase Transitions (Phase 8, D-02) ---
+
+
+@router.post("/game/war-room", response_model=GamePhaseResponse)
+async def enter_war_room(
+    request: SetGamePhaseRequest = SetGamePhaseRequest(phase="war_room"),
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enter War Room: halts trading and ticks, teams submit operating plans (D-02)."""
+    game_state = await get_game_state_readonly(db)
+    if game_state.status != GameStatus.ACTIVE:
+        raise HTTPException(status_code=409, detail="Game must be ACTIVE to enter War Room")
+
+    try:
+        state = await set_game_phase(db, "war_room", macro_brief=request.macro_brief)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="WAR_ROOM_ENTERED",
+        actor="admin",
+        description="Admin entered War Room",
+    ))
+    await db.commit()
+
+    return GamePhaseResponse(
+        game_phase=state.game_phase,
+        macro_brief=state.macro_brief,
+        current_round=state.current_round,
+    )
+
+
+@router.post("/game/live-floor", response_model=GamePhaseResponse)
+async def open_live_floor(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Open Live Floor: enables trading and ticks, teams submit decisions (D-02)."""
+    game_state = await get_game_state_readonly(db)
+    if game_state.status != GameStatus.ACTIVE:
+        raise HTTPException(status_code=409, detail="Game must be ACTIVE to open Live Floor")
+
+    try:
+        state = await set_game_phase(db, "live_floor")
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="LIVE_FLOOR_OPENED",
+        actor="admin",
+        description="Admin opened Live Floor",
+    ))
+    await db.commit()
+
+    return GamePhaseResponse(
+        game_phase=state.game_phase,
+        macro_brief=state.macro_brief,
+        current_round=state.current_round,
+    )
+
+
+@router.get("/game/phase", response_model=GamePhaseResponse)
+async def get_game_phase(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current game phase (read-only)."""
+    state = await get_game_state_readonly(db)
+    return GamePhaseResponse(
+        game_phase=state.game_phase,
+        macro_brief=state.macro_brief,
         current_round=state.current_round,
     )
 

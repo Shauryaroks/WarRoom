@@ -18,10 +18,12 @@ REDIS_GAME_STATUS_KEY = "game:status"
 
 
 def is_game_active() -> bool:
-    """Check Redis for current game status. Returns True only if ACTIVE.
+    """Check Redis for current game status and phase. Returns True only if ACTIVE
+    and not in War Room.
 
     Uses sync redis since Celery workers run in sync context.
     Per D-09: Redis key check for ~1ms latency vs ~5ms DB query.
+    Per Phase 8 D-02: War Room halts ticks (trading + price simulation).
     """
     r = redis.from_url(celery_app.conf.broker_url)
     try:
@@ -30,7 +32,19 @@ def is_game_active() -> bool:
             return False
         if isinstance(status, bytes):
             status = status.decode()
-        return status == "ACTIVE"
+        if status != "ACTIVE":
+            return False
+
+        # Phase 8: Check game phase -- war_room halts ticks
+        phase = r.get("game:phase")
+        if phase is not None:
+            if isinstance(phase, bytes):
+                phase = phase.decode()
+            if phase == "war_room":
+                logger.debug("Tick skipped: game phase is war_room")
+                return False
+
+        return True
     finally:
         r.close()
 

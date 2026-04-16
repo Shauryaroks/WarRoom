@@ -17,6 +17,7 @@ from sqlalchemy import select
 from app.auth_utils import require_team
 from app.database import get_db
 from app.models import Team, TeamStatus, StockHolding
+from app.services.game_service import get_game_state_readonly
 from app.redis_pubsub import publish_broadcast
 from app.services.trading_service import (
     execute_buy,
@@ -120,6 +121,13 @@ async def buy_shares(
             status_code=403, detail="Only traders can execute trades"
         )
 
+    # Phase 8 D-02: Trading halted during War Room
+    game_state = await get_game_state_readonly(db)
+    if getattr(game_state, "game_phase", None) == "war_room":
+        raise HTTPException(
+            status_code=409, detail="Trading is halted during War Room"
+        )
+
     # ELIM-03: Eliminated teams cannot trade
     buyer_team = await db.scalar(
         select(Team).where(Team.id == current_user["team_id"])
@@ -191,6 +199,13 @@ async def sell_shares(
     if current_user["role"] != "trader":
         raise HTTPException(
             status_code=403, detail="Only traders can execute trades"
+        )
+
+    # Phase 8 D-02: Trading halted during War Room
+    game_state_sell = await get_game_state_readonly(db)
+    if getattr(game_state_sell, "game_phase", None) == "war_room":
+        raise HTTPException(
+            status_code=409, detail="Trading is halted during War Room"
         )
 
     # ELIM-03: Eliminated teams cannot trade
