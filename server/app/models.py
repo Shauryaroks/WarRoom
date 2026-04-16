@@ -14,6 +14,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -77,6 +78,13 @@ class PortfolioType(str, enum.Enum):
     DISRUPTOR = "DISRUPTOR"
     CONSULTING = "CONSULTING"
     RETAIL = "RETAIL"
+
+
+class LeverCategory(str, enum.Enum):
+    PRICING = "PRICING"
+    MARKETING = "MARKETING"
+    SUPPLY_CHAIN = "SUPPLY_CHAIN"
+    NEW_PRODUCT = "NEW_PRODUCT"
 
 
 class Archetype(Base):
@@ -596,6 +604,74 @@ class ActivityEvent(Base):
     )
 
 
+class Decision(Base):
+    __tablename__ = "decisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    lever_category: Mapped[LeverCategory] = mapped_column(
+        Enum(LeverCategory), nullable=False
+    )
+    decisions_json: Mapped[str] = mapped_column(Text, nullable=False)
+    budget_spent: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), default=Decimal("0")
+    )
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    window_start: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    window_end: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+    # Relationships
+    team: Mapped["Team"] = relationship("Team")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "team_id", "round_number", "lever_category",
+            name="uq_decision_team_round_lever",
+        ),
+        Index(
+            "ix_decisions_team_round_lever",
+            "team_id", "round_number", "lever_category",
+        ),
+    )
+
+
+class OperatingPlan(Base):
+    __tablename__ = "operating_plans"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+    # Relationships
+    team: Mapped["Team"] = relationship("Team")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "team_id", "round_number",
+            name="uq_operating_plan_team_round",
+        ),
+    )
+
+
 class CrisisEvent(Base):
     __tablename__ = "crisis_events"
 
@@ -685,6 +761,15 @@ class GameState(Base):
     # Market cap tracking for admin metrics
     aggregate_market_cap_at_purge: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(15, 2), nullable=True
+    )
+
+    # Phase 8: Decision levers round structure (per D-01, D-15)
+    game_phase: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
+    )  # "war_room", "live_floor", or null
+    macro_brief: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    current_quarter_start: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     updated_at: Mapped[datetime] = mapped_column(
