@@ -123,7 +123,7 @@ async def get_leaderboard(
 
     result = await db.execute(
         select(Team)
-        .where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN, TeamStatus.ELIMINATED]))
+        .where(Team.status.in_([TeamStatus.READY, TeamStatus.ACTIVE, TeamStatus.COOLDOWN, TeamStatus.BANKRUPT, TeamStatus.ELIMINATED]))
         .order_by(
             # Active/cooldown teams first, eliminated last
             case(

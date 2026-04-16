@@ -58,7 +58,7 @@ export function NewsOverlay({ isOpen, onClose }: NewsOverlayProps) {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-40 w-96 max-h-[680px] flex flex-col"
+      className="fixed top-16 bottom-4 right-4 z-40 w-96 flex flex-col"
       style={{
         background: "rgba(32, 31, 31, 0.80)",
         backdropFilter: "blur(20px)",
