@@ -437,6 +437,19 @@ class ApiClient {
     return this.request<OperatingPlanResponse>("/api/v1/decisions/operating-plan");
   }
 
+  async enterWarRoom(macroBrief: string) {
+    return this.request<GamePhaseResponse>("/api/v1/admin/game/war-room", {
+      method: "POST",
+      body: JSON.stringify({ phase: "war_room", macro_brief: macroBrief }),
+    });
+  }
+
+  async openLiveFloor() {
+    return this.request<GamePhaseResponse>("/api/v1/admin/game/live-floor", {
+      method: "POST",
+    });
+  }
+
   async getGamePhase() {
     return this.request<GamePhaseResponse>("/api/v1/game/phase");
   }

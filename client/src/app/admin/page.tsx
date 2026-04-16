@@ -10,7 +10,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
 import { TeamTable } from "@/components/admin/team-table";
 import { toast } from "sonner";
-import type { GameStatePayload } from "@/lib/types";
+import type { GameStatePayload, GamePhase, GamePhaseChangedPayload } from "@/lib/types";
 
 function formatElapsed(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -26,6 +26,9 @@ export default function AdminPage() {
   const { teams, setTeams, updateTeamStatus, removeTeam } = useAdminStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gamePhase, setGamePhase] = useState<GamePhase>(null);
+  const [showMacroBriefModal, setShowMacroBriefModal] = useState(false);
+  const [macroBriefText, setMacroBriefText] = useState("");
 
   // Redirect non-admin users
   useEffect(() => {
@@ -58,6 +61,16 @@ export default function AdminPage() {
         .catch(() => {
           // Will retry via WebSocket events
         });
+
+      // Fetch current game phase
+      api
+        .getGamePhase()
+        .then((data) => {
+          setGamePhase(data.game_phase);
+        })
+        .catch(() => {
+          // Phase not available yet
+        });
     }
   }, [isAuthenticated, role, setGameState, setTeams]);
 
@@ -85,6 +98,13 @@ export default function AdminPage() {
         const payload = data.payload as { team_id: string } | undefined;
         if (payload?.team_id) {
           removeTeam(payload.team_id);
+        }
+      }
+
+      if (data.type === "game_phase_changed") {
+        const payload = data.payload as GamePhaseChangedPayload | undefined;
+        if (payload) {
+          setGamePhase(payload.game_phase);
         }
       }
     },
@@ -187,6 +207,40 @@ export default function AdminPage() {
     }
   }
 
+  async function handleEnterWarRoom() {
+    if (!macroBriefText.trim()) {
+      toast.error("Macro brief is required before entering War Room");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.enterWarRoom(macroBriefText.trim());
+      setGamePhase(data.game_phase);
+      setShowMacroBriefModal(false);
+      setMacroBriefText("");
+      toast.success("Entered War Room");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to enter War Room");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleOpenLiveFloor() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.openLiveFloor();
+      setGamePhase(data.game_phase);
+      toast.success("Live Floor opened");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open Live Floor");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   if (!isAuthenticated || role !== "admin") {
     return null;
   }
@@ -252,6 +306,43 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {/* War Room / Live Floor controls */}
+        {status === "ACTIVE" && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-[11px] text-gray-500 uppercase tracking-tighter">
+                PHASE_CONTROL
+              </span>
+              {gamePhase === "war_room" && (
+                <span className="font-mono text-[11px] font-bold px-2 py-0.5 text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/30">
+                  WAR ROOM
+                </span>
+              )}
+              {gamePhase === "live_floor" && (
+                <span className="font-mono text-[11px] font-bold px-2 py-0.5 text-[#4caf50] bg-[#4caf50]/10 border border-[#4caf50]/30">
+                  LIVE FLOOR
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowMacroBriefModal(true)}
+                disabled={isLoading || gamePhase === "war_room"}
+                className="border border-[#f59e0b]/50 bg-[#f59e0b]/5 text-[#f59e0b] py-3 flex flex-col items-center justify-center gap-1 hover:bg-[#f59e0b]/10 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <span className="font-mono text-[12px] font-bold">ENTER WAR ROOM</span>
+              </button>
+              <button
+                onClick={handleOpenLiveFloor}
+                disabled={isLoading || gamePhase === "live_floor"}
+                className="border border-[#4caf50]/50 bg-[#4caf50]/5 text-[#4caf50] py-3 flex flex-col items-center justify-center gap-1 hover:bg-[#4caf50]/10 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <span className="font-mono text-[12px] font-bold">OPEN LIVE FLOOR</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Broadcast input */}
         <div className="flex flex-col gap-2">
           <label className="font-mono text-[11px] text-gray-500 uppercase tracking-tighter">
@@ -281,10 +372,22 @@ export default function AdminPage() {
           <span className="font-mono text-[11px] text-gray-500 uppercase tracking-widest">
             STATUS
           </span>
-          <div
-            className={`font-mono text-[13px] font-bold px-3 py-1 ${statusStyles}`}
-          >
-            {status}
+          <div className="flex items-center gap-2">
+            {gamePhase === "war_room" && (
+              <span className="font-mono text-[11px] font-bold px-2 py-1 text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/30">
+                WAR ROOM
+              </span>
+            )}
+            {gamePhase === "live_floor" && (
+              <span className="font-mono text-[11px] font-bold px-2 py-1 text-[#4caf50] bg-[#4caf50]/10 border border-[#4caf50]/30">
+                LIVE FLOOR
+              </span>
+            )}
+            <div
+              className={`font-mono text-[13px] font-bold px-3 py-1 ${statusStyles}`}
+            >
+              {status}
+            </div>
           </div>
         </div>
 
@@ -358,6 +461,45 @@ export default function AdminPage() {
           onRemove={handleRemove}
         />
       </div>
+
+      {/* Macro Brief Modal for War Room */}
+      {showMacroBriefModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+          <div className="bg-[#1c1b1b] border border-[#f59e0b]/30 p-6 w-full max-w-lg">
+            <h3 className="font-mono text-sm font-bold text-[#f59e0b] uppercase tracking-widest mb-4">
+              WAR_ROOM_MACRO_BRIEF
+            </h3>
+            <p className="font-mono text-[11px] text-[#89919d] mb-3">
+              Enter the problem statement / macro brief for this quarter. Teams will see this during War Room.
+            </p>
+            <textarea
+              value={macroBriefText}
+              onChange={(e) => setMacroBriefText(e.target.value)}
+              className="w-full bg-[#0e0e0e] border-l-2 border-[#f59e0b] text-sm font-mono p-4 text-[#e5e2e1] h-40 placeholder:text-gray-700 focus:outline-none focus:ring-0 mb-4"
+              placeholder="Describe the macro environment, key challenges, and strategic questions for this quarter..."
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowMacroBriefModal(false);
+                  setMacroBriefText("");
+                }}
+                className="px-4 py-2 font-mono text-[12px] text-[#89919d] border border-[#404752] hover:bg-[#2a2a2a] transition-all"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleEnterWarRoom}
+                disabled={isLoading || !macroBriefText.trim()}
+                className="px-4 py-2 font-mono text-[12px] font-bold text-[#f59e0b] border border-[#f59e0b]/50 bg-[#f59e0b]/10 hover:bg-[#f59e0b]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "ENTERING..." : "ENTER WAR ROOM"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
