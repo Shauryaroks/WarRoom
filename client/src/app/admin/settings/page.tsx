@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -13,9 +13,17 @@ const CONFIG_ITEMS = [
   { label: "STARTING_SHARES", value: "1,000,000" },
 ];
 
+const RESTART_COUNTDOWN = 5;
+
 export default function SettingsPage() {
-  const { status, currentRound, setGameState } = useGameStore();
+  const { status, currentRound, setGameState, reset } = useGameStore();
   const [isAdvancing, setIsAdvancing] = useState(false);
+
+  // Restart state
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [countdown, setCountdown] = useState(RESTART_COUNTDOWN);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load game state on mount
   useEffect(() => {
@@ -30,6 +38,24 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, [setGameState]);
+
+  // Countdown timer for restart confirmation
+  useEffect(() => {
+    if (showRestartConfirm && countdown > 0) {
+      intervalRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [showRestartConfirm, countdown]);
 
   async function handleAdvanceRound() {
     setIsAdvancing(true);
@@ -49,6 +75,33 @@ export default function SettingsPage() {
       setIsAdvancing(false);
     }
   }
+
+  const handleRestartClick = useCallback(() => {
+    setShowRestartConfirm(true);
+    setCountdown(RESTART_COUNTDOWN);
+  }, []);
+
+  const handleAbort = useCallback(() => {
+    setShowRestartConfirm(false);
+    setCountdown(RESTART_COUNTDOWN);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
+
+  const handleConfirmRestart = useCallback(async () => {
+    setIsRestarting(true);
+    try {
+      await api.restartGame();
+      reset();
+      setShowRestartConfirm(false);
+      toast.success("Game restarted successfully");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to restart game"
+      );
+    } finally {
+      setIsRestarting(false);
+    }
+  }, [reset]);
 
   const statusStyles =
     status === "ACTIVE"
@@ -126,6 +179,62 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Section C: Danger Zone - Restart Game */}
+      <div className="bg-[#1c1b1b] p-6 flex flex-col gap-5 border border-[#FF1744]/20">
+        <h3 className="text-sm font-bold font-mono tracking-widest text-[#FF1744]/60 uppercase">
+          DANGER_ZONE
+        </h3>
+
+        <p className="text-xs font-mono text-gray-500 leading-relaxed">
+          Restarting will delete all game data including transactions, holdings,
+          directives, news, and activity history. Team registrations are
+          preserved but reset to READY status with default financials.
+        </p>
+
+        {!showRestartConfirm ? (
+          <button
+            onClick={handleRestartClick}
+            className="border border-[#FF1744]/40 text-[#FF1744] bg-[#FF1744]/10 px-8 py-3.5 font-mono text-sm font-bold uppercase hover:bg-[#FF1744]/20 active:scale-[0.98] transition-all w-full"
+          >
+            RESTART_GAME
+          </button>
+        ) : (
+          <div className="border border-[#FF1744]/30 bg-[#FF1744]/5 p-4 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-[#FF1744] uppercase tracking-widest">
+                // THIS ACTION IS IRREVERSIBLE
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmRestart}
+                disabled={countdown > 0 || isRestarting}
+                className={`flex-1 px-6 py-3 font-mono text-sm font-bold uppercase transition-all ${
+                  countdown > 0 || isRestarting
+                    ? "border border-[#FF1744]/20 text-[#FF1744]/40 bg-transparent cursor-not-allowed"
+                    : "bg-[#FF1744] text-white hover:brightness-110 active:scale-[0.98]"
+                }`}
+              >
+                {isRestarting
+                  ? "RESTARTING..."
+                  : countdown > 0
+                    ? `WAIT... ${countdown}s`
+                    : "CONFIRM_RESTART"}
+              </button>
+
+              <button
+                onClick={handleAbort}
+                disabled={isRestarting}
+                className="px-6 py-3 border border-gray-600 text-gray-400 font-mono text-sm font-bold uppercase hover:border-gray-400 hover:text-gray-300 active:scale-[0.98] transition-all disabled:opacity-30"
+              >
+                ABORT
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

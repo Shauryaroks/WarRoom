@@ -174,6 +174,13 @@ class ApiClient {
     return this.request<ActivityEvent[]>("/api/v1/admin/activity");
   }
 
+  // Game restart
+  async restartGame(): Promise<GameStateResponse> {
+    return this.request<GameStateResponse>("/api/v1/admin/game/restart", {
+      method: "POST",
+    });
+  }
+
   // Round management
   async advanceRound(): Promise<RoundAdvanceResponse> {
     return this.request<RoundAdvanceResponse>(
