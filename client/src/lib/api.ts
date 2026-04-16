@@ -12,6 +12,13 @@ import type {
   NewsInjectResponse,
   BroadcastResponse,
   RoundAdvanceResponse,
+  CompanyInfo,
+  PriceHistoryPoint,
+  TradePreviewRequest,
+  TradePreview,
+  TradeRequest,
+  TradeResult,
+  PortfolioResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -187,6 +194,46 @@ class ApiClient {
       "/api/v1/admin/game/advance-round",
       { method: "POST" }
     );
+  }
+
+  // Market data
+  async getCompanies(): Promise<CompanyInfo[]> {
+    return this.request<CompanyInfo[]>("/api/v1/market/companies");
+  }
+
+  async getPriceHistory(
+    teamId: string,
+    limit = 100
+  ): Promise<PriceHistoryPoint[]> {
+    return this.request<PriceHistoryPoint[]>(
+      `/api/v1/market/prices/${teamId}?limit=${limit}`
+    );
+  }
+
+  // Trading
+  async previewTrade(data: TradePreviewRequest): Promise<TradePreview> {
+    return this.request<TradePreview>("/api/v1/trading/preview", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async buyShares(data: TradeRequest): Promise<TradeResult> {
+    return this.request<TradeResult>("/api/v1/trading/buy", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sellShares(data: TradeRequest): Promise<TradeResult> {
+    return this.request<TradeResult>("/api/v1/trading/sell", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPortfolio(): Promise<PortfolioResponse> {
+    return this.request<PortfolioResponse>("/api/v1/trading/portfolio");
   }
 }
 

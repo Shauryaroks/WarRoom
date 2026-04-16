@@ -99,3 +99,109 @@ export interface RoundAdvanceResponse {
   message: string;
   current_round: number;
 }
+
+// === Market & Trading Types (Phase 4) ===
+
+// WebSocket message: price_update
+export interface PriceTickData {
+  team_id: string;
+  ticker: string;
+  price: string;
+  change_pct: string;
+  market_cap: string;
+  timestamp: string;
+}
+
+export interface PriceUpdateMessage {
+  type: "price_update";
+  payload: { prices: PriceTickData[] };
+}
+
+// WebSocket message: trade_executed
+export interface TradeExecutedMessage {
+  type: "trade_executed";
+  payload: {
+    buyer_team_id: string;
+    target_ticker: string;
+    shares: number;
+    price_per_share: string;
+    total_value: string;
+    transaction_type: "BUY" | "SELL";
+  };
+}
+
+// Candlestick data for lightweight-charts
+export interface CandleData {
+  time: number; // Unix seconds (5-min bucket start)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+// REST: GET /api/v1/market/companies
+export interface CompanyInfo {
+  team_id: string;
+  name: string;
+  ticker: string;
+  stock_price: string;
+  market_cap: string;
+  change_pct: string;
+}
+
+// REST: GET /api/v1/market/prices/{team_id}
+export interface PriceHistoryPoint {
+  price: string;
+  market_cap: string;
+  calculated_at: string;
+}
+
+// REST: POST /api/v1/trading/preview
+export interface TradePreviewRequest {
+  target_team_id: string;
+  shares: number;
+  trade_type: "BUY" | "SELL";
+}
+
+export interface TradePreview {
+  target_ticker: string;
+  shares: number;
+  price_per_share: string;
+  total_cost: string;
+  available_cash: string;
+  shares_available: number;
+  current_holding: number;
+}
+
+// REST: POST /api/v1/trading/buy or /sell
+export interface TradeRequest {
+  target_team_id: string;
+  shares: number;
+}
+
+export interface TradeResult {
+  transaction_id: string;
+  message: string;
+  new_cash_balance: string;
+  shares_owned: number;
+}
+
+// REST: GET /api/v1/trading/portfolio
+export interface HoldingDetail {
+  target_team_id: string;
+  ticker: string;
+  shares_owned: number;
+  avg_buy_price: string;
+  current_price: string;
+  market_value: string;
+  pnl: string;
+  pnl_pct: string;
+  ownership_pct: string;
+}
+
+export interface PortfolioResponse {
+  cash: string;
+  holdings: HoldingDetail[];
+  total_holdings_value: string;
+  net_worth: string;
+}
