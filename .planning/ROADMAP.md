@@ -96,8 +96,8 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md -- Simulation engine: price tick task, interpolation, admin set-score, tests
 - [x] 04-02-PLAN.md -- Trading backend: atomic buy/sell with 30% cap, portfolio, market API
-- [ ] 04-03-PLAN.md -- Frontend data layer: types, API client, market and trading stores
-- [ ] 04-04-PLAN.md -- Candlestick chart: lightweight-charts component, company tabs, price overlay
+- [x] 04-03-PLAN.md -- Frontend data layer: types, API client, market and trading stores
+- [x] 04-04-PLAN.md -- Candlestick chart: lightweight-charts component, company tabs, price overlay
 - [ ] 04-05-PLAN.md -- Game page layout: header, sidebar, panels, WebSocket wiring, verification
 
 **UI hint**: yes
@@ -138,6 +138,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Foundation, Auth, and Base UI | 6/6 | Complete    | 2026-04-15 |
 | 2. Game State and Lobby | 2/2 | Complete    | 2026-04-16 |
 | 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
-| 4. Simulation Engine and Trading | 2/5 | In Progress|  |
+| 4. Simulation Engine and Trading | 4/5 | In Progress|  |
 | 5. Solutions and LLM Evaluation | 0/TBD | Not started | - |
 | 6. News, Elimination, and Polish | 0/TBD | Not started | - |
