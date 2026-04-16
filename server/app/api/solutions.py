@@ -21,6 +21,7 @@ from sqlalchemy.orm import selectinload
 from app.auth_utils import require_team
 from app.database import get_db
 from app.models import (
+    Archetype,
     Evaluation,
     GameStatus,
     Solution,
@@ -58,6 +59,10 @@ class CooldownResponse(BaseModel):
 class CaselineResponse(BaseModel):
     caseline_document: str | None
     company_display_name: str | None
+    archetype_name: str | None = None
+    archetype_slug: str | None = None
+    sector: str | None = None
+    benchmark_bands: str | None = None
 
 
 # --- Endpoints ---
@@ -207,13 +212,30 @@ async def get_caseline(
     current_user: dict = Depends(require_team),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get team's caseline document (D-15)."""
+    """Get team's caseline document with archetype info (D-15, D-09)."""
     team_result = await db.execute(
-        select(Team).where(Team.id == current_user["team_id"])
+        select(Team)
+        .options(selectinload(Team.archetype))
+        .where(Team.id == current_user["team_id"])
     )
     team = team_result.scalar_one()
+
+    archetype_name = None
+    archetype_slug = None
+    sector = None
+    benchmark_bands = None
+
+    if team.archetype is not None:
+        archetype_name = team.archetype.name
+        archetype_slug = team.archetype.slug
+        sector = team.archetype.sector
+        benchmark_bands = team.archetype.benchmark_bands
 
     return CaselineResponse(
         caseline_document=team.caseline_document,
         company_display_name=team.company_display_name,
+        archetype_name=archetype_name,
+        archetype_slug=archetype_slug,
+        sector=sector,
+        benchmark_bands=benchmark_bands,
     )

@@ -17,6 +17,7 @@ from decimal import Decimal
 from app.models import (
     ActivityEvent,
     Admin,
+    Archetype,
     CashLedger,
     CrisisEvent,
     Directive,
@@ -79,6 +80,8 @@ class TeamListItem(BaseModel):
     status: str
     strategist_email: str
     trader_email: str
+    archetype_id: str | None = None
+    archetype_name: str | None = None
     created_at: str
 
 
@@ -282,7 +285,9 @@ async def list_teams(
     db: AsyncSession = Depends(get_db),
 ):
     """List all teams. Optionally filter by status. Requires admin."""
-    query = select(Team).order_by(Team.created_at.desc())
+    from sqlalchemy.orm import selectinload
+
+    query = select(Team).options(selectinload(Team.archetype)).order_by(Team.created_at.desc())
 
     if status_filter:
         try:
@@ -305,6 +310,8 @@ async def list_teams(
             status=t.status.value,
             strategist_email=t.strategist_email,
             trader_email=t.trader_email,
+            archetype_id=str(t.archetype_id) if t.archetype_id else None,
+            archetype_name=t.archetype.name if t.archetype else None,
             created_at=t.created_at.isoformat(),
         )
         for t in teams
@@ -1249,3 +1256,626 @@ async def eliminate_team(
         team_id=str(team_id),
         rank=rank,
     )
+
+
+# --- Archetype Management (Phase 7: D-01 through D-08) ---
+
+
+class ArchetypeCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    slug: str = Field(min_length=1, max_length=50, pattern=r"^[a-z0-9-]+$")
+    description: str | None = None
+    sector: str = Field(default="FOODS", pattern=r"^(FOODS|BEVERAGES)$")
+    dossier_content: str = Field(min_length=1)
+    benchmark_bands: str  # JSON string
+    starting_cash: float
+    starting_stock_price: float
+    starting_shares: int = 1000000
+    swot_strengths: str | None = None
+    swot_weaknesses: str | None = None
+    swot_opportunities: str | None = None
+    swot_threats: str | None = None
+    real_world_inspiration: str | None = Field(None, max_length=200)
+
+
+class ArchetypeUpdateRequest(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = None
+    sector: str | None = Field(None, pattern=r"^(FOODS|BEVERAGES)$")
+    dossier_content: str | None = Field(None, min_length=1)
+    benchmark_bands: str | None = None
+    starting_cash: float | None = None
+    starting_stock_price: float | None = None
+    starting_shares: int | None = None
+    swot_strengths: str | None = None
+    swot_weaknesses: str | None = None
+    swot_opportunities: str | None = None
+    swot_threats: str | None = None
+    real_world_inspiration: str | None = Field(None, max_length=200)
+
+
+class ArchetypeResponse(BaseModel):
+    id: str
+    name: str
+    slug: str
+    description: str | None
+    sector: str
+    dossier_content: str
+    benchmark_bands: str
+    starting_cash: str
+    starting_stock_price: str
+    starting_shares: int
+    swot_strengths: str | None
+    swot_weaknesses: str | None
+    swot_opportunities: str | None
+    swot_threats: str | None
+    real_world_inspiration: str | None
+    is_preset: bool
+    created_at: str
+
+
+class ArchetypeAssignRequest(BaseModel):
+    archetype_id: str
+
+
+class ArchetypeAssignResponse(BaseModel):
+    message: str
+    team_id: str
+    archetype_name: str
+
+
+def _archetype_to_response(a: Archetype) -> ArchetypeResponse:
+    return ArchetypeResponse(
+        id=str(a.id),
+        name=a.name,
+        slug=a.slug,
+        description=a.description,
+        sector=a.sector,
+        dossier_content=a.dossier_content,
+        benchmark_bands=a.benchmark_bands,
+        starting_cash=str(a.starting_cash),
+        starting_stock_price=str(a.starting_stock_price),
+        starting_shares=a.starting_shares,
+        swot_strengths=a.swot_strengths,
+        swot_weaknesses=a.swot_weaknesses,
+        swot_opportunities=a.swot_opportunities,
+        swot_threats=a.swot_threats,
+        real_world_inspiration=a.real_world_inspiration,
+        is_preset=a.is_preset,
+        created_at=a.created_at.isoformat(),
+    )
+
+
+def _validate_benchmark_bands(bands_str: str) -> None:
+    """Validate benchmark_bands JSON structure (T-07-04)."""
+    try:
+        bands = json.loads(bands_str)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="benchmark_bands must be valid JSON")
+
+    required_keys = {"market_share", "margin", "growth", "ops_efficiency"}
+    if set(bands.keys()) != required_keys:
+        raise HTTPException(
+            status_code=422,
+            detail=f"benchmark_bands must have exactly these keys: {sorted(required_keys)}",
+        )
+
+    for key in required_keys:
+        val = bands[key]
+        if not isinstance(val, list) or len(val) != 2:
+            raise HTTPException(
+                status_code=422,
+                detail=f"benchmark_bands.{key} must be a 2-element array [min, max]",
+            )
+        if not all(isinstance(v, (int, float)) for v in val):
+            raise HTTPException(
+                status_code=422,
+                detail=f"benchmark_bands.{key} values must be numeric",
+            )
+
+
+@router.get("/archetypes", response_model=list[ArchetypeResponse])
+async def list_archetypes(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all archetypes. Requires admin."""
+    result = await db.execute(
+        select(Archetype).order_by(Archetype.created_at.desc())
+    )
+    archetypes = result.scalars().all()
+    return [_archetype_to_response(a) for a in archetypes]
+
+
+@router.post(
+    "/archetypes",
+    response_model=ArchetypeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_archetype(
+    request: ArchetypeCreateRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a custom archetype (D-07). Requires admin."""
+    _validate_benchmark_bands(request.benchmark_bands)
+
+    # Check duplicate slug (409)
+    existing = await db.execute(
+        select(Archetype).where(Archetype.slug == request.slug)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail=f"Archetype with slug '{request.slug}' already exists")
+
+    archetype = Archetype(
+        name=request.name,
+        slug=request.slug,
+        description=request.description,
+        sector=request.sector,
+        dossier_content=request.dossier_content,
+        benchmark_bands=request.benchmark_bands,
+        starting_cash=Decimal(str(request.starting_cash)),
+        starting_stock_price=Decimal(str(request.starting_stock_price)),
+        starting_shares=request.starting_shares,
+        swot_strengths=request.swot_strengths,
+        swot_weaknesses=request.swot_weaknesses,
+        swot_opportunities=request.swot_opportunities,
+        swot_threats=request.swot_threats,
+        real_world_inspiration=request.real_world_inspiration,
+        is_preset=False,
+    )
+    db.add(archetype)
+    await db.commit()
+    await db.refresh(archetype)
+
+    return _archetype_to_response(archetype)
+
+
+@router.get("/archetypes/{archetype_id}", response_model=ArchetypeResponse)
+async def get_archetype(
+    archetype_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a single archetype. Requires admin."""
+    result = await db.execute(
+        select(Archetype).where(Archetype.id == archetype_id)
+    )
+    archetype = result.scalar_one_or_none()
+    if not archetype:
+        raise HTTPException(status_code=404, detail="Archetype not found")
+    return _archetype_to_response(archetype)
+
+
+@router.put("/archetypes/{archetype_id}", response_model=ArchetypeResponse)
+async def update_archetype(
+    archetype_id: uuid.UUID,
+    request: ArchetypeUpdateRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update an archetype. Requires admin."""
+    result = await db.execute(
+        select(Archetype).where(Archetype.id == archetype_id)
+    )
+    archetype = result.scalar_one_or_none()
+    if not archetype:
+        raise HTTPException(status_code=404, detail="Archetype not found")
+
+    if request.benchmark_bands is not None:
+        _validate_benchmark_bands(request.benchmark_bands)
+
+    # Apply non-None fields
+    if request.name is not None:
+        archetype.name = request.name
+    if request.description is not None:
+        archetype.description = request.description
+    if request.sector is not None:
+        archetype.sector = request.sector
+    if request.dossier_content is not None:
+        archetype.dossier_content = request.dossier_content
+    if request.benchmark_bands is not None:
+        archetype.benchmark_bands = request.benchmark_bands
+    if request.starting_cash is not None:
+        archetype.starting_cash = Decimal(str(request.starting_cash))
+    if request.starting_stock_price is not None:
+        archetype.starting_stock_price = Decimal(str(request.starting_stock_price))
+    if request.starting_shares is not None:
+        archetype.starting_shares = request.starting_shares
+    if request.swot_strengths is not None:
+        archetype.swot_strengths = request.swot_strengths
+    if request.swot_weaknesses is not None:
+        archetype.swot_weaknesses = request.swot_weaknesses
+    if request.swot_opportunities is not None:
+        archetype.swot_opportunities = request.swot_opportunities
+    if request.swot_threats is not None:
+        archetype.swot_threats = request.swot_threats
+    if request.real_world_inspiration is not None:
+        archetype.real_world_inspiration = request.real_world_inspiration
+
+    await db.commit()
+    await db.refresh(archetype)
+
+    return _archetype_to_response(archetype)
+
+
+@router.delete("/archetypes/{archetype_id}", status_code=204)
+async def delete_archetype(
+    archetype_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an archetype. Cannot delete presets or archetypes with assigned teams (T-07-06)."""
+    result = await db.execute(
+        select(Archetype).where(Archetype.id == archetype_id)
+    )
+    archetype = result.scalar_one_or_none()
+    if not archetype:
+        raise HTTPException(status_code=404, detail="Archetype not found")
+
+    if archetype.is_preset:
+        raise HTTPException(status_code=409, detail="Cannot delete preset archetypes")
+
+    # Check if any teams are assigned
+    team_count_result = await db.execute(
+        select(func.count()).select_from(Team).where(Team.archetype_id == archetype_id)
+    )
+    if (team_count_result.scalar() or 0) > 0:
+        raise HTTPException(status_code=409, detail="Cannot delete archetype with assigned teams")
+
+    await db.delete(archetype)
+    await db.commit()
+
+
+@router.post(
+    "/teams/{team_id}/assign-archetype",
+    response_model=ArchetypeAssignResponse,
+)
+async def assign_archetype(
+    team_id: uuid.UUID,
+    request: ArchetypeAssignRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign archetype to team. Only during SETUP (D-08, T-07-02)."""
+    # D-08: SETUP-only guard
+    game_state = await get_game_state_readonly(db)
+    if game_state.status != GameStatus.SETUP:
+        raise HTTPException(
+            status_code=409,
+            detail="Archetype assignment only allowed during SETUP phase",
+        )
+
+    result = await db.execute(select(Team).where(Team.id == team_id))
+    team = result.scalar_one_or_none()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    archetype_result = await db.execute(
+        select(Archetype).where(Archetype.id == uuid.UUID(request.archetype_id))
+    )
+    archetype = archetype_result.scalar_one_or_none()
+    if not archetype:
+        raise HTTPException(status_code=404, detail="Archetype not found")
+
+    # D-02: Populate team fields from archetype
+    team.archetype_id = archetype.id
+    team.caseline_document = archetype.dossier_content
+    team.company_display_name = archetype.name
+    team.cash = archetype.starting_cash
+    team.stock_price = archetype.starting_stock_price
+    team.shares_outstanding = archetype.starting_shares
+    team.swot_strengths = archetype.swot_strengths
+    team.swot_weaknesses = archetype.swot_weaknesses
+    team.swot_opportunities = archetype.swot_opportunities
+    team.swot_threats = archetype.swot_threats
+
+    db.add(ActivityEvent(
+        event_type="ARCHETYPE_ASSIGNED",
+        actor="admin",
+        description=f"Archetype '{archetype.name}' assigned to team '{team.name}'",
+        metadata_json=json.dumps({
+            "team_id": str(team_id),
+            "archetype_id": str(archetype.id),
+            "archetype_slug": archetype.slug,
+        }),
+    ))
+    await db.commit()
+
+    return ArchetypeAssignResponse(
+        message=f"Archetype '{archetype.name}' assigned to '{team.name}'",
+        team_id=str(team_id),
+        archetype_name=archetype.name,
+    )
+
+
+# --- Archetype Seed (D-04, PORT-01) ---
+
+
+_PRESET_ARCHETYPES = [
+    {
+        "name": "Legacy Giant",
+        "slug": "legacy-giant",
+        "description": "A decades-old FMCG conglomerate with unrivaled distribution reach and deep brand trust, but struggling to innovate in a rapidly evolving market.",
+        "sector": "FOODS",
+        "benchmark_bands": json.dumps({
+            "market_share": [20, 25],
+            "margin": [10, 14],
+            "growth": [4, 8],
+            "ops_efficiency": [70, 85],
+        }),
+        "starting_cash": Decimal("4000000000"),
+        "starting_stock_price": Decimal("100"),
+        "starting_shares": 1000000,
+        "swot_strengths": "Massive pan-India distribution network covering 7M+ retail outlets. Iconic brand portfolio with 40+ years of consumer trust. Deep pockets for sustained price wars. Strong relationships with organized and unorganized retail channels.",
+        "swot_weaknesses": "Slow product innovation cycle (18-24 months to launch). Aging brand perception among Gen Z and millennials. Margin squeeze from rising raw material costs and competitive pricing. Legacy IT infrastructure limiting data-driven decision making.",
+        "swot_opportunities": "Premiumization wave in Indian snacks (growing 22% YoY). Health and wellness segment expanding rapidly. Quick commerce and D2C channels for direct consumer engagement. Export potential to South Asian and Middle Eastern markets.",
+        "swot_threats": "D2C brands capturing urban premium segment with agile launches. Private label growth in modern trade (15% and rising). Input cost volatility (palm oil, wheat, packaging). Regulatory shifts on packaging and labeling requirements.",
+        "real_world_inspiration": "Inspired by Parle Products / Britannia Industries",
+        "dossier_content": """# Legacy Giant
+
+## Company Overview
+
+Legacy Giant is a multi-decade FMCG powerhouse that built its empire on affordable, mass-market snack foods distributed across every corner of India. With a portfolio spanning biscuits, namkeens, chips, and packaged sweets, the company reaches over 7 million retail outlets through a distribution network that is the envy of the industry.
+
+The company's brands are household names -- products that have been part of Indian family kitchens for generations. This deep brand equity translates into consistent demand even during economic downturns. However, the company has been slow to respond to changing consumer preferences, particularly the shift toward healthier, premium options.
+
+Revenue stands at approximately Rs 15,000 Cr annually, making Legacy Giant one of the top 5 packaged food companies in India by revenue. The company employs over 8,000 people across 12 manufacturing facilities.
+
+## Balance Sheet Summary
+
+| Metric | Value |
+|--------|-------|
+| Annual Revenue | Rs 15,000 Cr |
+| EBITDA | Rs 1,800 Cr (12%) |
+| Net Margin | 8.2% |
+| Cash Reserves | Rs 400 Cr |
+| Total Debt | Rs 600 Cr |
+| Debt-to-Equity | 0.15 |
+
+## Cost Structure
+
+| Category | % of Revenue |
+|----------|-------------|
+| COGS (raw materials, packaging) | 58% |
+| SGA (sales, distribution, advertising) | 22% |
+| R&D and Innovation | 2% |
+| Distribution and Logistics | 12% |
+| Admin and Overheads | 6% |
+
+## Market Position
+
+Legacy Giant commands 20-25% market share in the packaged snacks category nationally. Growth has been steady but modest at 4-8% annually, tracking slightly above GDP growth. The company's competitive moat is its unparalleled distribution reach -- no competitor can match its ability to place products in remote rural outlets within 48 hours of production.
+
+## Strategic Context
+
+To win, Legacy Giant must leverage its distribution advantage while accelerating innovation. The company needs to launch premium sub-brands to capture the health-conscious urban consumer without cannibalizing its mass-market base. Margin improvement through operational efficiency and selective price increases will be critical. The key question: can a legacy giant move fast enough to stay relevant?
+""",
+    },
+    {
+        "name": "D2C Challenger",
+        "slug": "d2c-challenger",
+        "description": "A venture-backed digital-native snack brand with explosive growth, strong online presence, but burning cash and limited offline reach.",
+        "sector": "FOODS",
+        "benchmark_bands": json.dumps({
+            "market_share": [1, 3],
+            "margin": [-5, 10],
+            "growth": [60, 100],
+            "ops_efficiency": [40, 60],
+        }),
+        "starting_cash": Decimal("250000000"),
+        "starting_stock_price": Decimal("100"),
+        "starting_shares": 1000000,
+        "swot_strengths": "Digital-first brand with strong social media engagement (2M+ followers). Unit economics trending positive with 45% gross margins on hero SKUs. Agile product development (6-week concept-to-shelf). Data-driven marketing with precise CAC/LTV tracking.",
+        "swot_weaknesses": "Cash burn rate of Rs 8 Cr/month with 31-month runway. Limited offline retail presence (only 2,000 stores). High customer acquisition cost (Rs 380/customer). Dependency on third-party logistics increasing delivery costs.",
+        "swot_opportunities": "Online grocery market growing at 45% CAGR. Health-conscious consumers willing to pay 2-3x premium. Quick commerce platforms (Blinkit, Zepto) as efficient distribution. Strategic co-branding opportunities with fitness and wellness brands.",
+        "swot_threats": "Legacy brands launching D2C verticals with deeper pockets. Customer acquisition costs inflating 15% quarterly. Potential funding winter reducing runway options. Platform dependency risk (Amazon, Flipkart policy changes).",
+        "real_world_inspiration": "Inspired by Open Secret / Yoga Bar",
+        "dossier_content": """# D2C Challenger
+
+## Company Overview
+
+D2C Challenger is a venture-backed, digital-native snack food company that has captured the imagination of urban India's health-conscious millennials. Founded just 4 years ago, the company has grown from a single protein bar SKU to a portfolio of 28 products spanning healthy chips, granola bars, nut mixes, and protein snacks.
+
+The brand's strength lies in its community-driven approach. With over 2 million social media followers and a highly engaged customer base, D2C Challenger has built brand loyalty through transparency -- sharing ingredient sourcing stories, nutritional breakdowns, and manufacturing processes openly. The company's subscription model accounts for 35% of revenue, providing predictable recurring income.
+
+However, profitability remains elusive. The company has raised Rs 120 Cr across three funding rounds and is burning approximately Rs 8 Cr per month. Revenue is Rs 85 Cr annually and growing at 80% YoY, but EBITDA margins are negative as the company invests heavily in customer acquisition and geographic expansion.
+
+## Balance Sheet Summary
+
+| Metric | Value |
+|--------|-------|
+| Annual Revenue | Rs 85 Cr |
+| EBITDA | Rs -15 Cr (-18%) |
+| Net Margin | -22% |
+| Cash Reserves | Rs 25 Cr |
+| Total Debt | Rs 10 Cr (venture debt) |
+| Burn Rate | Rs 8 Cr/month |
+
+## Cost Structure
+
+| Category | % of Revenue |
+|----------|-------------|
+| COGS (premium ingredients, packaging) | 55% |
+| Digital Marketing and CAC | 28% |
+| R&D and Product Development | 5% |
+| Fulfillment and Logistics | 18% |
+| Technology Platform | 8% |
+| Admin | 8% |
+
+## Market Position
+
+D2C Challenger holds 1-3% of the national packaged snacks market but commands 12% of the online-only healthy snacks segment. Growth is explosive at 60-100% annually, driven by the online grocery boom and increasing health consciousness. The company's competitive moat is its brand authenticity and first-mover advantage in the premium health snacks D2C space.
+
+## Strategic Context
+
+D2C Challenger's path to victory requires achieving profitability before cash runs out. The company must optimize unit economics by reducing CAC, expanding into offline retail strategically (modern trade first), and achieving scale economies in manufacturing. The key question: can a digital darling build real-world distribution before the money runs out?
+""",
+    },
+    {
+        "name": "Regional Leader",
+        "slug": "regional-leader",
+        "description": "A highly efficient regional snack brand with cult following in its home market, strong margins, but limited national presence.",
+        "sector": "FOODS",
+        "benchmark_bands": json.dumps({
+            "market_share": [12, 16],
+            "margin": [14, 18],
+            "growth": [10, 15],
+            "ops_efficiency": [80, 92],
+        }),
+        "starting_cash": Decimal("1500000000"),
+        "starting_stock_price": Decimal("100"),
+        "starting_shares": 1000000,
+        "swot_strengths": "Best-in-class supply chain efficiency with 92% capacity utilization. Deep regional brand loyalty with 85% unaided recall in home state. Lean operations with industry-leading EBITDA margins (16%). Own manufacturing with zero outsourcing dependency.",
+        "swot_weaknesses": "Limited to 5-state geographic footprint covering 15% of India's population. Basic branding and packaging compared to national players. No digital marketing capability or e-commerce presence. Dependent on traditional trade (kirana stores) for 90% of sales.",
+        "swot_opportunities": "National expansion into adjacent states with similar taste profiles. Modern trade chains (Reliance Retail, DMart) seeking regional brands. Quick commerce as a capital-light national distribution channel. Export opportunities to Indian diaspora markets.",
+        "swot_threats": "National players entering regional strongholds with aggressive pricing. Rising raw material costs (potatoes, edible oil) squeezing margins. Talent acquisition challenges in Tier-2 headquarters location. Modern trade bargaining power reducing margins on new channels.",
+        "real_world_inspiration": "Inspired by Balaji Wafers / Haldiram's (early stage)",
+        "dossier_content": """# Regional Leader
+
+## Company Overview
+
+Regional Leader is the dominant snack food company in its home region, a 5-state territory in Western India where the brand outsells national competitors by a 3:1 ratio. Built over 20 years by a founder who started with a single potato chip fryer, the company now operates 4 state-of-the-art manufacturing plants running at 92% capacity utilization.
+
+The company's secret sauce is operational efficiency. By controlling the entire supply chain -- from potato sourcing (through contract farming) to manufacturing to last-mile delivery via its own fleet of 200+ trucks -- Regional Leader achieves margins that national players can only dream of. Every rupee is optimized, from batch scheduling to route planning.
+
+Revenue is approximately Rs 2,800 Cr annually with a loyal customer base that treats the brand as a local champion. The company employs 3,500 people and is the largest private employer in its headquarters district.
+
+## Balance Sheet Summary
+
+| Metric | Value |
+|--------|-------|
+| Annual Revenue | Rs 2,800 Cr |
+| EBITDA | Rs 448 Cr (16%) |
+| Net Margin | 11.5% |
+| Cash Reserves | Rs 150 Cr |
+| Total Debt | Rs 200 Cr |
+| Debt-to-Equity | 0.22 |
+
+## Cost Structure
+
+| Category | % of Revenue |
+|----------|-------------|
+| COGS (raw materials, own sourcing) | 52% |
+| Manufacturing (own plants) | 14% |
+| Distribution (own fleet) | 10% |
+| SGA and Trade Promotions | 12% |
+| R&D | 1% |
+| Admin | 5% |
+
+## Market Position
+
+Regional Leader commands 12-16% market share in its home region (equivalent to #1 or #2 position). Growth is moderate at 10-15% annually, driven by deepening penetration in existing markets and cautious expansion into adjacent states. The competitive moat is operational excellence -- competitors cannot match the cost efficiency of the integrated supply chain.
+
+## Strategic Context
+
+Regional Leader's path to victory lies in smart national expansion without sacrificing the operational efficiency that defines the brand. The company must decide between organic expansion (slow but capital-efficient) and inorganic growth (faster but risky). Building a modern trade and e-commerce strategy is essential to reach consumers beyond the traditional kirana network. The key question: can a regional champion scale nationally without losing its soul?
+""",
+    },
+    {
+        "name": "Premium Niche",
+        "slug": "premium-niche",
+        "description": "A premium-positioned snack brand targeting health-conscious urban consumers with high margins but a small addressable market.",
+        "sector": "FOODS",
+        "benchmark_bands": json.dumps({
+            "market_share": [2, 5],
+            "margin": [22, 30],
+            "growth": [20, 35],
+            "ops_efficiency": [55, 70],
+        }),
+        "starting_cash": Decimal("800000000"),
+        "starting_stock_price": Decimal("100"),
+        "starting_shares": 1000000,
+        "swot_strengths": "Premium brand positioning commanding 2-3x price premium over mass market. High gross margins (55%) enabling investment in quality and innovation. Strong presence in premium modern trade (Natures Basket, Foodhall, Organic stores). Celebrity and influencer endorsement portfolio driving aspirational appeal.",
+        "swot_weaknesses": "Small total addressable market (urban SEC A/B, top 8 cities). High product development costs limiting SKU expansion speed. Premium positioning creates price ceiling sensitivity during inflation. Limited shelf space in general trade due to higher price points.",
+        "swot_opportunities": "Health and wellness trend accelerating post-COVID (35% growth in premium segment). Export markets in US/UK/UAE with large Indian diaspora. Corporate gifting and institutional sales channels. Premium quick commerce (Zepto Cafe, Swiggy Instamart) as discovery channel.",
+        "swot_threats": "Premium fatigue during economic slowdowns. Legacy brands launching premium sub-brands with massive distribution. Imitation products at lower price points confusing consumers. Raw material cost inflation harder to pass through at premium price points.",
+        "real_world_inspiration": "Inspired by Too Yumm / Raw Pressery",
+        "dossier_content": """# Premium Niche
+
+## Company Overview
+
+Premium Niche is a lifestyle snack brand that has carved out a lucrative position at the intersection of health, taste, and aspiration. Founded 8 years ago by a team of food scientists and brand strategists, the company produces baked (not fried) snacks, cold-pressed juices, artisanal trail mixes, and superfood-infused chips that retail at 2-3x the price of conventional alternatives.
+
+The brand is a fixture in premium retail -- from Natures Basket to Foodhall to boutique organic stores -- and has cultivated an image of scientific rigor meets indulgence. Every product comes with detailed nutritional information, sourcing transparency, and third-party health certifications. Celebrity partnerships and wellness influencer collaborations have made the brand aspirational.
+
+Revenue is Rs 450 Cr annually with impressive 26% EBITDA margins, making it one of the most profitable companies per unit in the Indian snacks industry. The company operates a single advanced manufacturing facility with dedicated lines for baked products and cold-pressed beverages.
+
+## Balance Sheet Summary
+
+| Metric | Value |
+|--------|-------|
+| Annual Revenue | Rs 450 Cr |
+| EBITDA | Rs 117 Cr (26%) |
+| Net Margin | 18% |
+| Cash Reserves | Rs 80 Cr |
+| Total Debt | Rs 50 Cr |
+| Debt-to-Equity | 0.12 |
+
+## Cost Structure
+
+| Category | % of Revenue |
+|----------|-------------|
+| COGS (premium ingredients, certifications) | 45% |
+| Brand Building and Marketing | 15% |
+| R&D and Product Innovation | 6% |
+| Premium Distribution | 8% |
+| Packaging (premium materials) | 5% |
+| Admin | 5% |
+
+## Market Position
+
+Premium Niche holds 2-5% of the overall packaged snacks market but commands 18% of the premium/health segment in its target cities. Growth is strong at 20-35% annually, fueled by the wellness megatrend and expanding urban affluence. The competitive moat is brand perception -- consumers associate the brand with quality, health, and sophistication that mass-market brands cannot replicate quickly.
+
+## Strategic Context
+
+Premium Niche's path to victory requires expanding the addressable market without diluting brand equity. The company must navigate the tension between growth (which demands broader distribution and potentially lower price points) and premium positioning (which demands exclusivity and higher margins). Geographic expansion into Tier-2 premium retail and international markets offers growth without brand dilution. The key question: can a premium brand scale without becoming ordinary?
+""",
+    },
+]
+
+
+@router.post("/archetypes/seed")
+async def seed_archetypes(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Seed the 4 pre-built archetypes. Idempotent by slug (T-07-05)."""
+    created = []
+    skipped = []
+
+    for preset in _PRESET_ARCHETYPES:
+        existing = await db.execute(
+            select(Archetype).where(Archetype.slug == preset["slug"])
+        )
+        if existing.scalar_one_or_none():
+            skipped.append(preset["slug"])
+            continue
+
+        archetype = Archetype(
+            name=preset["name"],
+            slug=preset["slug"],
+            description=preset["description"],
+            sector=preset["sector"],
+            dossier_content=preset["dossier_content"],
+            benchmark_bands=preset["benchmark_bands"],
+            starting_cash=preset["starting_cash"],
+            starting_stock_price=preset["starting_stock_price"],
+            starting_shares=preset["starting_shares"],
+            swot_strengths=preset["swot_strengths"],
+            swot_weaknesses=preset["swot_weaknesses"],
+            swot_opportunities=preset["swot_opportunities"],
+            swot_threats=preset["swot_threats"],
+            real_world_inspiration=preset["real_world_inspiration"],
+            is_preset=True,
+        )
+        db.add(archetype)
+        created.append(preset["slug"])
+
+    await db.commit()
+
+    return {
+        "message": f"Seeded {len(created)} archetypes",
+        "created": created,
+        "skipped": skipped,
+    }
