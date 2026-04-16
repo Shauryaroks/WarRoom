@@ -17,17 +17,24 @@ from app.models import (
     Admin,
     CashLedger,
     Directive,
+    Evaluation,
+    EvaluationStatus,
     GameState,
     GameStatus,
     MarketNews,
     PriceHistory,
+    Solution,
     StockHolding,
     Team,
     TeamStatus,
     Transaction,
 )
 from app.auth_utils import create_access_token, require_admin
-from app.redis_pubsub import publish_broadcast
+from app.redis_pubsub import publish_broadcast, publish_to_team
+from app.services.evaluation_service import (
+    approve_evaluation as _approve_evaluation,
+    reject_evaluation as _reject_evaluation,
+)
 from app.services.game_service import (
     REDIS_GAME_STATUS_KEY,
     calculate_elapsed_seconds,
@@ -143,6 +150,50 @@ class NewsHistoryItem(BaseModel):
     source_type: str
     affected_tickers: list[str]
     created_at: str
+
+
+class EvaluationListItem(BaseModel):
+    id: str
+    team_id: str
+    team_name: str
+    team_ticker: str
+    solution_type: str
+    status: str
+    overall_score: float | None
+    scoring_metrics: str | None
+    news_headline: str | None
+    news_body: str | None
+    news_sentiment: float | None
+    price_timeline: str | None
+    llm_model: str | None
+    admin_notes: str | None
+    created_at: str
+
+
+class EvaluationEditRequest(BaseModel):
+    overall_score: float | None = Field(None, ge=0.0, le=1.0)
+    scoring_metrics: str | None = None
+    news_headline: str | None = Field(None, max_length=120)
+    news_body: str | None = None
+    news_sentiment: float | None = Field(None, ge=-1.0, le=1.0)
+    price_timeline: str | None = None
+
+
+class EvaluationActionResponse(BaseModel):
+    message: str
+    evaluation_id: str
+
+
+class CaselineAssignRequest(BaseModel):
+    caseline_document: str = Field(min_length=1, max_length=100000)
+    company_display_name: str | None = Field(None, max_length=100)
+    starting_cash: float | None = None
+    initial_stock_price: float | None = None
+
+
+class CaselineAssignResponse(BaseModel):
+    message: str
+    team_id: str
 
 
 # --- Utility ---
@@ -775,3 +826,251 @@ async def get_news_history(
         )
         for n in news_items
     ]
+
+
+# --- Evaluation Endpoints (per EVAL-03, EVAL-04, EVAL-05) ---
+
+
+def _evaluation_to_list_item(evaluation: Evaluation, team: Team) -> EvaluationListItem:
+    """Convert Evaluation + Team to EvaluationListItem response."""
+    return EvaluationListItem(
+        id=str(evaluation.id),
+        team_id=str(evaluation.team_id),
+        team_name=team.name,
+        team_ticker=team.ticker,
+        solution_type=evaluation.solution.solution_type.value if evaluation.solution else "UNKNOWN",
+        status=evaluation.status.value,
+        overall_score=evaluation.overall_score,
+        scoring_metrics=evaluation.scoring_metrics,
+        news_headline=evaluation.news_headline,
+        news_body=evaluation.news_body,
+        news_sentiment=float(evaluation.news_sentiment) if evaluation.news_sentiment is not None else None,
+        price_timeline=evaluation.price_timeline,
+        llm_model=evaluation.llm_model,
+        admin_notes=evaluation.admin_notes,
+        created_at=evaluation.created_at.isoformat(),
+    )
+
+
+@router.get("/evaluations", response_model=list[EvaluationListItem])
+async def list_evaluations(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List evaluations with team info. Optionally filter by status (EVAL-03)."""
+    from sqlalchemy.orm import selectinload
+
+    query = (
+        select(Evaluation)
+        .options(selectinload(Evaluation.team), selectinload(Evaluation.solution))
+        .order_by(Evaluation.created_at.desc())
+    )
+
+    if status_filter:
+        try:
+            eval_status = EvaluationStatus(status_filter)
+            query = query.where(Evaluation.status == eval_status)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status: {status_filter}. Valid: {[s.value for s in EvaluationStatus]}",
+            )
+
+    result = await db.execute(query)
+    evaluations = result.scalars().all()
+
+    return [_evaluation_to_list_item(e, e.team) for e in evaluations]
+
+
+@router.get("/evaluations/{evaluation_id}", response_model=EvaluationListItem)
+async def get_evaluation(
+    evaluation_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get single evaluation detail."""
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(Evaluation)
+        .options(selectinload(Evaluation.team), selectinload(Evaluation.solution))
+        .where(Evaluation.id == evaluation_id)
+    )
+    evaluation = result.scalar_one_or_none()
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Evaluation not found")
+
+    return _evaluation_to_list_item(evaluation, evaluation.team)
+
+
+@router.put("/evaluations/{evaluation_id}", response_model=EvaluationActionResponse)
+async def edit_evaluation(
+    evaluation_id: uuid.UUID,
+    request: EvaluationEditRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Edit evaluation fields before approval (EVAL-04). Only PENDING_APPROVAL (T-05-08)."""
+    result = await db.execute(
+        select(Evaluation).where(Evaluation.id == evaluation_id)
+    )
+    evaluation = result.scalar_one_or_none()
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Evaluation not found")
+
+    if evaluation.status != EvaluationStatus.PENDING_APPROVAL:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Can only edit PENDING_APPROVAL evaluations, current: {evaluation.status.value}",
+        )
+
+    # Update only non-None fields
+    if request.overall_score is not None:
+        evaluation.overall_score = request.overall_score
+    if request.scoring_metrics is not None:
+        evaluation.scoring_metrics = request.scoring_metrics
+    if request.news_headline is not None:
+        evaluation.news_headline = request.news_headline
+    if request.news_body is not None:
+        evaluation.news_body = request.news_body
+    if request.news_sentiment is not None:
+        from decimal import Decimal
+        evaluation.news_sentiment = Decimal(str(request.news_sentiment))
+    if request.price_timeline is not None:
+        evaluation.price_timeline = request.price_timeline
+
+    await db.commit()
+
+    return EvaluationActionResponse(
+        message="Evaluation updated",
+        evaluation_id=str(evaluation.id),
+    )
+
+
+@router.post("/evaluations/{evaluation_id}/approve", response_model=EvaluationActionResponse)
+async def approve_evaluation_endpoint(
+    evaluation_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve evaluation: writes target_price, creates news (EVAL-05)."""
+    try:
+        result = await _approve_evaluation(db, evaluation_id)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="EVALUATION_APPROVED",
+        actor="admin",
+        description=f"Evaluation approved for {result['ticker']} (target: ${result['target_price']})",
+        metadata_json=json.dumps(result),
+    ))
+    await db.commit()
+
+    # Broadcast news to all teams
+    await publish_broadcast({
+        "type": "evaluation_approved",
+        "payload": {
+            "evaluation_id": str(evaluation_id),
+            "team_id": result["team_id"],
+            "ticker": result["ticker"],
+            "target_price": result["target_price"],
+            "news_id": result["news_id"],
+        },
+    })
+
+    return EvaluationActionResponse(
+        message=f"Evaluation approved. Target price: ${result['target_price']}",
+        evaluation_id=str(evaluation_id),
+    )
+
+
+class RejectEvaluationRequest(BaseModel):
+    admin_notes: str = ""
+
+
+@router.post("/evaluations/{evaluation_id}/reject", response_model=EvaluationActionResponse)
+async def reject_evaluation_endpoint(
+    evaluation_id: uuid.UUID,
+    request: RejectEvaluationRequest = RejectEvaluationRequest(),
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reject evaluation with optional notes (EVAL-05, D-10)."""
+    try:
+        result = await _reject_evaluation(db, evaluation_id, request.admin_notes)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="EVALUATION_REJECTED",
+        actor="admin",
+        description=f"Evaluation rejected for team {result['team_id']}",
+        metadata_json=json.dumps(result),
+    ))
+    await db.commit()
+
+    # D-10: Notify team of rejection
+    await publish_to_team(uuid.UUID(result["team_id"]), {
+        "type": "evaluation_rejected",
+        "payload": {
+            "evaluation_id": result["evaluation_id"],
+            "admin_notes": request.admin_notes,
+        },
+    })
+
+    return EvaluationActionResponse(
+        message="Evaluation rejected",
+        evaluation_id=result["evaluation_id"],
+    )
+
+
+# --- Caseline Assignment (per D-12, D-13, D-14) ---
+
+
+@router.put("/teams/{team_id}/caseline", response_model=CaselineAssignResponse)
+async def assign_caseline(
+    team_id: uuid.UUID,
+    request: CaselineAssignRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign caseline document to team. Only during SETUP (D-12, T-05-09)."""
+    # T-05-09: Only allow in SETUP
+    game_state = await get_game_state_readonly(db)
+    if game_state.status != GameStatus.SETUP:
+        raise HTTPException(
+            status_code=409,
+            detail="Caseline assignment only allowed during SETUP phase",
+        )
+
+    result = await db.execute(select(Team).where(Team.id == team_id))
+    team = result.scalar_one_or_none()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team.caseline_document = request.caseline_document
+    if request.company_display_name is not None:
+        team.company_display_name = request.company_display_name
+
+    # D-14: Update financial fields if provided
+    if request.starting_cash is not None:
+        from decimal import Decimal
+        team.cash = Decimal(str(request.starting_cash))
+    if request.initial_stock_price is not None:
+        from decimal import Decimal
+        team.stock_price = Decimal(str(request.initial_stock_price))
+
+    db.add(ActivityEvent(
+        event_type="CASELINE_ASSIGNED",
+        actor="admin",
+        description=f"Caseline assigned to team '{team.name}'",
+        metadata_json=json.dumps({"team_id": str(team_id)}),
+    ))
+    await db.commit()
+
+    return CaselineAssignResponse(
+        message=f"Caseline assigned to '{team.name}'",
+        team_id=str(team_id),
+    )

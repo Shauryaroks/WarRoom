@@ -1,0 +1,207 @@
+"""Solutions API router: submission, cooldown, caseline endpoints.
+
+Per SOLN-01: Strategist submits initial solution within 1-hour window.
+Per SOLN-03: Microtweak submission with 20-minute cooldown.
+Per SOLN-04: Cooldown tracked on Team.cooldown_until, auto-expires.
+Per T-05-05: Role check -- only strategists can submit.
+Per T-05-06: Server-side elapsed_seconds check (authoritative timer).
+Per T-05-07: Pydantic max_length=50000 limits content size.
+"""
+
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.auth_utils import require_team
+from app.database import get_db
+from app.models import (
+    Evaluation,
+    GameStatus,
+    Solution,
+    SolutionType,
+    Team,
+)
+from app.services.game_service import calculate_elapsed_seconds, get_game_state_readonly
+
+router = APIRouter(prefix="/api/v1/solutions", tags=["solutions"])
+
+
+# --- Pydantic Models ---
+
+
+class SubmitSolutionRequest(BaseModel):
+    content: str = Field(min_length=10, max_length=50000)
+    solution_type: str = Field(pattern=r"^(INITIAL|MICROTWEAK)$")
+
+
+class SolutionResponse(BaseModel):
+    id: str
+    content: str
+    solution_type: str
+    created_at: str
+    evaluation_status: str | None
+
+
+class CooldownResponse(BaseModel):
+    cooldown_active: bool
+    cooldown_until: str | None
+    seconds_remaining: int
+
+
+class CaselineResponse(BaseModel):
+    caseline_document: str | None
+    company_display_name: str | None
+
+
+# --- Endpoints ---
+
+
+@router.post("/submit", response_model=SolutionResponse)
+async def submit_solution(
+    request: SubmitSolutionRequest,
+    current_user: dict = Depends(require_team),
+    db: AsyncSession = Depends(get_db),
+):
+    """Submit a solution. Only strategists can submit (T-05-05).
+
+    INITIAL: must be within 1-hour window (SOLN-01, T-05-06).
+    MICROTWEAK: must not be in cooldown (SOLN-03, T-05-06).
+    On MICROTWEAK: sets cooldown_until = now + 20min (SOLN-04).
+    Dispatches Celery task for LLM evaluation (EVAL-01).
+    """
+    # T-05-05: Only strategists can submit
+    if current_user["role"] != "strategist":
+        raise HTTPException(status_code=403, detail="Only strategists can submit solutions")
+
+    # Validate game is ACTIVE
+    game_state = await get_game_state_readonly(db)
+    if game_state.status != GameStatus.ACTIVE:
+        raise HTTPException(status_code=409, detail="Game is not active")
+
+    now = datetime.now(timezone.utc)
+    elapsed_seconds = calculate_elapsed_seconds(game_state)
+    sol_type = SolutionType(request.solution_type)
+
+    # Reload team from DB to get current state
+    team_result = await db.execute(
+        select(Team).where(Team.id == current_user["team_id"])
+    )
+    team = team_result.scalar_one()
+
+    # T-05-06: Server-side time window validation
+    if sol_type == SolutionType.INITIAL:
+        if elapsed_seconds >= 3600:
+            raise HTTPException(
+                status_code=409,
+                detail="Initial submission window (1 hour) has closed",
+            )
+    elif sol_type == SolutionType.MICROTWEAK:
+        # SOLN-03: Check cooldown
+        if team.cooldown_until is not None and team.cooldown_until > now:
+            remaining = int((team.cooldown_until - now).total_seconds())
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cooldown active. {remaining} seconds remaining.",
+            )
+
+    # Create Solution record
+    solution = Solution(
+        team_id=team.id,
+        content=request.content,
+        solution_type=sol_type,
+    )
+    db.add(solution)
+
+    # SOLN-04: Set cooldown on MICROTWEAK
+    if sol_type == SolutionType.MICROTWEAK:
+        team.cooldown_until = now + timedelta(minutes=20)
+
+    await db.commit()
+    await db.refresh(solution)
+
+    # Dispatch Celery task for LLM evaluation
+    from app.worker.tasks.evaluate_solution import evaluate_solution
+    evaluate_solution.delay(str(solution.id))
+
+    return SolutionResponse(
+        id=str(solution.id),
+        content=solution.content,
+        solution_type=solution.solution_type.value,
+        created_at=solution.created_at.isoformat(),
+        evaluation_status=None,  # Just created, no evaluation yet
+    )
+
+
+@router.get("/my-solutions", response_model=list[SolutionResponse])
+async def get_my_solutions(
+    current_user: dict = Depends(require_team),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get team's solutions with evaluation status."""
+    result = await db.execute(
+        select(Solution)
+        .options(selectinload(Solution.evaluation))
+        .where(Solution.team_id == current_user["team_id"])
+        .order_by(Solution.created_at.desc())
+    )
+    solutions = result.scalars().all()
+
+    return [
+        SolutionResponse(
+            id=str(s.id),
+            content=s.content,
+            solution_type=s.solution_type.value,
+            created_at=s.created_at.isoformat(),
+            evaluation_status=s.evaluation.status.value if s.evaluation else None,
+        )
+        for s in solutions
+    ]
+
+
+@router.get("/cooldown", response_model=CooldownResponse)
+async def get_cooldown_status(
+    current_user: dict = Depends(require_team),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get cooldown status for team (SOLN-04)."""
+    team_result = await db.execute(
+        select(Team).where(Team.id == current_user["team_id"])
+    )
+    team = team_result.scalar_one()
+
+    now = datetime.now(timezone.utc)
+    if team.cooldown_until is not None and team.cooldown_until > now:
+        return CooldownResponse(
+            cooldown_active=True,
+            cooldown_until=team.cooldown_until.isoformat(),
+            seconds_remaining=int((team.cooldown_until - now).total_seconds()),
+        )
+
+    return CooldownResponse(
+        cooldown_active=False,
+        cooldown_until=None,
+        seconds_remaining=0,
+    )
+
+
+@router.get("/caseline", response_model=CaselineResponse)
+async def get_caseline(
+    current_user: dict = Depends(require_team),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get team's caseline document (D-15)."""
+    team_result = await db.execute(
+        select(Team).where(Team.id == current_user["team_id"])
+    )
+    team = team_result.scalar_one()
+
+    return CaselineResponse(
+        caseline_document=team.caseline_document,
+        company_display_name=team.company_display_name,
+    )
