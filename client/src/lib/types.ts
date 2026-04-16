@@ -205,3 +205,52 @@ export interface PortfolioResponse {
   total_holdings_value: string;
   net_worth: string;
 }
+
+// === Solution & Evaluation Types (Phase 5) ===
+
+export interface SolutionResponse {
+  id: string;
+  content: string;
+  solution_type: "INITIAL" | "MICROTWEAK";
+  created_at: string;
+  evaluation_status: string | null;
+}
+
+export interface CooldownResponse {
+  cooldown_active: boolean;
+  cooldown_until: string | null;
+  seconds_remaining: number;
+}
+
+export interface CaselineResponse {
+  caseline_document: string | null;
+  company_display_name: string | null;
+}
+
+export interface EvaluationListItem {
+  id: string;
+  team_id: string;
+  team_name: string;
+  team_ticker: string;
+  solution_type: string;
+  status: string;
+  overall_score: number | null;
+  scoring_metrics: string | null;
+  news_headline: string | null;
+  news_body: string | null;
+  news_sentiment: number | null;
+  price_timeline: string | null;
+  llm_model: string | null;
+  admin_notes: string | null;
+  created_at: string;
+}
+
+export interface EvaluationActionResponse {
+  message: string;
+  evaluation_id: string;
+}
+
+export interface CaselineAssignResponse {
+  message: string;
+  team_id: string;
+}

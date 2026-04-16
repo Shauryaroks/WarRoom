@@ -19,6 +19,12 @@ import type {
   TradeRequest,
   TradeResult,
   PortfolioResponse,
+  SolutionResponse,
+  CooldownResponse,
+  CaselineResponse,
+  EvaluationListItem,
+  EvaluationActionResponse,
+  CaselineAssignResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -234,6 +240,105 @@ class ApiClient {
 
   async getPortfolio(): Promise<PortfolioResponse> {
     return this.request<PortfolioResponse>("/api/v1/trading/portfolio");
+  }
+
+  // Solutions (team-facing)
+  async submitSolution(data: {
+    content: string;
+    solution_type: string;
+  }): Promise<SolutionResponse> {
+    return this.request<SolutionResponse>("/api/v1/solutions/submit", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMySolutions(): Promise<SolutionResponse[]> {
+    return this.request<SolutionResponse[]>("/api/v1/solutions/my-solutions");
+  }
+
+  async getCooldown(): Promise<CooldownResponse> {
+    return this.request<CooldownResponse>("/api/v1/solutions/cooldown");
+  }
+
+  async getCaseline(): Promise<CaselineResponse> {
+    return this.request<CaselineResponse>("/api/v1/solutions/caseline");
+  }
+
+  // Evaluations (admin-facing)
+  async getEvaluations(status?: string): Promise<EvaluationListItem[]> {
+    const query = status && status !== "ALL" ? `?status=${status}` : "";
+    return this.request<EvaluationListItem[]>(
+      `/api/v1/admin/evaluations${query}`
+    );
+  }
+
+  async getEvaluation(evaluationId: string): Promise<EvaluationListItem> {
+    return this.request<EvaluationListItem>(
+      `/api/v1/admin/evaluations/${evaluationId}`
+    );
+  }
+
+  async editEvaluation(
+    evaluationId: string,
+    data: Partial<{
+      overall_score: number;
+      scoring_metrics: string;
+      news_headline: string;
+      news_body: string;
+      news_sentiment: number;
+      price_timeline: string;
+    }>
+  ): Promise<EvaluationActionResponse> {
+    return this.request<EvaluationActionResponse>(
+      `/api/v1/admin/evaluations/${evaluationId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async approveEvaluation(
+    evaluationId: string
+  ): Promise<EvaluationActionResponse> {
+    return this.request<EvaluationActionResponse>(
+      `/api/v1/admin/evaluations/${evaluationId}/approve`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  async rejectEvaluation(
+    evaluationId: string,
+    adminNotes?: string
+  ): Promise<EvaluationActionResponse> {
+    return this.request<EvaluationActionResponse>(
+      `/api/v1/admin/evaluations/${evaluationId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify({ admin_notes: adminNotes || "" }),
+      }
+    );
+  }
+
+  async assignCaseline(
+    teamId: string,
+    data: {
+      caseline_document: string;
+      company_display_name?: string;
+      starting_cash?: number;
+      initial_stock_price?: number;
+    }
+  ): Promise<CaselineAssignResponse> {
+    return this.request<CaselineAssignResponse>(
+      `/api/v1/admin/teams/${teamId}/caseline`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
   }
 }
 
