@@ -40,9 +40,9 @@ class ApiClient {
         return parsed?.state?.token || null;
       }
     } catch {
-      // Fallback
+      // Parse error
     }
-    return localStorage.getItem("token");
+    return null;
   }
 
   private async request<T>(
