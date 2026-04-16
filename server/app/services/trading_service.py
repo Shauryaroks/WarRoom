@@ -296,25 +296,20 @@ async def get_portfolio(db: AsyncSession, team_id: uuid.UUID) -> dict:
     if not team:
         raise ValueError("Team not found")
 
-    # Get all holdings with target team info
+    # Get all holdings with target team eagerly loaded
+    from sqlalchemy.orm import joinedload
     holdings_result = await db.execute(
         select(StockHolding)
+        .options(joinedload(StockHolding.target_team))
         .where(StockHolding.owner_team_id == team_id)
     )
-    holdings = holdings_result.scalars().all()
+    holdings = holdings_result.scalars().unique().all()
 
     holdings_data = []
     total_holdings_value = Decimal("0")
 
     for h in holdings:
-        # Access target_team relationship (eagerly loaded or use joinedload)
         target = h.target_team
-        if not target:
-            # Fallback: query target team
-            target = await db.scalar(
-                select(Team).where(Team.id == h.target_team_id)
-            )
-
         if not target:
             continue
 
