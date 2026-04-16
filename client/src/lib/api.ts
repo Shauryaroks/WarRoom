@@ -25,6 +25,7 @@ import type {
   EvaluationListItem,
   EvaluationActionResponse,
   CaselineAssignResponse,
+  LeaderboardEntry,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -335,6 +336,11 @@ class ApiClient {
         body: JSON.stringify({ admin_notes: adminNotes || "" }),
       }
     );
+  }
+
+  // Leaderboard
+  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+    return this.request<LeaderboardEntry[]>("/api/v1/market/leaderboard");
   }
 
   async assignCaseline(
