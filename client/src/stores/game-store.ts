@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GameStatus, GameStatePayload, CrisisPayload } from "@/lib/types";
+import type { GameStatus, GameStatePayload, CrisisPayload, GamePhase } from "@/lib/types";
 
 interface GameState {
   status: GameStatus;
@@ -7,11 +7,14 @@ interface GameState {
   currentRound: number;
   activeCrisis: CrisisPayload | null;
   teamStatus: string | null;
+  gamePhase: GamePhase;
+  macroBrief: string | null;
 
   setGameState: (payload: GameStatePayload) => void;
   setCrisis: (crisis: CrisisPayload) => void;
   clearCrisis: () => void;
   setTeamStatus: (status: string) => void;
+  setGamePhase: (phase: GamePhase, macroBrief?: string | null) => void;
   reset: () => void;
 }
 
@@ -21,6 +24,8 @@ export const useGameStore = create<GameState>()((set) => ({
   currentRound: 0,
   activeCrisis: null,
   teamStatus: null,
+  gamePhase: null,
+  macroBrief: null,
 
   setGameState: (payload) =>
     set({
@@ -31,6 +36,8 @@ export const useGameStore = create<GameState>()((set) => ({
   setCrisis: (crisis) => set({ activeCrisis: crisis }),
   clearCrisis: () => set({ activeCrisis: null }),
   setTeamStatus: (status) => set({ teamStatus: status }),
+  setGamePhase: (phase, macroBrief) =>
+    set({ gamePhase: phase, macroBrief: macroBrief ?? null }),
   reset: () =>
     set({
       status: "SETUP",
@@ -38,5 +45,7 @@ export const useGameStore = create<GameState>()((set) => ({
       currentRound: 0,
       activeCrisis: null,
       teamStatus: null,
+      gamePhase: null,
+      macroBrief: null,
     }),
 }));

@@ -29,6 +29,11 @@ import type {
   ArchetypeResponse,
   ArchetypeAssignResponse,
   ArchetypeSeedResponse,
+  BulkDecisionSubmitRequest,
+  DecisionResponse,
+  OperatingPlanResponse,
+  GamePhaseResponse,
+  BudgetResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -406,6 +411,38 @@ class ApiClient {
       "/api/v1/admin/archetypes/seed",
       { method: "POST" }
     );
+  }
+
+  // === Phase 8: Decisions & Game Phase ===
+
+  async submitDecisions(body: BulkDecisionSubmitRequest) {
+    return this.request<{ message: string; decisions: DecisionResponse[]; total_budget_spent: string }>(
+      "/api/v1/decisions/submit",
+      { method: "POST", body: JSON.stringify(body) }
+    );
+  }
+
+  async getCurrentDecisions() {
+    return this.request<DecisionResponse[]>("/api/v1/decisions/current");
+  }
+
+  async submitOperatingPlan(content: string) {
+    return this.request<{ message: string; plan_id: string }>(
+      "/api/v1/decisions/operating-plan",
+      { method: "POST", body: JSON.stringify({ content }) }
+    );
+  }
+
+  async getOperatingPlan() {
+    return this.request<OperatingPlanResponse>("/api/v1/decisions/operating-plan");
+  }
+
+  async getGamePhase() {
+    return this.request<GamePhaseResponse>("/api/v1/game/phase");
+  }
+
+  async getBudget() {
+    return this.request<BudgetResponse>("/api/v1/game/budget");
   }
 }
 

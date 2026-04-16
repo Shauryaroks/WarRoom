@@ -335,3 +335,80 @@ export interface BenchmarkBands {
   growth: [number, number];
   ops_efficiency: [number, number];
 }
+
+// === Phase 8: Decision Levers & Round Structure ===
+
+export type GamePhase = "war_room" | "live_floor" | null;
+
+export type LeverCategory = "PRICING" | "MARKETING" | "SUPPLY_CHAIN" | "NEW_PRODUCT";
+
+export interface PricingDecision {
+  list_price_change: number;  // -15 to 15
+  promo_depth: number;        // 0 to 40
+  channel_pricing: "GT" | "MT" | "QCOM" | "D2C";
+}
+
+export interface MarketingDecision {
+  atl_pct: number;
+  digital_pct: number;
+  influencer_pct: number;
+  btl_pct: number;
+  campaign_theme: "VALUE" | "PREMIUM" | "HEALTH" | "PATRIOTISM" | "NOSTALGIA";
+}
+
+export interface SupplyChainDecision {
+  inventory_policy: "LEAN" | "BALANCED" | "STOCKED";
+  distribution_expansion: ("TIER1" | "TIER2" | "RURAL")[];
+  capacity_utilization: number;  // 60 to 100
+}
+
+export interface NewProductDecision {
+  launch_sku: boolean;
+  sku_description?: string;
+  target_category?: string;
+}
+
+export type DecisionPayload = PricingDecision | MarketingDecision | SupplyChainDecision | NewProductDecision;
+
+export interface DecisionSubmitItem {
+  lever_category: LeverCategory;
+  decisions_json: DecisionPayload;
+  budget_spent: number;
+}
+
+export interface BulkDecisionSubmitRequest {
+  decisions: DecisionSubmitItem[];
+}
+
+export interface DecisionResponse {
+  id: string;
+  lever_category: LeverCategory;
+  decisions_json: string;  // JSON string
+  budget_spent: string;
+  submitted_at: string;
+}
+
+export interface BudgetResponse {
+  total_budget: string;
+  allocated: string;
+  remaining: string;
+  multiplier: number;
+}
+
+export interface GamePhaseResponse {
+  game_phase: GamePhase;
+  macro_brief: string | null;
+  current_round: number;
+}
+
+export interface OperatingPlanResponse {
+  id: string;
+  content: string;
+  submitted_at: string;
+}
+
+export interface GamePhaseChangedPayload {
+  game_phase: GamePhase;
+  macro_brief: string | null;
+  current_round: number;
+}
