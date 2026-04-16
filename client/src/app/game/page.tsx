@@ -231,7 +231,7 @@ export default function GamePage() {
         />
 
         {/* Sidebar content panel -- 256px on md, 320px on lg+ */}
-        <div className="w-64 lg:w-80 bg-[#1c1b1b] border-r border-[#2a2a2a] overflow-y-auto shrink-0">
+        <div className="w-80 lg:w-96 bg-[#1c1b1b] border-r border-[#2a2a2a] overflow-y-auto shrink-0">
           {renderSidebarContent()}
         </div>
 
