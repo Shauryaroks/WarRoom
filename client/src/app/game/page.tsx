@@ -42,12 +42,24 @@ export default function GamePage() {
     }
   }, [isAuthenticated, router]);
 
-  // Redirect to lobby if game hasn't started
+  // Load initial game state and redirect to lobby if game hasn't started
+  const [gameStateLoaded, setGameStateLoaded] = useState(false);
   useEffect(() => {
-    if (isAuthenticated && status === "SETUP") {
-      router.push("/lobby");
-    }
-  }, [isAuthenticated, status, router]);
+    if (!isAuthenticated) return;
+    api.getGameState()
+      .then((state) => {
+        useGameStore.getState().setGameState({
+          status: state.status as GameStatePayload["status"],
+          elapsed_seconds: state.elapsed_seconds,
+          current_round: state.current_round,
+        });
+        setGameStateLoaded(true);
+        if (state.status === "SETUP") {
+          router.push("/lobby");
+        }
+      })
+      .catch(() => setGameStateLoaded(true));
+  }, [isAuthenticated, router]);
 
   // Load initial data on mount
   useEffect(() => {
