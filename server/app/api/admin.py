@@ -12,10 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import redis.asyncio as aioredis
 
 from app.database import get_db, settings
+from decimal import Decimal
+
 from app.models import (
     ActivityEvent,
     Admin,
     CashLedger,
+    CrisisEvent,
     Directive,
     Evaluation,
     EvaluationStatus,
@@ -194,6 +197,22 @@ class CaselineAssignRequest(BaseModel):
 class CaselineAssignResponse(BaseModel):
     message: str
     team_id: str
+
+
+class CrisisInjectRequest(BaseModel):
+    scenario: str = Field(min_length=10, max_length=5000)
+    timer_seconds: int = Field(gt=0, le=3600)
+
+
+class CrisisInjectResponse(BaseModel):
+    message: str
+    crisis_id: str
+
+
+class EliminateTeamResponse(BaseModel):
+    message: str
+    team_id: str
+    rank: int
 
 
 # --- Utility ---
@@ -596,11 +615,24 @@ async def resume_game(
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Resume the game (PAUSED -> ACTIVE). Requires admin."""
+    """Resume the game (PAUSED -> ACTIVE). Resolves any active crisis. Requires admin."""
     try:
         state = await transition_state(db, GameStatus.ACTIVE)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+    # D-05: Resolve any active crisis on resume
+    crisis_result = await db.execute(
+        select(CrisisEvent).where(CrisisEvent.status == "ACTIVE")
+    )
+    active_crisis = crisis_result.scalar_one_or_none()
+    if active_crisis:
+        active_crisis.status = "RESOLVED"
+        active_crisis.resolved_at = datetime.now(timezone.utc)
+        await publish_broadcast({
+            "type": "crisis_resolved",
+            "payload": {"crisis_id": str(active_crisis.id)},
+        })
 
     db.add(ActivityEvent(
         event_type="GAME_RESUMED",
@@ -968,6 +1000,10 @@ async def approve_evaluation_endpoint(
     ))
     await db.commit()
 
+    # D-01: Dispatch news generation after approval
+    from app.worker.tasks.generate_news import generate_news
+    generate_news.delay(str(evaluation_id), result["team_id"])
+
     # Broadcast news to all teams
     await publish_broadcast({
         "type": "evaluation_approved",
@@ -1073,4 +1109,143 @@ async def assign_caseline(
     return CaselineAssignResponse(
         message=f"Caseline assigned to '{team.name}'",
         team_id=str(team_id),
+    )
+
+
+# --- Crisis Events (per D-04, D-05) ---
+
+
+@router.post("/crisis/inject", response_model=CrisisInjectResponse)
+async def inject_crisis(
+    request: CrisisInjectRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Inject a crisis event. Auto-pauses game and broadcasts crisis_started.
+
+    T-06-05: require_admin + Pydantic validation on scenario/timer.
+    T-06-09: Only one active crisis at a time.
+    """
+    # T-06-09: Reject if an active crisis already exists
+    existing = await db.execute(
+        select(CrisisEvent).where(CrisisEvent.status == "ACTIVE")
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=409,
+            detail="A crisis is already active. Resolve it before injecting another.",
+        )
+
+    crisis = CrisisEvent(
+        scenario=request.scenario,
+        timer_seconds=request.timer_seconds,
+        status="ACTIVE",
+    )
+    db.add(crisis)
+
+    # D-04 step 2: Auto-pause game
+    try:
+        await transition_state(db, GameStatus.PAUSED)
+    except ValueError:
+        pass  # Already paused is fine
+
+    db.add(ActivityEvent(
+        event_type="CRISIS_INJECTED",
+        actor="admin",
+        description=f"Crisis injected: {request.scenario[:80]}",
+        metadata_json=json.dumps({
+            "crisis_id": str(crisis.id),
+            "timer_seconds": request.timer_seconds,
+        }),
+    ))
+    await db.commit()
+    await db.refresh(crisis)
+
+    await publish_broadcast({
+        "type": "crisis_started",
+        "payload": {
+            "crisis_id": str(crisis.id),
+            "scenario": crisis.scenario,
+            "timer_seconds": crisis.timer_seconds,
+            "started_at": crisis.created_at.isoformat(),
+        },
+    })
+
+    return CrisisInjectResponse(
+        message="Crisis injected and game paused",
+        crisis_id=str(crisis.id),
+    )
+
+
+# --- Team Elimination (per D-07, D-08, D-09) ---
+
+
+@router.post("/teams/{team_id}/eliminate", response_model=EliminateTeamResponse)
+async def eliminate_team(
+    team_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Eliminate a team: stock_price=0, status=ELIMINATED, broadcast sent.
+
+    T-06-04: require_admin enforces admin-only access.
+    T-06-06: SELECT FOR UPDATE prevents race conditions.
+    """
+    result = await db.execute(
+        select(Team).where(Team.id == team_id).with_for_update()
+    )
+    team = result.scalar_one_or_none()
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.status not in (TeamStatus.ACTIVE, TeamStatus.COOLDOWN):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Team cannot be eliminated from status {team.status.value}. Must be ACTIVE or COOLDOWN.",
+        )
+
+    # Compute rank: count of active/cooldown teams with higher stock price + 1
+    rank_result = await db.execute(
+        select(func.count()).select_from(Team).where(
+            Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]),
+            Team.stock_price > team.stock_price,
+            Team.id != team_id,
+        )
+    )
+    rank = (rank_result.scalar() or 0) + 1
+
+    # D-07: Shares become worthless
+    team.stock_price = Decimal("0")
+    team.target_price = None
+    team.ticks_to_target = None
+    team.status = TeamStatus.ELIMINATED
+    team.eliminated_at = datetime.now(timezone.utc)
+    team.rank_at_elimination = rank
+
+    db.add(ActivityEvent(
+        event_type="TEAM_ELIMINATED",
+        actor="admin",
+        description=f"Team '{team.name}' eliminated at rank #{rank}",
+        metadata_json=json.dumps({
+            "team_id": str(team_id),
+            "ticker": team.ticker,
+            "rank": rank,
+        }),
+    ))
+    await db.commit()
+
+    await publish_broadcast({
+        "type": "team_eliminated",
+        "payload": {
+            "team_id": str(team_id),
+            "ticker": team.ticker,
+            "rank": rank,
+        },
+    })
+
+    return EliminateTeamResponse(
+        message=f"Team '{team.name}' eliminated at rank #{rank}",
+        team_id=str(team_id),
+        rank=rank,
     )

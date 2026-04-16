@@ -35,6 +35,16 @@ class PricePoint(BaseModel):
     calculated_at: str
 
 
+class LeaderboardEntry(BaseModel):
+    rank: int
+    team_id: str
+    name: str
+    ticker: str
+    stock_price: str
+    change_pct: str
+    status: str
+
+
 # --- Endpoints ---
 
 
@@ -98,3 +108,59 @@ async def get_price_history(
         )
         for p in prices
     ]
+
+
+@router.get("/leaderboard", response_model=list[LeaderboardEntry])
+async def get_leaderboard(
+    db: AsyncSession = Depends(get_db),
+) -> list[LeaderboardEntry]:
+    """Get leaderboard: teams ranked by stock_price descending (D-11).
+
+    Public endpoint -- no auth required. Includes active, cooldown, and eliminated teams.
+    Eliminated teams appear at bottom with stock_price=0.
+    """
+    from sqlalchemy import case
+
+    result = await db.execute(
+        select(Team)
+        .where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN, TeamStatus.ELIMINATED]))
+        .order_by(
+            # Active/cooldown teams first, eliminated last
+            case(
+                (Team.status == TeamStatus.ELIMINATED, 1),
+                else_=0,
+            ),
+            Team.stock_price.desc(),
+        )
+    )
+    teams = result.scalars().all()
+
+    entries = []
+    for rank_idx, team in enumerate(teams, start=1):
+        # Compute change_pct from latest two PriceHistory entries
+        change_pct = "0.00"
+        price_result = await db.execute(
+            select(PriceHistory)
+            .where(PriceHistory.team_id == team.id)
+            .order_by(PriceHistory.calculated_at.desc())
+            .limit(2)
+        )
+        recent_prices = price_result.scalars().all()
+        if len(recent_prices) >= 2:
+            current_p = recent_prices[0].price
+            previous_p = recent_prices[1].price
+            if previous_p and previous_p > 0:
+                pct = ((current_p - previous_p) / previous_p) * 100
+                change_pct = f"{pct:.2f}"
+
+        entries.append(LeaderboardEntry(
+            rank=rank_idx,
+            team_id=str(team.id),
+            name=team.name,
+            ticker=team.ticker,
+            stock_price=str(team.stock_price),
+            change_pct=change_pct,
+            status=team.status.value,
+        ))
+
+    return entries
