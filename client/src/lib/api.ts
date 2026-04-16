@@ -32,6 +32,16 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 class ApiClient {
   private getToken(): string | null {
     if (typeof window === "undefined") return null;
+    // Read from Zustand persisted store (single source of truth)
+    try {
+      const stored = localStorage.getItem("complex-auth");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed?.state?.token || null;
+      }
+    } catch {
+      // Fallback
+    }
     return localStorage.getItem("token");
   }
 

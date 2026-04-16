@@ -33,7 +33,6 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       login: (data) => {
-        localStorage.setItem("token", data.token);
         set({
           token: data.token,
           teamId: data.team_id,
@@ -45,7 +44,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       adminLogin: (token) => {
-        localStorage.setItem("token", token);
         set({
           token,
           teamId: null,
@@ -57,7 +55,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem("token");
         set({
           token: null,
           teamId: null,
@@ -69,7 +66,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setToken: (token) => {
-        localStorage.setItem("token", token);
         set({ token });
       },
     }),
