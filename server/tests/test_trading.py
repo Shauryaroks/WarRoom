@@ -25,9 +25,9 @@ def _make_team(
     stock_price: Decimal = Decimal("100"),
     shares_outstanding: int = 1000000,
     public_float: int = 100000,
-) -> Team:
-    """Create a Team object for testing (no DB)."""
-    team = Team.__new__(Team)
+) -> MagicMock:
+    """Create a mock Team object for testing (no DB)."""
+    team = MagicMock(spec=Team)
     team.id = team_id or uuid.uuid4()
     team.name = name
     team.ticker = ticker
@@ -46,9 +46,9 @@ def _make_holding(
     target_team_id: uuid.UUID,
     shares_owned: int = 0,
     total_cost_basis: Decimal = Decimal("0"),
-) -> StockHolding:
-    """Create a StockHolding object for testing (no DB)."""
-    holding = StockHolding.__new__(StockHolding)
+) -> MagicMock:
+    """Create a mock StockHolding object for testing (no DB)."""
+    holding = MagicMock(spec=StockHolding)
     holding.id = uuid.uuid4()
     holding.owner_team_id = owner_team_id
     holding.target_team_id = target_team_id
