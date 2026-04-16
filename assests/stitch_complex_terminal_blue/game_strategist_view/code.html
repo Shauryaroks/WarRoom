@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KINETIC_LEDGER_TERMINAL // STRATEGIST_VIEW</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #131313;
+            color: #e5e2e1;
+            overflow: hidden; /* Terminal feel */
+        }
+        .mono {
+            font-family: 'JetBrains+Mono', monospace;
+        }
+        /* Custom scrollbar for terminal aesthetic */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0e0e0e; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; }
+        ::-webkit-scrollbar-thumb:hover { background: #2196f3; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "inverse-surface": "#e5e2e1",
+                        "on-tertiary-container": "#5d0011",
+                        "on-tertiary-fixed-variant": "#920021",
+                        "primary-fixed-dim": "#9ecaff",
+                        "secondary-fixed-dim": "#3ce36a",
+                        "tertiary": "#ffb3b3",
+                        "secondary-fixed": "#69ff87",
+                        "surface-bright": "#3a3939",
+                        "on-error": "#690005",
+                        "on-background": "#e5e2e1",
+                        "on-tertiary-fixed": "#400009",
+                        "surface-variant": "#353534",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-tint": "#9ecaff",
+                        "on-error-container": "#ffdad6",
+                        "background": "#131313",
+                        "on-secondary": "#003912",
+                        "surface-container-highest": "#353534",
+                        "error": "#ffb4ab",
+                        "inverse-primary": "#0061a4",
+                        "tertiary-fixed": "#ffdad9",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-primary": "#003258",
+                        "on-primary-fixed": "#001d36",
+                        "on-primary-fixed-variant": "#00497d",
+                        "primary": "#9ecaff",
+                        "outline": "#89919d",
+                        "surface-container-high": "#2a2a2a",
+                        "on-secondary-container": "#004d1b",
+                        "on-primary-container": "#002c4f",
+                        "tertiary-container": "#ff5561",
+                        "error-container": "#93000a",
+                        "surface-dim": "#131313",
+                        "on-surface-variant": "#bfc7d4",
+                        "surface-container": "#201f1f",
+                        "on-surface": "#e5e2e1",
+                        "outline-variant": "#404752",
+                        "on-tertiary": "#680014",
+                        "secondary": "#40e56c",
+                        "tertiary-fixed-dim": "#ffb3b3",
+                        "on-secondary-fixed": "#002108",
+                        "primary-container": "#2196f3",
+                        "on-secondary-fixed-variant": "#00531e",
+                        "primary-fixed": "#d1e4ff",
+                        "surface": "#131313",
+                        "inverse-on-surface": "#313030",
+                        "secondary-container": "#02c953"
+                    },
+                    fontFamily: {
+                        headline: ["Inter"],
+                        body: ["Inter"],
+                        label: ["JetBrains Mono"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] border-b border-surface-container-high z-50">
+<div class="flex items-center gap-6">
+<span class="text-xl font-black tracking-tighter text-blue-500">KINETIC_LEDGER_TERMINAL</span>
+<div class="flex items-center gap-4 border-l border-surface-container-high pl-6">
+<div class="flex flex-col">
+<span class="text-[10px] text-outline uppercase font-bold tracking-widest">TEAM</span>
+<span class="mono text-xs font-bold text-primary">ALPHA_STRAT_9</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-outline uppercase font-bold tracking-widest">TICKER</span>
+<span class="mono text-xs font-bold text-on-surface">$KNTK</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 bg-surface-container-low px-3 py-1 border border-outline-variant/20">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="mono text-xs font-bold text-primary">LIVE // Q2 2024</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-outline uppercase font-bold tracking-widest">CASH BALANCE</span>
+<span class="mono text-sm font-bold text-secondary">$1,482,904.22</span>
+</div>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-outline hover:text-primary cursor-pointer p-1">notifications</span>
+<span class="material-symbols-outlined text-outline hover:text-primary cursor-pointer p-1">settings</span>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-12 bottom-0 flex flex-col items-center py-4 z-40 bg-[#0e0e0e] h-full w-20 border-r border-surface-container-high">
+<div class="flex flex-col items-center gap-1 mb-8">
+<div class="w-10 h-10 bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary">terminal</span>
+</div>
+<span class="mono text-[8px] text-outline">CC-9921</span>
+</div>
+<div class="flex flex-col w-full gap-4">
+<button class="w-full flex flex-col items-center py-3 bg-blue-600/10 text-blue-500 border-l-2 border-blue-500 transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="mono text-[9px] mt-1">STRATEGY</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-gray-600 hover:bg-[#2a2a2a] transition-all">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+<span class="mono text-[9px] mt-1">MARKETS</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-gray-600 hover:bg-[#2a2a2a] transition-all">
+<span class="material-symbols-outlined" data-icon="code">code</span>
+<span class="mono text-[9px] mt-1">LOGS</span>
+</button>
+<button class="w-full flex flex-col items-center py-3 text-gray-600 hover:bg-[#2a2a2a] transition-all">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="mono text-[9px] mt-1">HISTORY</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col w-full">
+<button class="w-full flex flex-col items-center py-3 text-gray-600 hover:text-white transition-all">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="mono text-[9px] mt-1">LOGOUT</span>
+</button>
+</div>
+</nav>
+<!-- Main Content Grid -->
+<main class="ml-20 flex-1 grid grid-cols-12 gap-0 overflow-hidden pb-6">
+<!-- Left Panel: Strategy Editor -->
+<section class="col-span-3 border-r border-surface-container-high flex flex-col bg-surface-container-lowest">
+<div class="p-3 border-b border-surface-container-high flex justify-between items-center">
+<h2 class="text-[10px] font-bold tracking-widest text-outline uppercase">STRATEGY_EDITOR.md</h2>
+<span class="mono text-[9px] text-secondary">AUTO_SAVE: ON</span>
+</div>
+<div class="flex-1 p-0 relative">
+<textarea class="w-full h-full bg-transparent p-4 mono text-xs text-on-surface focus:ring-0 border-none resize-none leading-relaxed" spellcheck="false"># HFT_MARKET_MAKER_v4
+## Parameters
+- volatility_threshold: 0.042
+- risk_cap: 10%
+- liquidity_source: [GLOBAL_POOL]
+
+## Logic
+if market.delta &gt; 0.15:
+    execute_ladder(side='BUY', depth=5)
+    set_trailing_stop(0.02)
+else:
+    maintain_spread(width=0.005)
+
+## Risk Override
+if total_drawdown &gt; 0.05:
+    liquidate_all()
+    halt_session(duration='15m')</textarea>
+</div>
+<div class="p-4 bg-surface-container-low">
+<button class="w-full bg-primary-container text-on-primary py-3 mono font-bold text-xs hover:bg-primary transition-colors active:opacity-80">
+                        EXECUTE_TRADE_SOLUTION
+                    </button>
+</div>
+<div class="h-48 border-t border-surface-container-high flex flex-col">
+<div class="p-2 bg-surface-container text-[9px] font-bold uppercase tracking-widest text-outline">SUBMISSION_HISTORY</div>
+<div class="flex-1 overflow-y-auto">
+<div class="flex justify-between items-center px-3 py-2 border-b border-surface-container-high hover:bg-surface-container-high transition-colors">
+<span class="mono text-[10px] text-secondary">SUCCESS_V4</span>
+<span class="mono text-[10px] text-outline">14:22:01</span>
+</div>
+<div class="flex justify-between items-center px-3 py-2 border-b border-surface-container-high hover:bg-surface-container-high transition-colors">
+<span class="mono text-[10px] text-error">FAIL_V3_VAL</span>
+<span class="mono text-[10px] text-outline">14:15:30</span>
+</div>
+<div class="flex justify-between items-center px-3 py-2 border-b border-surface-container-high hover:bg-surface-container-high transition-colors">
+<span class="mono text-[10px] text-secondary">SUCCESS_V2</span>
+<span class="mono text-[10px] text-outline">13:50:12</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Center Panel: Visuals & Sparklines -->
+<section class="col-span-6 flex flex-col border-r border-surface-container-high bg-background">
+<div class="p-3 border-b border-surface-container-high flex justify-between items-center bg-surface-container-lowest">
+<div class="flex items-center gap-4">
+<h2 class="text-xs font-bold tracking-tighter uppercase text-primary">$KNTK / USD PERFORMANCE</h2>
+<span class="bg-primary/20 text-primary text-[10px] px-2 py-0.5 font-bold">VIEW ONLY</span>
+</div>
+<div class="flex gap-4 mono text-[10px]">
+<span class="text-secondary">H: 142.10</span>
+<span class="text-error">L: 138.45</span>
+<span class="text-outline">V: 1.2M</span>
+</div>
+</div>
+<!-- Main Chart Area -->
+<div class="flex-1 relative p-6 bg-[linear-gradient(rgba(33,150,243,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(33,150,243,0.03)_1px,transparent_1px)] bg-[size:40px_40px]">
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+<div class="w-full h-[1px] bg-primary/30"></div>
+</div>
+<!-- Simplified Candlestick Visualization with Image placeholder for complex chart -->
+<div class="w-full h-full flex flex-col">
+<img alt="Candlestick Trading Chart" class="w-full h-full object-cover mix-blend-lighten" data-alt="professional financial candlestick chart with blue and white bars on a dark grid background high density data visualization minimalist terminal style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCu8BMuHiTamzx5A3qfPhmTLCbC-4cGxcNrWewzTHvZjykE6y5r4VkGe4BWWr-WGwM4ZtN9Ym273_vMljlz0xNII9QwY16TB6fRrmo4QyWXW2zylQzsjNg5ZWng_T0EL2l7Ob8nPEA2cLIitNvwdY14zXn_qk5OyOzft7r6T-dJMikoseiAZbGqtcCrzJJjcHUPhsniyMZ1fWaRv6QbYRXQcutKWM0pCtW0yWMAE4hCmKl2-LSLmgMC2hQ9PUHkEAVELobfQiXmPmXx"/>
+</div>
+</div>
+<!-- Bottom Multi-Asset Ticker -->
+<div class="h-32 border-t border-surface-container-high grid grid-cols-4 bg-surface-container-lowest">
+<div class="border-r border-surface-container-high p-3 flex flex-col justify-between">
+<span class="mono text-[9px] text-outline uppercase font-bold">BTC/USD</span>
+<div class="h-8 w-full bg-secondary/10 flex items-end">
+<!-- Simulated sparkline -->
+<div class="w-full h-4 border-b-2 border-secondary/50"></div>
+</div>
+<span class="mono text-xs font-bold text-secondary">+2.41%</span>
+</div>
+<div class="border-r border-surface-container-high p-3 flex flex-col justify-between">
+<span class="mono text-[9px] text-outline uppercase font-bold">ETH/USD</span>
+<div class="h-8 w-full bg-error/10 flex items-end">
+<div class="w-full h-6 border-b-2 border-error/50"></div>
+</div>
+<span class="mono text-xs font-bold text-error">-1.12%</span>
+</div>
+<div class="border-r border-surface-container-high p-3 flex flex-col justify-between">
+<span class="mono text-[9px] text-outline uppercase font-bold">SPX_INDEX</span>
+<div class="h-8 w-full bg-secondary/10 flex items-end">
+<div class="w-full h-3 border-b-2 border-secondary/50"></div>
+</div>
+<span class="mono text-xs font-bold text-secondary">+0.08%</span>
+</div>
+<div class="p-3 flex flex-col justify-between">
+<span class="mono text-[9px] text-outline uppercase font-bold">OIL_CRUDE</span>
+<div class="h-8 w-full bg-error/10 flex items-end">
+<div class="w-full h-7 border-b-2 border-error/50"></div>
+</div>
+<span class="mono text-xs font-bold text-error">-3.45%</span>
+</div>
+</div>
+</section>
+<!-- Right Panel: News Feed -->
+<section class="col-span-3 flex flex-col bg-surface-container-lowest">
+<div class="p-3 border-b border-surface-container-high flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-sm">rss_feed</span>
+<h2 class="text-[10px] font-bold tracking-widest text-outline uppercase">INTEL_STREAM</h2>
+</div>
+<div class="flex-1 overflow-y-auto divide-y divide-surface-container-high">
+<div class="p-4 hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between mb-1">
+<span class="mono text-[10px] text-primary">[GLOBAL]</span>
+<span class="mono text-[10px] text-outline">14:38:22</span>
+</div>
+<p class="text-xs leading-snug">FED signals potential rate pause in Q3. Market volatility expected to decrease across tech sectors.</p>
+</div>
+<div class="p-4 bg-tertiary-container/10 border-l-2 border-tertiary">
+<div class="flex justify-between mb-1">
+<span class="mono text-[10px] text-tertiary font-bold">[CRISIS]</span>
+<span class="mono text-[10px] text-outline">14:35:01</span>
+</div>
+<p class="text-xs leading-snug text-on-surface font-medium">Flash crash in $LQD liquidity pool. Spreads widening by 400bps. Immediate re-balancing advised.</p>
+</div>
+<div class="p-4 hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between mb-1">
+<span class="mono text-[10px] text-secondary">[LOCAL]</span>
+<span class="mono text-[10px] text-outline">14:30:15</span>
+</div>
+<p class="text-xs leading-snug">Team ALPHA_STRAT_9 executes buy order for 5,000 units of $KNTK.</p>
+</div>
+<div class="p-4 hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between mb-1">
+<span class="mono text-[10px] text-primary">[GLOBAL]</span>
+<span class="mono text-[10px] text-outline">14:15:00</span>
+</div>
+<p class="text-xs leading-snug">European markets open -0.4% lower on energy concerns. Commodity futures tracking higher.</p>
+</div>
+<div class="p-4 hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between mb-1">
+<span class="mono text-[10px] text-primary">[GLOBAL]</span>
+<span class="mono text-[10px] text-outline">14:02:11</span>
+</div>
+<p class="text-xs leading-snug">New regulations announced for algorithmic trading speed limits in Tokyo session.</p>
+</div>
+</div>
+<div class="p-4 border-t border-surface-container-high">
+<div class="flex flex-col gap-2">
+<span class="text-[9px] text-outline font-bold uppercase tracking-widest">PORTFOLIO_SNAPSHOT</span>
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-1">
+<span class="mono text-xs">EQUITY</span>
+<span class="mono text-sm font-bold">$2,841,002</span>
+</div>
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-1">
+<span class="mono text-xs">LEVERAGE</span>
+<span class="mono text-sm font-bold">1.2x</span>
+</div>
+<div class="flex justify-between items-end">
+<span class="mono text-xs">PNL_DAILY</span>
+<span class="mono text-sm font-bold text-secondary">+$14,209 (0.51%)</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Footer -->
+<footer class="fixed bottom-0 left-0 w-full h-6 flex justify-between items-center px-6 z-50 overflow-hidden bg-[#0e0e0e] border-t border-[#2a2a2a]">
+<div class="flex items-center gap-6">
+<span class="mono text-[9px] font-medium text-secondary">SYSTEM_STABLE // LATENCY: 14MS</span>
+<div class="flex gap-4">
+<span class="mono text-[9px] text-gray-600 hover:text-white cursor-pointer uppercase">API_DOCS</span>
+<span class="mono text-[9px] text-gray-600 hover:text-white cursor-pointer uppercase">RULES</span>
+<span class="mono text-[9px] text-gray-600 hover:text-white cursor-pointer uppercase">HELP_DESK</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="text-[9px] font-bold text-outline uppercase tracking-widest">LEADERBOARD_POS</span>
+<span class="mono text-[9px] font-bold bg-primary text-on-primary px-2">#04 / 120</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="mono text-[9px] text-secondary">CONNECTED</span>
+</div>
+</div>
+</footer>
+</body></html>
