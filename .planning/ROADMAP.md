@@ -112,7 +112,15 @@ Plans:
   3. The LLM evaluates submissions via OpenRouter, considering other companies' actions, news context, and the company's past actions, producing a quality score and narrative assessment
   4. LLM evaluations enter a PENDING_APPROVAL state — the admin can review, edit scores and narrative, and approve or reject before any impact takes effect
   5. Only admin-approved evaluations affect stock prices and caseline evolution
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 05-01-PLAN.md -- Backend models, LLM service, evaluation service, Celery task
+- [ ] 05-02-PLAN.md -- Backend API endpoints (solutions + admin evaluation + caseline) and tests
+- [ ] 05-03-PLAN.md -- Frontend types, API, solutions store, SolutionsPanel, CaselinePanel
+- [ ] 05-04-PLAN.md -- Admin evaluations queue, caseline assignment, end-to-end verification
+
+**UI hint**: yes
 
 ### Phase 6: News, Elimination, and Polish
 **Goal**: The full competition loop works end-to-end — LLM-generated news, crisis events that pause the market, elimination mechanics, and polished two-device experience
@@ -139,5 +147,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Game State and Lobby | 2/2 | Complete    | 2026-04-16 |
 | 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
 | 4. Simulation Engine and Trading | 5/5 | Complete    | 2026-04-16 |
-| 5. Solutions and LLM Evaluation | 0/TBD | Not started | - |
+| 5. Solutions and LLM Evaluation | 0/4 | Not started | - |
 | 6. News, Elimination, and Polish | 0/TBD | Not started | - |
