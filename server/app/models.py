@@ -49,6 +49,19 @@ class TransactionType(str, enum.Enum):
     BANKRUPTCY_LIQUIDATION = "BANKRUPTCY_LIQUIDATION"
 
 
+class SolutionType(str, enum.Enum):
+    INITIAL = "INITIAL"          # Full strategic roadmap (per D-02)
+    MICROTWEAK = "MICROTWEAK"    # Additive tweak (per D-03)
+
+
+class EvaluationStatus(str, enum.Enum):
+    PROCESSING = "PROCESSING"          # LLM call in progress
+    PENDING_APPROVAL = "PENDING_APPROVAL"  # Awaiting admin review (per EVAL-03)
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"                  # LLM call failed
+
+
 class DirectiveStatus(str, enum.Enum):
     PENDING = "PENDING"
     PENDING_APPROVAL = "PENDING_APPROVAL"
@@ -144,6 +157,10 @@ class Team(Base):
 
     # Admin rejection reason
     rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Caseline document (per D-12, D-14)
+    caseline_document: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_display_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
@@ -253,6 +270,96 @@ class Directive(Base):
 
     # Relationships
     team: Mapped["Team"] = relationship("Team", back_populates="directives")
+
+
+class Solution(Base):
+    __tablename__ = "solutions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    solution_type: Mapped[SolutionType] = mapped_column(
+        Enum(SolutionType), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+    # Relationships
+    team: Mapped["Team"] = relationship("Team")
+    evaluation: Mapped[Optional["Evaluation"]] = relationship(
+        "Evaluation", back_populates="solution", uselist=False
+    )
+
+
+class Evaluation(Base):
+    __tablename__ = "evaluations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    solution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("solutions.id"), unique=True, nullable=False
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+
+    status: Mapped[EvaluationStatus] = mapped_column(
+        Enum(EvaluationStatus), default=EvaluationStatus.PROCESSING
+    )
+
+    # LLM output: scoring metrics (per D-06 -- placeholder fields)
+    scoring_metrics: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON
+    overall_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+
+    # LLM output: price timeline (per D-06)
+    price_timeline: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON array
+
+    # LLM output: news article (per D-06)
+    news_headline: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    news_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    news_sentiment: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(3, 2), nullable=True
+    )
+
+    # LLM call tracking
+    llm_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    llm_latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    llm_cost: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 6), nullable=True
+    )
+    raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Approval tracking
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejected_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    admin_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    # Relationships
+    solution: Mapped["Solution"] = relationship(
+        "Solution", back_populates="evaluation"
+    )
+    team: Mapped["Team"] = relationship("Team")
 
 
 class StockHolding(Base):
