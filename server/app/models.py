@@ -113,6 +113,12 @@ class Team(Base):
     public_float: Mapped[int] = mapped_column(Integer, default=100000)
     treasury_shares: Mapped[int] = mapped_column(Integer, default=900000)
 
+    # Simulation: price trajectory (per D-05, Phase 4 mock score input)
+    target_price: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 2), nullable=True
+    )
+    ticks_to_target: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
     # Cooldown
     cooldown_until: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

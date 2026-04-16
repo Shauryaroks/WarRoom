@@ -612,6 +612,8 @@ async def restart_game(
         team.shares_outstanding = 1000000
         team.public_float = 100000
         team.treasury_shares = 900000
+        team.target_price = None
+        team.ticks_to_target = None
         team.cooldown_until = None
         team.bankrupt_since = None
         team.bankrupt_resolved = False
