@@ -28,7 +28,12 @@ export const useAdminStore = create<AdminState>()((set) => ({
   removeTeam: (teamId) =>
     set((s) => ({ teams: s.teams.filter((t) => t.id !== teamId) })),
   setNews: (news) => set({ news }),
-  addNews: (item) => set((s) => ({ news: [item, ...s.news] })),
+  addNews: (item) =>
+    set((s) => ({
+      news: s.news.some((n) => n.id === item.id)
+        ? s.news
+        : [item, ...s.news],
+    })),
   setActivityLog: (events) => set({ activityLog: events }),
   addActivity: (event) =>
     set((s) => ({
