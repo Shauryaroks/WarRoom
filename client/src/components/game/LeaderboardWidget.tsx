@@ -6,7 +6,7 @@ export function LeaderboardWidget() {
   const companies = useMarketStore((s) => s.companies);
 
   const sorted = [...companies]
-    .sort((a, b) => (b.stock_price ?? 0) - (a.stock_price ?? 0))
+    .sort((a, b) => Number(b.stock_price ?? 0) - Number(a.stock_price ?? 0))
     .slice(0, 10);
 
   return (
@@ -43,14 +43,14 @@ export function LeaderboardWidget() {
               </div>
               <span
                 className={`font-mono text-xs font-bold ${
-                  (c.stock_price ?? 0) > 100
+                  Number(c.stock_price ?? 0) > 100
                     ? "text-[#40e56c]"
-                    : (c.stock_price ?? 0) < 100
+                    : Number(c.stock_price ?? 0) < 100
                       ? "text-[#FF1744]"
                       : "text-[#e5e2e1]"
                 }`}
               >
-                ${(c.stock_price ?? 100).toFixed(2)}
+                ${Number(c.stock_price ?? 100).toFixed(2)}
               </span>
             </div>
           ))
