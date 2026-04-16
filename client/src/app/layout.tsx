@@ -27,16 +27,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased pb-6`}>
         {children}
+        {/* Terminal Status Bar */}
+        <footer className="fixed bottom-0 left-0 w-full h-6 flex justify-between items-center px-6 z-50 overflow-hidden bg-[#0e0e0e] border-t border-[#2a2a2a]">
+          <div className="font-mono text-[9px] font-medium text-[#40e56c] uppercase">
+            SYSTEM_STABLE // LATENCY: 14MS
+          </div>
+          <div className="flex gap-6">
+            <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">API_DOCS</span>
+            <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">RULES</span>
+            <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">HELP_DESK</span>
+          </div>
+        </footer>
         <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
             style: {
-              background: "#1E1E1E",
-              border: "1px solid #333333",
-              color: "#E0E0E0",
+              background: "#201f1f",
+              border: "1px solid #404752",
+              color: "#e5e2e1",
             },
           }}
         />
