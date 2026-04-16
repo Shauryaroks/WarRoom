@@ -23,8 +23,13 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-# Beat schedule -- empty for Phase 1, will be populated in Phase 2/3
-celery_app.conf.beat_schedule = {}
+# Beat schedule -- game tick every 60 seconds (stock ticks in Phase 3)
+celery_app.conf.beat_schedule = {
+    "game-tick-every-60s": {
+        "task": "game.tick",
+        "schedule": 60.0,  # Every 60 seconds (1-minute stock ticks in Phase 3)
+    },
+}
 
 # Auto-discover tasks in app.worker.tasks package
 celery_app.autodiscover_tasks(["app.worker.tasks"])
