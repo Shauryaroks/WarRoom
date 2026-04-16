@@ -18,12 +18,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { isAuthenticated, login: storeLogin } = useAuthStore();
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/lobby");
-    }
-  }, [isAuthenticated, router]);
+  // If already authenticated, show option to continue or re-login
+  // Don't auto-redirect — user may want to switch roles
 
   const [formData, setFormData] = useState({
     email: "",
@@ -156,6 +152,31 @@ export default function LoginPage() {
                 <h2 className="text-2xl font-bold uppercase tracking-tight mb-2">Initialize Session</h2>
                 <p className="text-[#bfc7d4] text-xs font-mono uppercase">Enter credentials to bypass terminal firewall</p>
               </div>
+
+              {/* Already logged in banner */}
+              {isAuthenticated && (
+                <div className="mb-6 bg-[#2196f3]/10 border border-[#2196f3]/30 p-4 space-y-3">
+                  <p className="font-mono text-xs text-[#2196f3] uppercase">Active session detected — {role}</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => router.push("/lobby")}
+                      className="flex-1 bg-[#2196f3] text-white py-2 font-mono text-[10px] uppercase font-bold"
+                    >
+                      Continue to Lobby
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        useAuthStore.getState().logout();
+                      }}
+                      className="flex-1 border border-[#FF1744]/30 text-[#FF1744] py-2 font-mono text-[10px] uppercase font-bold hover:bg-[#FF1744]/10"
+                    >
+                      Logout &amp; Re-login
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Role toggle */}
