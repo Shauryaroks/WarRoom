@@ -49,52 +49,78 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-high: var(--surface-high);
+  --color-surface-highest: var(--surface-highest);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary: var(--on-primary);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-secondary-green: var(--secondary-green);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
 }
 
-/* Bloomberg Terminal Dark Theme — dark-only, no light mode */
+/* Stitch Complex Terminal Blue — dark-only, no light mode */
 :root {
-  --background: hsl(0 0% 4%);
-  --foreground: hsl(0 0% 88%);
-  --card: hsl(0 0% 10%);
-  --card-foreground: hsl(0 0% 88%);
-  --popover: hsl(0 0% 10%);
-  --popover-foreground: hsl(0 0% 88%);
-  --primary: hsl(36 100% 50%);
-  --primary-foreground: hsl(0 0% 4%);
-  --secondary: hsl(0 0% 12%);
-  --secondary-foreground: hsl(0 0% 88%);
-  --muted: hsl(0 0% 16%);
-  --muted-foreground: hsl(0 0% 53%);
-  --accent: hsl(36 100% 50%);
-  --accent-foreground: hsl(0 0% 4%);
-  --destructive: hsl(350 100% 55%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(0 0% 16%);
-  --input: hsl(0 0% 16%);
-  --ring: hsl(36 100% 50%);
-  --radius: 0.375rem;
-  --success: hsl(145 100% 39%);
-  --info: hsl(207 90% 54%);
-  --chart-1: hsl(36 100% 50%);
-  --chart-2: hsl(145 100% 39%);
-  --chart-3: hsl(350 100% 55%);
-  --chart-4: hsl(207 90% 54%);
-  --chart-5: hsl(0 0% 53%);
-  --sidebar: hsl(0 0% 7%);
-  --sidebar-foreground: hsl(0 0% 88%);
-  --sidebar-primary: hsl(36 100% 50%);
-  --sidebar-primary-foreground: hsl(0 0% 4%);
-  --sidebar-accent: hsl(0 0% 12%);
-  --sidebar-accent-foreground: hsl(0 0% 88%);
-  --sidebar-border: hsl(0 0% 16%);
-  --sidebar-ring: hsl(36 100% 50%);
+  --background: #131313;
+  --foreground: #e5e2e1;
+  --card: #1c1b1b;
+  --card-foreground: #e5e2e1;
+  --popover: #201f1f;
+  --popover-foreground: #e5e2e1;
+  --primary: #2196f3;
+  --primary-foreground: #ffffff;
+  --secondary: #201f1f;
+  --secondary-foreground: #e5e2e1;
+  --muted: #2a2a2a;
+  --muted-foreground: #89919d;
+  --accent: #2196f3;
+  --accent-foreground: #ffffff;
+  --destructive: #FF1744;
+  --destructive-foreground: #ffffff;
+  --border: #404752;
+  --input: #201f1f;
+  --ring: #2196f3;
+  --radius: 0px;
+  --success: #40e56c;
+  --info: #9ecaff;
+  --chart-1: #2196f3;
+  --chart-2: #40e56c;
+  --chart-3: #FF1744;
+  --chart-4: #9ecaff;
+  --chart-5: #89919d;
+  --sidebar: #0e0e0e;
+  --sidebar-foreground: #e5e2e1;
+  --sidebar-primary: #2196f3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1c1b1b;
+  --sidebar-accent-foreground: #e5e2e1;
+  --sidebar-border: #404752;
+  --sidebar-ring: #2196f3;
+  --surface-lowest: #0e0e0e;
+  --surface-low: #1c1b1b;
+  --surface-container: #201f1f;
+  --surface-high: #2a2a2a;
+  --surface-highest: #353534;
+  --primary-container: #2196f3;
+  --on-primary: #003258;
+  --on-primary-container: #002c4f;
+  --secondary-green: #40e56c;
+  --outline: #89919d;
+  --outline-variant: #404752;
+  --on-surface: #e5e2e1;
+  --on-surface-variant: #bfc7d4;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
     scrollbar-width: thin;
-    scrollbar-color: hsl(0 0% 16%) transparent;
+    scrollbar-color: #2a2a2a transparent;
   }
   body {
     @apply bg-background text-foreground;
@@ -102,11 +128,19 @@
   html {
     @apply font-sans;
   }
+  input:focus, textarea:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-left: 2px solid #2196f3 !important;
+  }
 }
 
 @layer utilities {
   .font-data {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+  .milled-metal-btn {
+    background: linear-gradient(to bottom, #2196f3, #002c4f);
   }
 }
