@@ -14,10 +14,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation, Auth, and Base UI** - Dockerized backend, database schema, Redis pub/sub relay, team auth with role separation, Bloomberg dark theme scaffold (completed 2026-04-15)
 - [x] **Phase 2: Game State and Lobby** - Game lifecycle state machine, lobby system, server-authoritative timer, WebSocket-driven state broadcast (completed 2026-04-16)
-- [ ] **Phase 3: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking
-- [ ] **Phase 4: Solutions and LLM Evaluation** - Solution submission, LLM evaluation via OpenRouter, human-in-the-loop admin approval gate
-- [ ] **Phase 5: News and Admin Dashboard** - News feed (admin-injected + LLM-generated), admin live dashboard, approval queue, broadcast messages
-- [ ] **Phase 6: Crisis Events, Elimination, and Polish** - Crisis event injection with market pause, elimination mechanics, leaderboard, responsive two-device layout
+- [ ] **Phase 3: Admin Portal** - Team management (approve/reject/remove), live dashboard, evaluation approval queue, broadcast messages, news injection, crisis event controls
+- [ ] **Phase 4: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking
+- [ ] **Phase 5: Solutions and LLM Evaluation** - Solution submission, LLM evaluation via OpenRouter, human-in-the-loop admin approval gate
+- [ ] **Phase 6: News, Elimination, and Polish** - LLM-generated news, crisis event execution with market pause, elimination mechanics, leaderboard, responsive two-device layout
 
 ## Phase Details
 
@@ -60,7 +60,20 @@ Plans:
 
 **UI hint**: yes
 
-### Phase 3: Simulation Engine and Trading
+### Phase 3: Admin Portal
+**Goal**: Admin has a complete control center — manage teams, monitor all activity in real-time, review LLM evaluations, broadcast messages, inject news and crisis events
+**Depends on**: Phase 2
+**Requirements**: ADMN-01, ADMN-02, ADMN-03, ADMN-04, ADMN-05, NEWS-01
+**Success Criteria** (what must be TRUE):
+  1. Admin can approve, reject, and remove teams from a team management table with real-time status
+  2. Admin dashboard shows all teams' stock prices, submission statuses, and scores updating in real-time
+  3. Admin can broadcast text messages to all teams via WebSocket
+  4. Admin can inject news events that appear in all teams' news feeds in real-time
+  5. Admin has an evaluation approval queue UI (approve/edit/reject) — backend integration completes in Phase 5
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 4: Simulation Engine and Trading
 **Goal**: The market runs in real-time with stock prices ticking every minute, teams can trade shares in each other's companies, and everyone sees live candlestick charts
 **Depends on**: Phase 2
 **Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, TRAD-01, TRAD-02, TRAD-03, TRAD-04, TRAD-05, UI-02
@@ -73,41 +86,29 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 4: Solutions and LLM Evaluation
+### Phase 5: Solutions and LLM Evaluation
 **Goal**: Teams submit strategic solutions that are evaluated by an LLM, with admin review and approval before scores impact the simulation
-**Depends on**: Phase 3
+**Depends on**: Phase 4
 **Requirements**: SOLN-01, SOLN-02, SOLN-03, SOLN-04, EVAL-01, EVAL-02, EVAL-03, EVAL-04, EVAL-05
 **Success Criteria** (what must be TRUE):
   1. A Strategist can submit a solution (Word or Markdown) during the initial 1-hour window, representing a 3-month strategic roadmap
   2. After the initial submission, the team can submit microtweaks with a 20-minute cooldown that is tracked and auto-clears
   3. The LLM evaluates submissions via OpenRouter, considering other companies' actions, news context, and the company's past actions, producing a quality score and narrative assessment
-  4. LLM evaluations enter a PENDING_APPROVAL state -- the admin can review, edit scores and narrative, and approve or reject before any impact takes effect
+  4. LLM evaluations enter a PENDING_APPROVAL state — the admin can review, edit scores and narrative, and approve or reject before any impact takes effect
   5. Only admin-approved evaluations affect stock prices and caseline evolution
 **Plans**: TBD
 
-### Phase 5: News and Admin Dashboard
-**Goal**: Admins have full situational awareness and control through a live dashboard, and teams receive real-time news that shapes trading decisions
-**Depends on**: Phase 4
-**Requirements**: NEWS-01, NEWS-02, NEWS-03, ADMN-01, ADMN-02, ADMN-03, ADMN-05
-**Success Criteria** (what must be TRUE):
-  1. Admin can inject news events that appear in all teams' news feeds in real-time via WebSocket
-  2. The LLM generates contextual news based on game state and team actions, appearing in the feed alongside admin-injected news
-  3. The admin dashboard shows all teams' stock prices, submission statuses, and scores updating in real-time
-  4. The admin can approve, edit, or reject LLM evaluations from an approval queue in the dashboard
-  5. The admin can broadcast text messages to all teams and approve or remove teams from the competition
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 6: Crisis Events, Elimination, and Polish
-**Goal**: The full competition loop works end-to-end -- admin can inject crises that pause the market, eliminate underperformers, and the UI is polished for a two-device competition experience
+### Phase 6: News, Elimination, and Polish
+**Goal**: The full competition loop works end-to-end — LLM-generated news, crisis events that pause the market, elimination mechanics, and polished two-device experience
 **Depends on**: Phase 5
-**Requirements**: NEWS-04, ADMN-04, ELIM-01, ELIM-02, ELIM-03, UI-03, UI-04
+**Requirements**: NEWS-02, NEWS-03, NEWS-04, ELIM-01, ELIM-02, ELIM-03, UI-03, UI-04
 **Success Criteria** (what must be TRUE):
-  1. Admin can inject a crisis event that pauses the market, presents teams with a crisis scenario, gives them a time-boxed response window, and resumes the market afterward
-  2. Admin can eliminate low-performing companies after each round, and eliminated teams' shares are handled (refund or marked worthless)
-  3. Eliminated teams can no longer trade or submit solutions but retain read-only access
-  4. A leaderboard shows company rankings by stock price, updating in real-time
-  5. The layout supports two-device concurrent play per team (Strategist on one screen, Trader on another) with responsive design
+  1. LLM generates contextual news based on game state and team actions, appearing in the news feed
+  2. Admin can inject a crisis event that pauses the market, presents teams with a crisis scenario, gives them a time-boxed response window, and resumes the market afterward
+  3. Admin can eliminate low-performing companies after each round, and eliminated teams' shares are handled (refund or marked worthless)
+  4. Eliminated teams can no longer trade or submit solutions but retain read-only access
+  5. A leaderboard shows company rankings by stock price, updating in real-time
+  6. The layout supports two-device concurrent play per team (Strategist on one screen, Trader on another) with responsive design
 **Plans**: TBD
 **UI hint**: yes
 
@@ -120,7 +121,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Foundation, Auth, and Base UI | 6/6 | Complete    | 2026-04-15 |
 | 2. Game State and Lobby | 2/2 | Complete    | 2026-04-16 |
-| 3. Simulation Engine and Trading | 0/TBD | Not started | - |
-| 4. Solutions and LLM Evaluation | 0/TBD | Not started | - |
-| 5. News and Admin Dashboard | 0/TBD | Not started | - |
-| 6. Crisis Events, Elimination, and Polish | 0/TBD | Not started | - |
+| 3. Admin Portal | 0/TBD | Not started | - |
+| 4. Simulation Engine and Trading | 0/TBD | Not started | - |
+| 5. Solutions and LLM Evaluation | 0/TBD | Not started | - |
+| 6. News, Elimination, and Polish | 0/TBD | Not started | - |
