@@ -1,24 +1,39 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/stores/auth-store";
 import { useGameStore } from "@/stores/game-store";
+import { useMarketStore } from "@/stores/market-store";
+import { useTradingStore } from "@/stores/trading-store";
 import { useWebSocket } from "@/hooks/use-websocket";
-import type { GameStatePayload } from "@/lib/types";
+import { api } from "@/lib/api";
+import type { GameStatePayload, PriceTickData, NewsItem } from "@/lib/types";
 
-function formatElapsed(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { GameHeader } from "@/components/game/GameHeader";
+import { GameSidebar, type SidebarTab } from "@/components/game/GameSidebar";
+import { CandlestickChart } from "@/components/game/CandlestickChart";
+import { CompanyTabs } from "@/components/game/CompanyTabs";
+import { PriceOverlay } from "@/components/game/PriceOverlay";
+import { TradingPanel } from "@/components/game/TradingPanel";
+import { PortfolioTable } from "@/components/game/PortfolioTable";
+import { CaselinePanel } from "@/components/game/CaselinePanel";
+import { SolutionsPanel } from "@/components/game/SolutionsPanel";
+import { NewsOverlay } from "@/components/game/NewsOverlay";
 
 export default function GamePage() {
   const router = useRouter();
-  const { isAuthenticated, teamName, ticker } = useAuthStore();
-  const { status, elapsedSeconds, currentRound } = useGameStore();
+  const { isAuthenticated, role } = useAuthStore();
+  const status = useGameStore((s) => s.status);
+  const selectedCompanyId = useMarketStore((s) => s.selectedCompanyId);
+  const candles = useMarketStore((s) => s.candles);
+
+  // Default tab based on role
+  const [activeTab, setActiveTab] = useState<SidebarTab>(
+    role === "trader" ? "TRADING" : "CASELINE"
+  );
+  const [newsOpen, setNewsOpen] = useState(false);
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -34,12 +49,81 @@ export default function GamePage() {
     }
   }, [isAuthenticated, status, router]);
 
+  // Load initial data on mount
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Fetch companies
+    api.getCompanies()
+      .then((companies) => {
+        useMarketStore.getState().setCompanies(companies);
+        // Auto-select first company if none selected
+        if (!useMarketStore.getState().selectedCompanyId && companies.length > 0) {
+          useMarketStore.getState().selectCompany(companies[0].team_id);
+        }
+      })
+      .catch(() => { /* Market data unavailable */ });
+
+    // Fetch portfolio
+    api.getPortfolio()
+      .then((data) => {
+        useTradingStore.getState().setPortfolio(data);
+      })
+      .catch(() => { /* Portfolio unavailable */ });
+  }, [isAuthenticated]);
+
+  // Fetch price history when selected company changes
+  useEffect(() => {
+    if (!selectedCompanyId || !isAuthenticated) return;
+
+    api.getPriceHistory(selectedCompanyId)
+      .then((history) => {
+        useMarketStore.getState().loadPriceHistory(selectedCompanyId, history);
+      })
+      .catch(() => { /* Price history unavailable */ });
+  }, [selectedCompanyId, isAuthenticated]);
+
   // Handle WebSocket messages
   const handleMessage = useCallback((data: Record<string, unknown>) => {
-    if (data.type === "game_state_changed" || data.type === "game_started") {
-      const payload = data.payload as GameStatePayload;
-      if (payload) {
-        useGameStore.getState().setGameState(payload);
+    const type = data.type as string;
+
+    switch (type) {
+      case "price_update": {
+        const payload = data.payload as { prices: PriceTickData[] };
+        if (payload?.prices) {
+          useMarketStore.getState().handlePriceUpdate(payload.prices);
+        }
+        break;
+      }
+      case "trade_executed": {
+        // Refresh portfolio on any trade execution
+        api.getPortfolio()
+          .then((portfolio) => {
+            useTradingStore.getState().setPortfolio(portfolio);
+          })
+          .catch(() => { /* Portfolio refresh failed */ });
+        break;
+      }
+      case "game_state_changed":
+      case "game_started": {
+        const payload = data.payload as GameStatePayload;
+        if (payload) {
+          useGameStore.getState().setGameState(payload);
+        }
+        break;
+      }
+      case "news_injected":
+      case "broadcast_message": {
+        // Push to news overlay if it has the addItem handler registered
+        const newsPayload = data.payload as NewsItem;
+        if (newsPayload && typeof window !== "undefined") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const addItem = (window as any).__newsOverlayAddItem;
+          if (typeof addItem === "function") {
+            addItem(newsPayload);
+          }
+        }
+        break;
       }
     }
   }, []);
@@ -53,12 +137,29 @@ export default function GamePage() {
     return null;
   }
 
-  const statusStyles =
-    status === "ACTIVE"
-      ? "text-[#40e56c] bg-[#40e56c]/10 border border-[#40e56c]/30"
-      : status === "PAUSED"
-        ? "text-[#9ecaff] bg-[#9ecaff]/10 border border-[#9ecaff]/30"
-        : "text-[#FF1744] bg-[#FF1744]/10 border border-[#FF1744]/30";
+  // Get candle data for selected company
+  const chartData = selectedCompanyId ? (candles[selectedCompanyId] || []) : [];
+
+  // Render sidebar content based on active tab
+  function renderSidebarContent() {
+    switch (activeTab) {
+      case "CASELINE":
+        return <CaselinePanel />;
+      case "TRADING":
+        return (
+          <div className="flex flex-col h-full overflow-y-auto">
+            <TradingPanel />
+            <div className="border-t border-[#404752]/20">
+              <PortfolioTable />
+            </div>
+          </div>
+        );
+      case "SOLUTIONS":
+        return <SolutionsPanel />;
+      default:
+        return null;
+    }
+  }
 
   return (
     <div className="bg-[#131313] min-h-screen flex flex-col">
@@ -72,62 +173,40 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Top header */}
-      <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] border-b border-[#2a2a2a] z-50">
-        <div className="flex items-center gap-6">
-          <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
-          <div className="flex items-center gap-4 border-l border-[#2a2a2a] pl-6">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TEAM</span>
-              <span className="font-mono text-xs font-bold text-[#9ecaff]">{teamName}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TICKER</span>
-              <span className="font-mono text-xs font-bold text-[#e5e2e1]">${ticker}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 bg-[#1c1b1b] px-3 py-1 border border-[#404752]/20">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full bg-[#2196f3] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 bg-[#2196f3]" />
-            </span>
-            <span className="font-mono text-xs font-bold text-[#2196f3]">LIVE // Q{currentRound}</span>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">ELAPSED</span>
-            <span className="font-mono text-sm font-bold text-[#e5e2e1] tabular-nums">{formatElapsed(elapsedSeconds)}</span>
-          </div>
-          <div className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}>
-            {status}
-          </div>
-        </div>
-      </header>
+      {/* Header */}
+      <GameHeader />
 
-      {/* Main content placeholder */}
-      <main className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="font-mono text-xs text-[#89919d] uppercase tracking-widest">AWAITING_MODULE_LOAD</div>
-          <p className="font-mono text-sm text-[#404752]">
-            Trading interface will be deployed in Phase 3
-          </p>
-          <div className="flex justify-center gap-8 mt-8">
-            <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#2196f3]">
-              <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
-              <div className="font-mono text-xs text-[#2196f3]">STRATEGY_EDITOR</div>
-            </div>
-            <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#404752]">
-              <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
-              <div className="font-mono text-xs text-[#404752]">MARKET_CHARTS</div>
-            </div>
-            <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#404752]">
-              <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
-              <div className="font-mono text-xs text-[#404752]">INTEL_STREAM</div>
-            </div>
+      {/* Main content area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar -- 80px icon tabs */}
+        <GameSidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onToggleNews={() => setNewsOpen((prev) => !prev)}
+          newsOpen={newsOpen}
+          role={role}
+        />
+
+        {/* Sidebar content panel -- 320px */}
+        <div className="w-80 bg-[#1c1b1b] border-r border-[#2a2a2a] overflow-y-auto shrink-0">
+          {renderSidebarContent()}
+        </div>
+
+        {/* Chart area -- flex-1 */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Company tabs */}
+          <CompanyTabs />
+
+          {/* Chart with price overlay */}
+          <div className="flex-1 relative">
+            <PriceOverlay />
+            <CandlestickChart data={chartData} />
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Floating news overlay */}
+      <NewsOverlay isOpen={newsOpen} onClose={() => setNewsOpen(false)} />
     </div>
   );
 }
