@@ -53,68 +53,53 @@ export default function GamePage() {
     return null;
   }
 
-  const statusColor =
+  const statusStyles =
     status === "ACTIVE"
-      ? "text-green-400 bg-green-400/10 border-green-400/30"
+      ? "text-[#40e56c] bg-[#40e56c]/10 border border-[#40e56c]/30"
       : status === "PAUSED"
-        ? "text-amber-400 bg-amber-400/10 border-amber-400/30"
-        : "text-red-400 bg-red-400/10 border-red-400/30";
+        ? "text-[#9ecaff] bg-[#9ecaff]/10 border border-[#9ecaff]/30"
+        : "text-[#FF1744] bg-[#FF1744]/10 border border-[#FF1744]/30";
 
   return (
-    <div className="bg-background min-h-screen flex flex-col">
+    <div className="bg-[#131313] min-h-screen flex flex-col">
       {/* Pause overlay */}
       {status === "PAUSED" && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-          <div className="border border-amber-400/30 bg-background px-8 py-6 text-center">
-            <div className="font-mono text-2xl font-bold text-amber-400">
-              GAME PAUSED
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Waiting for admin to resume...
-            </p>
+          <div className="border border-[#9ecaff]/30 bg-[#131313] px-8 py-6 text-center">
+            <div className="font-mono text-2xl font-bold text-[#9ecaff]">GAME PAUSED</div>
+            <p className="mt-2 text-sm text-[#89919d]">Waiting for admin to resume...</p>
           </div>
         </div>
       )}
 
-      {/* Header bar */}
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="font-mono text-sm font-bold text-primary">COMPLEX</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-foreground font-medium">
-              {teamName}
-            </span>
-            <span className="font-mono text-xs font-bold text-primary">
-              {ticker}
-            </span>
+      {/* Top header */}
+      <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] border-b border-[#2a2a2a] z-50">
+        <div className="flex items-center gap-6">
+          <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
+          <div className="flex items-center gap-4 border-l border-[#2a2a2a] pl-6">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TEAM</span>
+              <span className="font-mono text-xs font-bold text-[#9ecaff]">{teamName}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TICKER</span>
+              <span className="font-mono text-xs font-bold text-[#e5e2e1]">${ticker}</span>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-6">
-          {/* Quarter */}
-          <div className="text-center">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Quarter
-            </div>
-            <div className="font-mono text-lg font-bold text-foreground">
-              Q{currentRound}
-            </div>
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3 bg-[#1c1b1b] px-3 py-1 border border-[#404752]/20">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full bg-[#2196f3] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 bg-[#2196f3]" />
+            </span>
+            <span className="font-mono text-xs font-bold text-[#2196f3]">LIVE // Q{currentRound}</span>
           </div>
-
-          {/* Timer */}
-          <div className="text-center">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Elapsed
-            </div>
-            <div className="font-mono text-lg font-bold text-foreground tabular-nums">
-              {formatElapsed(elapsedSeconds)}
-            </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">ELAPSED</span>
+            <span className="font-mono text-sm font-bold text-[#e5e2e1] tabular-nums">{formatElapsed(elapsedSeconds)}</span>
           </div>
-
-          {/* Status badge */}
-          <div
-            className={`font-mono text-xs font-bold px-3 py-1 border ${statusColor}`}
-          >
+          <div className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}>
             {status}
           </div>
         </div>
@@ -122,13 +107,25 @@ export default function GamePage() {
 
       {/* Main content placeholder */}
       <main className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <p className="font-mono text-sm text-muted-foreground">
-            Trading interface will appear here
+        <div className="text-center space-y-4">
+          <div className="font-mono text-xs text-[#89919d] uppercase tracking-widest">AWAITING_MODULE_LOAD</div>
+          <p className="font-mono text-sm text-[#404752]">
+            Trading interface will be deployed in Phase 3
           </p>
-          <p className="text-xs text-muted-foreground/60">
-            Phase 3: Charts, order book, and portfolio
-          </p>
+          <div className="flex justify-center gap-8 mt-8">
+            <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#2196f3]">
+              <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
+              <div className="font-mono text-xs text-[#2196f3]">STRATEGY_EDITOR</div>
+            </div>
+            <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#404752]">
+              <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
+              <div className="font-mono text-xs text-[#404752]">MARKET_CHARTS</div>
+            </div>
+            <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#404752]">
+              <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
+              <div className="font-mono text-xs text-[#404752]">INTEL_STREAM</div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
