@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/stores/auth-store";
 import { useGameStore } from "@/stores/game-store";
+import { useAdminStore } from "@/stores/admin-store";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
+import { TeamTable } from "@/components/admin/team-table";
+import { toast } from "sonner";
 import type { GameStatePayload } from "@/lib/types";
 
 function formatElapsed(totalSeconds: number): string {
@@ -20,6 +23,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { isAuthenticated, role } = useAuthStore();
   const { status, elapsedSeconds, currentRound, setGameState } = useGameStore();
+  const { teams, setTeams, updateTeamStatus, removeTeam } = useAdminStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +34,7 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, role, router]);
 
-  // Load initial game state on mount
+  // Load initial game state and teams on mount
   useEffect(() => {
     if (isAuthenticated && role === "admin") {
       api
@@ -45,18 +49,47 @@ export default function AdminPage() {
         .catch(() => {
           // Will populate via WebSocket
         });
+
+      api
+        .getTeams()
+        .then((data) => {
+          setTeams(data);
+        })
+        .catch(() => {
+          // Will retry via WebSocket events
+        });
     }
-  }, [isAuthenticated, role, setGameState]);
+  }, [isAuthenticated, role, setGameState, setTeams]);
 
   // Handle WebSocket messages
-  const handleMessage = useCallback((data: Record<string, unknown>) => {
-    if (data.type === "game_state_changed" || data.type === "game_started") {
-      const payload = data.payload as GameStatePayload;
-      if (payload) {
-        useGameStore.getState().setGameState(payload);
+  const handleMessage = useCallback(
+    (data: Record<string, unknown>) => {
+      if (data.type === "game_state_changed" || data.type === "game_started") {
+        const payload = data.payload as GameStatePayload;
+        if (payload) {
+          useGameStore.getState().setGameState(payload);
+        }
       }
-    }
-  }, []);
+
+      if (data.type === "team_registered") {
+        // Refresh the full team list
+        api
+          .getTeams()
+          .then((freshTeams) => {
+            setTeams(freshTeams);
+          })
+          .catch(() => {});
+      }
+
+      if (data.type === "team_removed") {
+        const payload = data.payload as { team_id: string } | undefined;
+        if (payload?.team_id) {
+          removeTeam(payload.team_id);
+        }
+      }
+    },
+    [setTeams, removeTeam]
+  );
 
   useWebSocket({
     onMessage: handleMessage,
@@ -114,6 +147,46 @@ export default function AdminPage() {
     }
   }
 
+  async function handleApprove(teamId: string) {
+    try {
+      await api.approveTeam(teamId);
+      updateTeamStatus(teamId, "READY");
+      toast.success("Team approved");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to approve team"
+      );
+    }
+  }
+
+  async function handleReject(teamId: string) {
+    try {
+      await api.rejectTeam(teamId);
+      updateTeamStatus(teamId, "REJECTED");
+      toast.success("Team rejected");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to reject team"
+      );
+    }
+  }
+
+  async function handleRemove(teamId: string) {
+    try {
+      const result = await api.removeTeam(teamId);
+      if (result.remove_type === "hard") {
+        removeTeam(teamId);
+      } else {
+        updateTeamStatus(teamId, "BANKRUPT");
+      }
+      toast.success(result.message);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to remove team"
+      );
+    }
+  }
+
   if (!isAuthenticated || role !== "admin") {
     return null;
   }
@@ -127,6 +200,16 @@ export default function AdminPage() {
           ? "text-[#FF1744] bg-[#FF1744]/10 border border-[#FF1744]/30"
           : "text-[#89919d] bg-[#89919d]/10 border border-[#89919d]/30";
 
+  const totalTeams = teams.length;
+  const pendingCount = teams.filter((t) => t.status === "PENDING").length;
+  const activeCount = teams.filter(
+    (t) =>
+      t.status !== "BANKRUPT" &&
+      t.status !== "ELIMINATED" &&
+      t.status !== "REJECTED" &&
+      t.status !== "PENDING"
+  ).length;
+
   return (
     <div className="grid grid-cols-12 gap-6 w-full">
       {/* Game Control Station */}
@@ -136,7 +219,8 @@ export default function AdminPage() {
             GAME_CONTROL_STATION
           </h2>
           <span className="flex items-center gap-2 font-mono text-[11px] text-[#40e56c]">
-            <span className="w-2 h-2 bg-[#40e56c] animate-pulse" /> SYSTEM_LIVE
+            <span className="w-2 h-2 bg-[#40e56c] animate-pulse" />{" "}
+            SYSTEM_LIVE
           </span>
         </div>
 
@@ -231,6 +315,49 @@ export default function AdminPage() {
           <p className="font-mono text-[13px] text-[#FF1744]">{error}</p>
         </div>
       )}
+
+      {/* Team Summary Stats */}
+      <div className="col-span-12 grid grid-cols-3 gap-4">
+        <div className="bg-[#1c1b1b] p-5">
+          <div className="text-sm font-mono text-gray-500 uppercase tracking-widest mb-1">
+            TOTAL_TEAMS
+          </div>
+          <div className="text-3xl font-bold font-mono text-[#e5e2e1]">
+            {totalTeams}
+          </div>
+        </div>
+        <div className="bg-[#1c1b1b] p-5">
+          <div className="text-sm font-mono text-gray-500 uppercase tracking-widest mb-1">
+            PENDING
+          </div>
+          <div className="text-3xl font-bold font-mono text-[#e5e2e1]">
+            {pendingCount}
+          </div>
+        </div>
+        <div className="bg-[#1c1b1b] p-5">
+          <div className="text-sm font-mono text-gray-500 uppercase tracking-widest mb-1">
+            ACTIVE
+          </div>
+          <div className="text-3xl font-bold font-mono text-[#e5e2e1]">
+            {activeCount}
+          </div>
+        </div>
+      </div>
+
+      {/* Team Performance Ledger */}
+      <div className="col-span-12 bg-[#1c1b1b] p-6">
+        <h2 className="text-base font-black font-mono tracking-widest text-[#9ecaff] uppercase mb-6">
+          TEAM_PERFORMANCE_LEDGER
+        </h2>
+        <TeamTable
+          teams={teams}
+          gameStatus={status}
+          compact={true}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onRemove={handleRemove}
+        />
+      </div>
     </div>
   );
 }
