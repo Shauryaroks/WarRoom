@@ -9,7 +9,9 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+import redis.asyncio as aioredis
+
+from app.database import get_db, settings
 from app.models import (
     ActivityEvent,
     Admin,
@@ -27,6 +29,7 @@ from app.models import (
 from app.auth_utils import create_access_token, require_admin
 from app.redis_pubsub import publish_broadcast
 from app.services.game_service import (
+    REDIS_GAME_STATUS_KEY,
     calculate_elapsed_seconds,
     get_game_state,
     get_game_state_readonly,
@@ -557,6 +560,112 @@ async def advance_round(
     return RoundAdvanceResponse(
         message=f"Advanced to round {state.current_round}",
         current_round=state.current_round,
+    )
+
+
+# --- Game Restart (destructive reset) ---
+
+
+class GameRestartResponse(BaseModel):
+    message: str
+    status: str
+    current_round: int
+
+
+@router.post("/game/restart", response_model=GameRestartResponse)
+async def restart_game(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restart the game: reset GameState to SETUP and clear all game data.
+
+    Preserves: Team registrations (reset to READY), Admin accounts.
+    Deletes: StockPrice/PriceHistory, Transactions, StockHoldings,
+             Directives, MarketNews, ActivityEvents, CashLedger.
+    """
+    # 1. Clear game data (order matters for FK constraints)
+    await db.execute(delete(Transaction))
+    await db.execute(delete(StockHolding))
+    await db.execute(delete(CashLedger))
+    await db.execute(delete(PriceHistory))
+    await db.execute(delete(Directive))
+    await db.execute(delete(MarketNews))
+    await db.execute(delete(ActivityEvent))
+
+    # 2. Reset teams to READY status (preserve registrations)
+    result = await db.execute(
+        select(Team).where(
+            Team.status.in_([
+                TeamStatus.ACTIVE,
+                TeamStatus.COOLDOWN,
+                TeamStatus.BANKRUPT,
+                TeamStatus.ELIMINATED,
+                TeamStatus.READY,
+            ])
+        )
+    )
+    teams = result.scalars().all()
+    for team in teams:
+        team.status = TeamStatus.READY
+        team.cash = team.cash.__class__("1000000")
+        team.stock_price = team.stock_price.__class__("100")
+        team.shares_outstanding = 1000000
+        team.public_float = 100000
+        team.treasury_shares = 900000
+        team.cooldown_until = None
+        team.bankrupt_since = None
+        team.bankrupt_resolved = False
+        team.eliminated_at = None
+        team.elimination_reason = None
+        team.rank_at_elimination = None
+
+    # 3. Reset GameState to SETUP
+    state = await get_game_state(db)
+    state.status = GameStatus.SETUP
+    state.started_at = None
+    state.paused_at = None
+    state.resumed_at = None
+    state.finished_at = None
+    state.pause_offset = 0
+    state.current_round = 0
+    state.last_purge_at = None
+    state.next_purge_at = None
+    state.teams_remaining = None
+    state.llm_queue_depth = 0
+    state.total_llm_cost = state.total_llm_cost.__class__("0")
+    state.aggregate_market_cap_at_purge = None
+
+    # 4. Log the restart (after clearing old events)
+    db.add(ActivityEvent(
+        event_type="GAME_RESTARTED",
+        actor="admin",
+        description="Game restarted by admin",
+    ))
+
+    await db.commit()
+    await db.refresh(state)
+
+    # 5. Update Redis cache
+    r = aioredis.from_url(settings.REDIS_URL)
+    try:
+        await r.set(REDIS_GAME_STATUS_KEY, GameStatus.SETUP.value)
+    finally:
+        await r.aclose()
+
+    # 6. Broadcast state change
+    await publish_broadcast({
+        "type": "game_state_changed",
+        "payload": {
+            "status": GameStatus.SETUP.value,
+            "elapsed_seconds": 0,
+            "current_round": 0,
+        },
+    })
+
+    return GameRestartResponse(
+        message="Game restarted successfully",
+        status=GameStatus.SETUP.value,
+        current_round=0,
     )
 
 
