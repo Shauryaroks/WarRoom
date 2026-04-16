@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Admin Portal** - Team management (approve/reject/remove), live dashboard, evaluation approval queue, broadcast messages, news injection, crisis event controls (completed 2026-04-16)
 - [x] **Phase 4: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking (completed 2026-04-16)
 - [x] **Phase 5: Solutions and LLM Evaluation** - Solution submission, LLM evaluation via OpenRouter, human-in-the-loop admin approval gate (completed 2026-04-16)
-- [ ] **Phase 6: News, Elimination, and Polish** - LLM-generated news, crisis event execution with market pause, elimination mechanics, leaderboard, responsive two-device layout
+- [x] **Phase 6: News, Elimination, and Polish** - LLM-generated news, crisis event execution with market pause, elimination mechanics, leaderboard, responsive two-device layout (completed 2026-04-16)
 
 ## Phase Details
 
@@ -138,8 +138,8 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md -- LLM service refactor, news generation Celery task, CrisisEvent model, migration
 - [x] 06-02-PLAN.md -- Admin crisis/elimination/leaderboard endpoints, backend guards, approval-to-news wiring
-- [ ] 06-03-PLAN.md -- Frontend crisis overlay, elimination state, leaderboard widget and page, WebSocket wiring
-- [ ] 06-04-PLAN.md -- Two-device responsive layout polish
+- [x] 06-03-PLAN.md -- Frontend crisis overlay, elimination state, leaderboard widget and page, WebSocket wiring
+- [x] 06-04-PLAN.md -- Two-device responsive layout polish
 
 **UI hint**: yes
 
@@ -155,4 +155,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
 | 4. Simulation Engine and Trading | 5/5 | Complete    | 2026-04-16 |
 | 5. Solutions and LLM Evaluation | 4/4 | Complete    | 2026-04-16 |
-| 6. News, Elimination, and Polish | 2/4 | In Progress|  |
+| 6. News, Elimination, and Polish | 4/4 | Complete    | 2026-04-16 |
