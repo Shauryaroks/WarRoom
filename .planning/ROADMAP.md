@@ -150,7 +150,7 @@ Plans:
 - Decimal phases (7.1, 7.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 7: Archetypes & Sample Portfolios** - Admin assigns archetypes with benchmark bands; 4 pre-built dossiers seed the competition (completed 2026-04-16)
-- [ ] **Phase 8: Decision Levers & Round Structure** - Teams submit 5-category decisions every 20 min; admin controls War Room / Live Floor phases
+- [x] **Phase 8: Decision Levers & Round Structure** - Teams submit 5-category decisions every 20 min; admin controls War Room / Live Floor phases (completed 2026-04-16)
 - [ ] **Phase 9: Enhanced Simulation Engine** - New price formula with 4 weighted fundamentals, archetype-relative scoring, event shocks, sentiment flow, smoothing
 - [ ] **Phase 10: Enhanced Trading** - Short selling with margin, position limits, circuit breakers, separate trading P&L tracking
 - [ ] **Phase 11: Press Releases & Enhanced Dashboard** - Team press releases feed into news; live operational and market-wide dashboard tiles
@@ -188,10 +188,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 08-01-PLAN.md -- Backend models, migration, game phase service, budget calculation, Pydantic schemas
-- [ ] 08-02-PLAN.md -- API endpoints: admin War Room/Live Floor, team decisions, operating plan, budget query
-- [ ] 08-03-PLAN.md -- Frontend types, stores, DecisionsPanel (5 levers), WarRoomPanel, sidebar DECISIONS tab
-- [ ] 08-04-PLAN.md -- Admin phase controls wiring, game page integration, WebSocket handler, E2E verification
+- [x] 08-01-PLAN.md -- Backend models, migration, game phase service, budget calculation, Pydantic schemas
+- [x] 08-02-PLAN.md -- API endpoints: admin War Room/Live Floor, team decisions, operating plan, budget query
+- [x] 08-03-PLAN.md -- Frontend types, stores, DecisionsPanel (5 levers), WarRoomPanel, sidebar DECISIONS tab
+- [x] 08-04-PLAN.md -- Admin phase controls wiring, game page integration, WebSocket handler, E2E verification
 
 **UI hint**: yes
 
@@ -256,7 +256,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12
 | 5. Solutions and LLM Evaluation | v1.0 | 4/4 | Complete | 2026-04-16 |
 | 6. News, Elimination, and Polish | v1.0 | 4/4 | Complete | 2026-04-16 |
 | 7. Archetypes & Sample Portfolios | v2.0 | 2/2 | Complete    | 2026-04-16 |
-| 8. Decision Levers & Round Structure | v2.0 | 0/4 | Planning complete | - |
+| 8. Decision Levers & Round Structure | v2.0 | 4/4 | Complete    | 2026-04-16 |
 | 9. Enhanced Simulation Engine | v2.0 | 0/0 | Not started | - |
 | 10. Enhanced Trading | v2.0 | 0/0 | Not started | - |
 | 11. Press Releases & Enhanced Dashboard | v2.0 | 0/0 | Not started | - |
