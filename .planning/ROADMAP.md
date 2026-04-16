@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Foundation, Auth, and Base UI | 6/6 | Complete    | 2026-04-15 |
 | 2. Game State and Lobby | 2/2 | Complete    | 2026-04-16 |
-| 3. Admin Portal | 5/5 | Complete   | 2026-04-16 |
+| 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
 | 4. Simulation Engine and Trading | 0/TBD | Not started | - |
 | 5. Solutions and LLM Evaluation | 0/TBD | Not started | - |
 | 6. News, Elimination, and Polish | 0/TBD | Not started | - |
