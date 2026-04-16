@@ -1,12 +1,11 @@
-"""Periodic game tick task with state guard.
+"""Periodic game tick task with state guard and price simulation.
 
 Per D-09: Redis key check for ~1ms latency vs ~5ms DB query.
 Per GAME-04: Pause stops all simulation ticks.
-
-Phase 2: Guard + logging skeleton.
-Phase 3: Stock price calculation, broadcast.
+Per SIM-01: Price tick every 60s calculates prices, writes PriceHistory, broadcasts.
 """
 
+import asyncio
 import logging
 
 import redis
@@ -41,10 +40,35 @@ def game_tick():
     """Periodic tick task. Guarded by game state check (GAME-04).
 
     Returns early with no side effects when game is not ACTIVE.
-    Phase 3 will add: stock price updates, broadcast.
+    When active: calculates prices for all teams, writes PriceHistory,
+    broadcasts price_update via Redis pub/sub.
     """
     if not is_game_active():
         return  # Silent return -- game not active, no work to do
 
-    logger.info("game.tick executed (game is ACTIVE)")
-    # Phase 3 will add: stock price calculation, broadcast
+    asyncio.run(_execute_tick())
+
+
+async def _execute_tick():
+    """Execute the price tick: calculate prices, commit, then broadcast.
+
+    Per RESEARCH anti-patterns: publish Redis AFTER db.commit() to avoid
+    broadcasting data from a rolled-back transaction.
+    """
+    from app.database import get_worker_session
+    from app.services.simulation_service import calculate_all_prices
+    from app.redis_pubsub import publish_broadcast_sync
+
+    async with get_worker_session() as db:
+        price_updates = await calculate_all_prices(db)
+        await db.commit()
+
+    # Publish AFTER commit (per RESEARCH anti-patterns)
+    if price_updates:
+        publish_broadcast_sync({
+            "type": "price_update",
+            "payload": {"prices": price_updates},
+        })
+        logger.info("Price tick: %d teams updated", len(price_updates))
+    else:
+        logger.debug("Price tick: no active teams with targets")

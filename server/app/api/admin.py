@@ -5,7 +5,7 @@ from typing import Optional
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -94,6 +94,17 @@ class NewsInjectRequest(BaseModel):
 class NewsInjectResponse(BaseModel):
     message: str
     news_id: str
+
+
+class SetScoreRequest(BaseModel):
+    quality_score: float = Field(ge=0.0, le=1.0)
+
+
+class SetScoreResponse(BaseModel):
+    message: str
+    team_id: str
+    target_price: str
+    ticks_remaining: int
 
 
 class BroadcastRequest(BaseModel):
@@ -353,6 +364,43 @@ async def remove_team(
         message=f"Team '{team_name}' {'permanently removed' if remove_type == 'hard' else 'marked as bankrupt'}",
         team_id=str(team_id),
         remove_type=remove_type,
+    )
+
+
+# --- Team Score (per D-05: pluggable score input for Phase 4) ---
+
+
+@router.post(
+    "/teams/{team_id}/set-score",
+    response_model=SetScoreResponse,
+)
+async def set_team_score(
+    team_id: uuid.UUID,
+    request: SetScoreRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set a quality score for a team to drive price movement.
+
+    Per D-05: Admin sets quality score (0.0-1.0) for Phase 4 testing.
+    Phase 5 replaces this with LLM evaluation scores.
+    T-04-01: require_admin enforces admin-only access.
+    T-04-02: Pydantic Field(ge=0.0, le=1.0) validates score range.
+    """
+    from app.services.simulation_service import set_team_score as _set_score
+
+    try:
+        result = await _set_score(db, team_id, request.quality_score)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    await db.commit()
+
+    return SetScoreResponse(
+        message="Score set",
+        team_id=result["team_id"],
+        target_price=result["target_price"],
+        ticks_remaining=result["ticks_remaining"],
     )
 
 
