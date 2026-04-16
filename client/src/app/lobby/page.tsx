@@ -23,6 +23,20 @@ export default function LobbyPage() {
     }
   }, [isAuthenticated, router]);
 
+  // Check if game is already active — redirect immediately
+  useEffect(() => {
+    if (isAuthenticated) {
+      api
+        .getGameState()
+        .then((state) => {
+          if (state.status === "ACTIVE" || state.status === "PAUSED") {
+            router.push("/game");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated, router]);
+
   // Load initial approved teams
   useEffect(() => {
     if (isAuthenticated) {
