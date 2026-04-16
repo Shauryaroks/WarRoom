@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation, Auth, and Base UI** - Dockerized backend, database schema, Redis pub/sub relay, team auth with role separation, Bloomberg dark theme scaffold (completed 2026-04-15)
 - [x] **Phase 2: Game State and Lobby** - Game lifecycle state machine, lobby system, server-authoritative timer, WebSocket-driven state broadcast (completed 2026-04-16)
 - [x] **Phase 3: Admin Portal** - Team management (approve/reject/remove), live dashboard, evaluation approval queue, broadcast messages, news injection, crisis event controls (completed 2026-04-16)
-- [ ] **Phase 4: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking
+- [x] **Phase 4: Simulation Engine and Trading** - Stock price ticks, candlestick charts, buy/sell trading with atomic validation, portfolio tracking (completed 2026-04-16)
 - [ ] **Phase 5: Solutions and LLM Evaluation** - Solution submission, LLM evaluation via OpenRouter, human-in-the-loop admin approval gate
 - [ ] **Phase 6: News, Elimination, and Polish** - LLM-generated news, crisis event execution with market pause, elimination mechanics, leaderboard, responsive two-device layout
 
@@ -98,7 +98,7 @@ Plans:
 - [x] 04-02-PLAN.md -- Trading backend: atomic buy/sell with 30% cap, portfolio, market API
 - [x] 04-03-PLAN.md -- Frontend data layer: types, API client, market and trading stores
 - [x] 04-04-PLAN.md -- Candlestick chart: lightweight-charts component, company tabs, price overlay
-- [ ] 04-05-PLAN.md -- Game page layout: header, sidebar, panels, WebSocket wiring, verification
+- [x] 04-05-PLAN.md -- Game page layout: header, sidebar, panels, WebSocket wiring, verification
 
 **UI hint**: yes
 
@@ -138,6 +138,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Foundation, Auth, and Base UI | 6/6 | Complete    | 2026-04-15 |
 | 2. Game State and Lobby | 2/2 | Complete    | 2026-04-16 |
 | 3. Admin Portal | 5/5 | Complete    | 2026-04-16 |
-| 4. Simulation Engine and Trading | 4/5 | In Progress|  |
+| 4. Simulation Engine and Trading | 5/5 | Complete    | 2026-04-16 |
 | 5. Solutions and LLM Evaluation | 0/TBD | Not started | - |
 | 6. News, Elimination, and Polish | 0/TBD | Not started | - |
