@@ -149,7 +149,7 @@ Plans:
 - Integer phases (7, 8, ...): Planned milestone work
 - Decimal phases (7.1, 7.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 7: Archetypes & Sample Portfolios** - Admin assigns archetypes with benchmark bands; 4 pre-built dossiers seed the competition
+- [x] **Phase 7: Archetypes & Sample Portfolios** - Admin assigns archetypes with benchmark bands; 4 pre-built dossiers seed the competition (completed 2026-04-16)
 - [ ] **Phase 8: Decision Levers & Round Structure** - Teams submit 5-category decisions every 20 min; admin controls War Room / Live Floor phases
 - [ ] **Phase 9: Enhanced Simulation Engine** - New price formula with 4 weighted fundamentals, archetype-relative scoring, event shocks, sentiment flow, smoothing
 - [ ] **Phase 10: Enhanced Trading** - Short selling with margin, position limits, circuit breakers, separate trading P&L tracking
@@ -171,7 +171,7 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md -- Backend: Archetype model, migration, admin CRUD/assign/seed endpoints, caseline response update
-- [ ] 07-02-PLAN.md -- Frontend: types, API client, admin Teams dropdown, Settings archetype form, game CaselinePanel badge
+- [x] 07-02-PLAN.md -- Frontend: types, API client, admin Teams dropdown, Settings archetype form, game CaselinePanel badge
 
 **UI hint**: yes
 
@@ -248,7 +248,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11 -> 12
 | 4. Simulation Engine and Trading | v1.0 | 5/5 | Complete | 2026-04-16 |
 | 5. Solutions and LLM Evaluation | v1.0 | 4/4 | Complete | 2026-04-16 |
 | 6. News, Elimination, and Polish | v1.0 | 4/4 | Complete | 2026-04-16 |
-| 7. Archetypes & Sample Portfolios | v2.0 | 1/2 | In Progress|  |
+| 7. Archetypes & Sample Portfolios | v2.0 | 2/2 | Complete    | 2026-04-16 |
 | 8. Decision Levers & Round Structure | v2.0 | 0/0 | Not started | - |
 | 9. Enhanced Simulation Engine | v2.0 | 0/0 | Not started | - |
 | 10. Enhanced Trading | v2.0 | 0/0 | Not started | - |
