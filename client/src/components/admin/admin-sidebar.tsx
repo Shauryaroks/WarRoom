@@ -10,6 +10,7 @@ import {
   Newspaper,
   Settings,
   Activity,
+  Gauge,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/admin", icon: LayoutDashboard, label: "DASHBOARD", exact: true },
   { href: "/admin/teams", icon: Users, label: "TEAMS", exact: false },
   { href: "/admin/evaluations", icon: ClipboardCheck, label: "EVALS", exact: false },
+  { href: "/admin/fundamentals", icon: Gauge, label: "FUND", exact: false },
   { href: "/admin/markets", icon: TrendingUp, label: "MARKETS", exact: false },
   { href: "/admin/news", icon: Newspaper, label: "NEWS", exact: false },
   { href: "/admin/settings", icon: Settings, label: "SETTINGS", exact: false },

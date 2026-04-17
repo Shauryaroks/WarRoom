@@ -406,3 +406,43 @@ export interface GamePhaseChangedPayload {
   macro_brief: string | null;
   current_round: number;
 }
+
+// === Phase 9: Fundamentals ===
+
+export interface FundamentalDeltas {
+  market_share_delta: number;
+  margin_delta: number;
+  growth_delta: number;
+  ops_efficiency_delta: number;
+}
+
+export interface FundamentalEvalListItem {
+  id: string;
+  team_id: string;
+  ticker: string;
+  team_name: string;
+  round_number: number;
+  status: "PROCESSING" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "FAILED";
+  proposed_deltas: FundamentalDeltas;
+  admin_edits: FundamentalDeltas | null;
+  narrative: string | null;
+  created_at: string | null;
+  approved_at: string | null;
+  rejected_at: string | null;
+}
+
+export interface FundamentalApproveResponse {
+  evaluation_id: string;
+  team_id: string;
+  ticker: string;
+  drift_target_pct: string;
+  drift_floor_pct: string;
+  narrative: string | null;
+}
+
+export interface FundamentalsUpdatedPayload {
+  evaluation_id: string;
+  team_id: string;
+  ticker: string;
+  drift_target_pct: string;
+}

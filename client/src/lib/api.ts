@@ -34,6 +34,8 @@ import type {
   OperatingPlanResponse,
   GamePhaseResponse,
   BudgetResponse,
+  FundamentalEvalListItem,
+  FundamentalApproveResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -349,6 +351,40 @@ class ApiClient {
   // Leaderboard
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
     return this.request<LeaderboardEntry[]>("/api/v1/market/leaderboard");
+  }
+
+  // === Phase 9: Fundamentals Queue ===
+
+  async listFundamentalsQueue(status?: string): Promise<FundamentalEvalListItem[]> {
+    const q = status ? `?status_filter=${encodeURIComponent(status)}` : "";
+    return this.request<FundamentalEvalListItem[]>(`/api/v1/admin/fundamentals-queue${q}`);
+  }
+
+  async approveFundamental(evaluationId: string): Promise<FundamentalApproveResponse> {
+    return this.request<FundamentalApproveResponse>(
+      `/api/v1/admin/fundamentals-queue/${evaluationId}/approve`,
+      { method: "POST" }
+    );
+  }
+
+  async rejectFundamental(evaluationId: string, adminNotes?: string) {
+    return this.request(
+      `/api/v1/admin/fundamentals-queue/${evaluationId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify({ admin_notes: adminNotes || "" }),
+      }
+    );
+  }
+
+  async computeFundamentals(roundNumber: number) {
+    return this.request(
+      "/api/v1/admin/fundamentals-queue/compute",
+      {
+        method: "POST",
+        body: JSON.stringify({ round_number: roundNumber }),
+      }
+    );
   }
 
   async assignCaseline(
