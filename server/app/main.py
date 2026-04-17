@@ -47,20 +47,30 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — origins come from CORS_ALLOW_ORIGINS env var (comma-separated).
-# Browsers REJECT allow_credentials=True combined with wildcard origins, so the
-# default now is "localhost + loopback only" and production must set the env explicitly.
-_default_origins = "http://localhost:3000,http://127.0.0.1:3000"
-_origins_raw = os.getenv("CORS_ALLOW_ORIGINS", _default_origins)
-_allowed_origins = [o.strip() for o in _origins_raw.split(",") if o.strip()]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — allow ALL origins. `allow_origin_regex=".*"` is used instead of
+# `allow_origins=["*"]` because the latter is rejected by browsers when
+# `allow_credentials=True`. The regex path echoes each request's Origin back,
+# which browsers accept with credentials.
+_origins_env = os.getenv("CORS_ALLOW_ORIGINS")
+if _origins_env and _origins_env.strip() and _origins_env.strip() != "*":
+    # Explicit list via env — honour it
+    _allowed_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # Default (or CORS_ALLOW_ORIGINS="*"): allow all origins via regex
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 # --- Request Logging Middleware ---
