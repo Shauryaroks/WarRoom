@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type { UserRole } from "@/lib/types";
 
 interface AuthState {
@@ -21,6 +21,32 @@ interface AuthState {
   logout: () => void;
   setToken: (token: string) => void;
 }
+
+// Path-aware localStorage: admin pages use `complex-auth-admin`, team pages use
+// `complex-auth-team`. Lets the same browser hold an admin session AND a team
+// session simultaneously without overwriting each other (critical for dev testing
+// and for the admin/strategist/trader split during a live competition).
+function authStorageKey(): string {
+  if (typeof window === "undefined") return "complex-auth-team";
+  return window.location.pathname.startsWith("/admin")
+    ? "complex-auth-admin"
+    : "complex-auth-team";
+}
+
+const pathAwareStorage: StateStorage = {
+  getItem: (_name: string) => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem(authStorageKey());
+  },
+  setItem: (_name: string, value: string) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(authStorageKey(), value);
+  },
+  removeItem: (_name: string) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem(authStorageKey());
+  },
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -70,7 +96,9 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
+      // `name` is ignored by pathAwareStorage (kept for Zustand compat)
       name: "complex-auth",
+      storage: createJSONStorage(() => pathAwareStorage),
       partialize: (state) => ({
         token: state.token,
         teamId: state.teamId,

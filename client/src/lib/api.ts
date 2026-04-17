@@ -41,11 +41,16 @@ import type {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 class ApiClient {
-  private getToken(): string | null {
+  private getToken(path?: string): string | null {
     if (typeof window === "undefined") return null;
-    // Read from Zustand persisted store (single source of truth)
+    // Admin API calls use the admin-scoped localStorage key; everything else uses team-scoped.
+    // Separate keys = admin + team sessions can coexist in the same browser.
+    const pathHint = path ?? window.location.pathname;
+    const isAdminContext =
+      pathHint.startsWith("/api/v1/admin") || pathHint.startsWith("/admin");
+    const storageKey = isAdminContext ? "complex-auth-admin" : "complex-auth-team";
     try {
-      const stored = localStorage.getItem("complex-auth");
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed?.state?.token || null;
@@ -60,7 +65,7 @@ class ApiClient {
     path: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = this.getToken();
+    const token = this.getToken(path);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...((options.headers as Record<string, string>) || {}),
@@ -79,9 +84,8 @@ class ApiClient {
         .json()
         .catch(() => ({ detail: "Something went wrong. Try again." }));
 
-      // 401/403 on authenticated admin endpoints = stale/wrong token. Nuke local auth
-      // and bounce to the appropriate login so the user can re-authenticate instead
-      // of seeing a useless "admin access required" toast on every click.
+      // 401/403 on authenticated admin endpoints = stale/wrong admin token. Nuke ONLY the
+      // admin-scoped storage (leave team session untouched) and bounce to the admin login.
       if (
         typeof window !== "undefined" &&
         (res.status === 401 || res.status === 403) &&
@@ -90,7 +94,7 @@ class ApiClient {
         path !== "/api/v1/admin/seed"
       ) {
         try {
-          localStorage.removeItem("complex-auth");
+          localStorage.removeItem("complex-auth-admin");
         } catch {}
         if (!window.location.pathname.startsWith("/admin/login")) {
           window.location.href = "/admin/login";
