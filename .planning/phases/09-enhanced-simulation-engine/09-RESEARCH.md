@@ -1019,34 +1019,42 @@ async def _execute_tick():
 
 **If an assumption fires wrong:** the planner should add a clarifying question for the discuss-phase or CONTEXT.md supplement before committing to that design decision.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All six open questions from discovery were resolved during /gsd-discuss-phase and plan authoring. The original questions are retained below for traceability; each is annotated with its **RESOLVED** outcome and the plan that implements it.
 
 1. **Drift floor representation (D-21 snap-free reset)**
+   - **RESOLVED:** Persistent `drift_floor_pct` nullable Decimal column added to `teams` via Migration 005 (Plan 09-01). On approval/override, `fundamental_service.apply_fundamental_deltas` / `override_fundamentals` writes `drift_floor_pct = current drift_now` atomically with `ramp_started_at` reset (Plan 09-03). `compute_price` reads it via `drift_now = max(drift_floor_pct, ramp_fraction * drift_target)` (Plan 09-02).
    - What we know: D-21 requires "drift_now at moment of reset becomes new ramp floor."
    - What's unclear: Persistent `drift_floor_pct` column vs. derive from prior ramp state vs. smooth-transition math without an explicit floor.
    - Recommendation: Add `drift_floor_pct` to the migration as a nullable Decimal column. It's cheap, explicit, and the approval path writes it atomically alongside `ramp_started_at`.
 
 2. **Sentiment normalizer base: market cap with treasury shares or public float?**
+   - **RESOLVED:** Sentiment normalizer base = `public_float` = `shares_outstanding * 0.30`. Implemented in Plan 02 via `PUBLIC_FLOAT_RATIO = Decimal("0.30")` constant in `simulation_service.py`; `compute_sentiment_for_all_teams` divides signed INR volume by `stock_price * shares_outstanding * PUBLIC_FLOAT_RATIO`.
    - What we know: D-14 says "normalized by team market cap."
    - What's unclear: "Market cap" in finance typically = `stock_price * shares_outstanding`. For this game, teams have 1M shares_outstanding with 900k treasury + 100k public float. Using full shares_outstanding makes sentiment denominator 10× bigger → sentiment 10× smaller → likely too faint.
    - Recommendation: Use `stock_price * public_float` as the normalizer. Matches real-world trading-impact intuition (only float trades). Flag explicitly in plan so user can confirm.
 
 3. **LLM news `is_event` fields: top-level or nested?**
+   - **RESOLVED:** Placed on BOTH nested objects (`market_commentary` and `world_event`) — a market_commentary shocks a single team via ticker match; a world_event shocks sector-wide teams via `affected_tickers` array. Implemented in Plan 04 Task 1 (NEWS_SCHEMA extension) and Plan 04 Task 2 (`_enqueue_shocks_from_news` walks both nested paths).
    - What we know: Current NEWS_SCHEMA has two nested objects (market_commentary, world_event).
    - What's unclear: Whether an event can only originate from a market_commentary (team-specific) or from a world_event (sector-wide affecting multiple teams).
    - Recommendation: Put `is_event`, `severity`, `direction`, `affected_tickers` on BOTH nested objects, OR add a third top-level field `event_details`. Planner to decide and document.
 
 4. **Admin crisis endpoint extension vs new endpoint**
+   - **RESOLVED:** Extend existing `CrisisInjectRequest` with optional `affected_team_ids: list[str] | None`, `severity: SeverityEnum | None`, `direction: DirectionEnum | None`. Implemented in Plan 04 Task 3 — when all three present, enqueue PendingShock rows; when absent, keep v1 narrative-only pause behavior (backwards compatible).
    - What we know: D-16 says admin crisis fires on specified teams with severity/direction.
    - What's unclear: Existing `CrisisInjectRequest` has only `scenario` and `timer_seconds`.
    - Recommendation: Extend `CrisisInjectRequest` with optional `affected_team_ids: list[str] | None`, `severity: SeverityEnum | None`, `direction: DirectionEnum | None`. When present → enqueue `PendingShock` rows. When absent → current behavior (auto-pause, narrative-only).
 
 5. **When does archetype-assign populate `fundamental_*` columns?**
+   - **RESOLVED:** Migration 005 performs a one-shot backfill UPDATE: `UPDATE teams SET fundamental_market_share = midpoint(bands.market_share), fundamental_margin = midpoint(bands.margin), fundamental_growth = midpoint(bands.growth), fundamental_ops_efficiency = midpoint(bands.ops_efficiency) FROM archetypes WHERE teams.archetype_id = archetypes.id AND teams.fundamental_market_share IS NULL`. Implemented in Plan 09-01 Task 1; verified by Plan 09-01 Task 3 `test_migration_005` round-trip test; archetype-assign endpoint (Plan 09-01 Task 2) writes the midpoint for new assigns.
    - What we know: D-03 says "at archetype assignment time."
    - What's unclear: Do existing teams from previous dev sessions get backfilled? The phase is greenfield for fundamentals, but there may already be archetype-assigned teams in dev DBs.
    - Recommendation: Migration 005 includes a `one-shot UPDATE teams SET fundamental_* = midpoint FROM archetypes WHERE teams.archetype_id = archetypes.id AND fundamental_market_share IS NULL` to backfill. Write tests that verify post-migration state.
 
 6. **Should `fundamentals_updated` WS event include the full fundamentals + z-scores or just team_id signal?**
+   - **RESOLVED:** Full payload. `fundamentals_updated` carries `{team_id, ticker, fundamentals, drift_target_pct, drift_floor_pct}`. Implemented in Plan 09-05 Task 2 (admin approve + override endpoints publish the full payload after commit). Frontend (Plan 09-06 Task 3) CaselinePanel re-fetches via `getMyFundamentals` on receipt — the signal still forces a REST re-fetch so z-scores are computed server-side with the latest ramp_fraction, but the payload contains enough for the admin queue to update inline without an extra fetch.
    - What we know: Admin tab shows z-scores live. Strategist caseline panel shows fundamentals live.
    - What's unclear: Include data in payload vs. send signal and have clients re-fetch via REST.
    - Recommendation: Include full payload (team_id, fundamentals, z-scores, drift_target_pct). Mirrors `price_update` message which includes price — not a signal. Prevents N+1 fetches from admin tab.
