@@ -1997,7 +1997,7 @@ class FundamentalRejectRequest(BaseModel):
 
 
 class FundamentalComputeRequest(BaseModel):
-    round_number: int
+    round_number: int = Field(ge=0, description="Quarter round number (>= 0)")
 
 
 @router.get("/fundamentals-queue", response_model=list[FundamentalEvalListItem])
@@ -2054,11 +2054,11 @@ async def approve_fundamental_eval(
     from app.services.fundamental_service import apply_fundamental_deltas
 
     try:
-        result = await apply_fundamental_deltas(
-            db, evaluation_id, uuid.UUID(admin["sub"])
-        )
+        result = await apply_fundamental_deltas(db, evaluation_id, admin["id"])
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        msg = str(e)
+        status_code = 404 if "not found" in msg.lower() else 409
+        raise HTTPException(status_code=status_code, detail=msg)
 
     db.add(ActivityEvent(
         event_type="FUNDAMENTAL_APPROVED",
@@ -2099,10 +2099,12 @@ async def reject_fundamental_eval(
 
     try:
         result = await reject_fundamental_evaluation(
-            db, evaluation_id, uuid.UUID(admin["sub"]), request.admin_notes
+            db, evaluation_id, admin["id"], request.admin_notes
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        msg = str(e)
+        status_code = 404 if "not found" in msg.lower() else 409
+        raise HTTPException(status_code=status_code, detail=msg)
 
     await db.commit()
     return result
