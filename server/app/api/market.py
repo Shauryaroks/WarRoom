@@ -10,9 +10,11 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth_utils import require_team
+import json
+
+from app.auth_utils import get_current_user, require_team
 from app.database import get_db
-from app.models import PriceHistory, Team, TeamStatus
+from app.models import MarketNews, PriceHistory, Team, TeamStatus
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
@@ -164,3 +166,39 @@ async def get_leaderboard(
         ))
 
     return entries
+
+
+# --- Public news feed (any authenticated team OR admin can read) ---
+
+
+class NewsFeedItem(BaseModel):
+    id: str
+    headline: str
+    content: str
+    source_type: str
+    affected_tickers: list[str]
+    created_at: str
+
+
+@router.get("/news", response_model=list[NewsFeedItem])
+async def get_news_feed(
+    _user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Last 100 news items — any authenticated user (team or admin). Mirrors
+    `/admin/news/history` without requiring admin role."""
+    result = await db.execute(
+        select(MarketNews).order_by(MarketNews.created_at.desc()).limit(100)
+    )
+    items = result.scalars().all()
+    return [
+        NewsFeedItem(
+            id=str(n.id),
+            headline=n.headline,
+            content=n.content,
+            source_type=n.source_type,
+            affected_tickers=json.loads(n.affected_tickers) if n.affected_tickers else [],
+            created_at=n.created_at.isoformat(),
+        )
+        for n in items
+    ]
