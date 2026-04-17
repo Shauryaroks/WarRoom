@@ -56,7 +56,9 @@ class BulkDecisionSubmitResponse(BaseModel):
 
 class OperatingPlanSubmitRequest(BaseModel):
     content: str = Field(
-        ..., min_length=1, max_length=50000,
+        ...,
+        min_length=1,
+        max_length=50000,
         description="Markdown content for the operating plan",
     )
 
@@ -84,9 +86,7 @@ class BudgetResponse(BaseModel):
 
 
 class SetGamePhaseRequest(BaseModel):
-    phase: str = Field(
-        ..., description='Game sub-phase: "war_room" or "live_floor"'
-    )
+    phase: str = Field(..., description='Game sub-phase: "war_room" or "live_floor"')
     macro_brief: str | None = Field(
         default=None,
         description="Problem statement text shown during War Room",

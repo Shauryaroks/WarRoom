@@ -23,7 +23,9 @@ async def get_game_phase(
     state = await get_game_state_readonly(db)
     return GamePhaseResponse(
         game_phase=state.game_phase,
-        macro_brief=state.macro_brief if getattr(state, "game_phase", None) == "war_room" else None,
+        macro_brief=state.macro_brief
+        if getattr(state, "game_phase", None) == "war_room"
+        else None,
         current_round=state.current_round,
     )
 

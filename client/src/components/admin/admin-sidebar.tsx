@@ -22,7 +22,12 @@ interface AdminSidebarProps {
 const NAV_ITEMS = [
   { href: "/admin", icon: LayoutDashboard, label: "DASHBOARD", exact: true },
   { href: "/admin/teams", icon: Users, label: "TEAMS", exact: false },
-  { href: "/admin/evaluations", icon: ClipboardCheck, label: "EVALS", exact: false },
+  {
+    href: "/admin/evaluations",
+    icon: ClipboardCheck,
+    label: "EVALS",
+    exact: false,
+  },
   { href: "/admin/fundamentals", icon: Gauge, label: "FUND", exact: false },
   { href: "/admin/markets", icon: TrendingUp, label: "MARKETS", exact: false },
   { href: "/admin/news", icon: Newspaper, label: "NEWS", exact: false },
@@ -59,7 +64,9 @@ export function AdminSidebar({ activePath }: AdminSidebarProps) {
               }`}
             >
               <Icon size={22} />
-              <span className="font-mono text-[11px] uppercase">{item.label}</span>
+              <span className="font-mono text-[11px] uppercase">
+                {item.label}
+              </span>
             </Link>
           );
         })}

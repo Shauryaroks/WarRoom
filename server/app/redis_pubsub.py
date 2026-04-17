@@ -37,6 +37,7 @@ async def publish_to_team(team_id: uuid.UUID, message: dict):
 def publish_broadcast_sync(message: dict):
     """Synchronous version for use in Celery tasks (sync context)."""
     import redis
+
     r = redis.from_url(settings.REDIS_URL)
     try:
         r.publish(CHANNEL_BROADCAST, json.dumps(message))
@@ -47,6 +48,7 @@ def publish_broadcast_sync(message: dict):
 def publish_to_team_sync(team_id: uuid.UUID, message: dict):
     """Synchronous version for use in Celery tasks (sync context)."""
     import redis
+
     r = redis.from_url(settings.REDIS_URL)
     try:
         r.publish(f"{CHANNEL_TEAM_PREFIX}{team_id}", json.dumps(message))
@@ -84,7 +86,7 @@ async def start_redis_relay():
                     data = json.loads(message["data"])
 
                     if channel.startswith(CHANNEL_TEAM_PREFIX):
-                        team_id_str = channel[len(CHANNEL_TEAM_PREFIX):]
+                        team_id_str = channel[len(CHANNEL_TEAM_PREFIX) :]
                         try:
                             team_id = uuid.UUID(team_id_str)
                             await manager.send_to_team(team_id, data)

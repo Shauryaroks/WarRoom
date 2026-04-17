@@ -14,7 +14,9 @@ interface TeamListProps {
 export function TeamList({ teams, currentTicker }: TeamListProps) {
   if (teams.length === 0) {
     return (
-      <div className="p-6 text-center font-mono text-xs text-gray-600 uppercase">NO_TEAMS_REGISTERED</div>
+      <div className="p-6 text-center font-mono text-xs text-gray-600 uppercase">
+        NO_TEAMS_REGISTERED
+      </div>
     );
   }
 
@@ -31,19 +33,27 @@ export function TeamList({ teams, currentTicker }: TeamListProps) {
         </thead>
         <tbody className="font-mono text-xs">
           {teams.map((team, i) => {
-            const isCurrentTeam = currentTicker && team.ticker === currentTicker;
+            const isCurrentTeam =
+              currentTicker && team.ticker === currentTicker;
             return (
               <tr
                 key={team.id}
-                className={isCurrentTeam
-                  ? "bg-[#2196f3]/5 hover:bg-[#2196f3]/10 transition-colors border-l-2 border-[#2196f3]"
-                  : "hover:bg-[#2a2a2a] transition-colors"
+                className={
+                  isCurrentTeam
+                    ? "bg-[#2196f3]/5 hover:bg-[#2196f3]/10 transition-colors border-l-2 border-[#2196f3]"
+                    : "hover:bg-[#2a2a2a] transition-colors"
                 }
               >
-                <td className="py-3 px-6 text-[#bfc7d4]">{String(i + 1).padStart(3, '0')}</td>
-                <td className="py-3 px-6 font-bold text-white uppercase">{team.name}</td>
+                <td className="py-3 px-6 text-[#bfc7d4]">
+                  {String(i + 1).padStart(3, "0")}
+                </td>
+                <td className="py-3 px-6 font-bold text-white uppercase">
+                  {team.name}
+                </td>
                 <td className="py-3 px-6">
-                  <span className={`px-2 py-0.5 ${isCurrentTeam ? 'bg-[#2196f3] text-white' : 'bg-[#2a2a2a] text-[#2196f3]'}`}>
+                  <span
+                    className={`px-2 py-0.5 ${isCurrentTeam ? "bg-[#2196f3] text-white" : "bg-[#2a2a2a] text-[#2196f3]"}`}
+                  >
                     {team.ticker}
                   </span>
                 </td>

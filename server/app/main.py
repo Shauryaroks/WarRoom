@@ -146,14 +146,16 @@ async def websocket_endpoint(ws: WebSocket):
     manager.add(ws, team_id, role)
 
     # Step 3: Send welcome message
-    await ws.send_json({
-        "type": "connected",
-        "payload": {
-            "role": role,
-            "team_id": str(team_id) if team_id else None,
-            "connections": manager.connection_count,
+    await ws.send_json(
+        {
+            "type": "connected",
+            "payload": {
+                "role": role,
+                "team_id": str(team_id) if team_id else None,
+                "connections": manager.connection_count,
+            },
         }
-    })
+    )
 
     # Step 4: Listen for messages + ping/pong heartbeat
     try:

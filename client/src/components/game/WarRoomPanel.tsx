@@ -19,7 +19,8 @@ export function WarRoomPanel() {
 
   // Load existing operating plan
   useEffect(() => {
-    api.getOperatingPlan()
+    api
+      .getOperatingPlan()
       .then((plan) => {
         setPlanContent(plan.content);
         setSubmittedContent(plan.content);
@@ -74,7 +75,8 @@ export function WarRoomPanel() {
             </div>
             <div className="border-t border-[#2a2a2a] my-1.5" />
             <div className="text-[9px] text-[#404752] italic">
-              Detailed performance metrics (revenue, margin, market share vs benchmark) will be available in Phase 9.
+              Detailed performance metrics (revenue, margin, market share vs
+              benchmark) will be available in Phase 9.
             </div>
           </div>
         </div>

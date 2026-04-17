@@ -45,13 +45,34 @@ FUNDAMENTAL_SCHEMA = {
     "schema": {
         "type": "object",
         "properties": {
-            "market_share_delta": {"type": "number", "description": "RELATIVE delta to current market_share"},
-            "margin_delta": {"type": "number", "description": "RELATIVE delta to current margin"},
-            "growth_delta": {"type": "number", "description": "RELATIVE delta to current growth"},
-            "ops_efficiency_delta": {"type": "number", "description": "RELATIVE delta to current ops_efficiency"},
-            "narrative": {"type": "string", "description": "2-3 sentence justification"},
+            "market_share_delta": {
+                "type": "number",
+                "description": "RELATIVE delta to current market_share",
+            },
+            "margin_delta": {
+                "type": "number",
+                "description": "RELATIVE delta to current margin",
+            },
+            "growth_delta": {
+                "type": "number",
+                "description": "RELATIVE delta to current growth",
+            },
+            "ops_efficiency_delta": {
+                "type": "number",
+                "description": "RELATIVE delta to current ops_efficiency",
+            },
+            "narrative": {
+                "type": "string",
+                "description": "2-3 sentence justification",
+            },
         },
-        "required": ["market_share_delta", "margin_delta", "growth_delta", "ops_efficiency_delta", "narrative"],
+        "required": [
+            "market_share_delta",
+            "margin_delta",
+            "growth_delta",
+            "ops_efficiency_delta",
+            "narrative",
+        ],
         "additionalProperties": False,
     },
 }
@@ -132,7 +153,9 @@ async def build_fundamental_prompt(
         )
         sections.append(f"[DECISION LEVERS THIS ROUND]\n{lines}")
     else:
-        sections.append("[DECISION LEVERS THIS ROUND]\n(no decisions submitted this round)")
+        sections.append(
+            "[DECISION LEVERS THIS ROUND]\n(no decisions submitted this round)"
+        )
 
     if op_plan and op_plan.content:
         sections.append(f"[OPERATING PLAN]\n{op_plan.content[:2000]}")
@@ -192,21 +215,31 @@ async def apply_fundamental_deltas(
     if evaluation is None:
         raise ValueError(f"FundamentalEvaluation {evaluation_id} not found")
     if evaluation.status != FundamentalEvalStatus.PENDING_APPROVAL:
-        raise ValueError(f"Evaluation is {evaluation.status.value}, expected PENDING_APPROVAL")
+        raise ValueError(
+            f"Evaluation is {evaluation.status.value}, expected PENDING_APPROVAL"
+        )
 
     team_result = await db.execute(
-        select(Team).options(selectinload(Team.archetype)).where(Team.id == evaluation.team_id)
+        select(Team)
+        .options(selectinload(Team.archetype))
+        .where(Team.id == evaluation.team_id)
     )
     team = team_result.scalar_one()
 
     now = datetime.now(timezone.utc)
 
     # D-21: capture current drift (pre-mutation) as ramp floor so we don't snap back
-    prior_drift_now = compute_ramp_fraction(team, now) * (team.drift_target_pct or Decimal("0"))
+    prior_drift_now = compute_ramp_fraction(team, now) * (
+        team.drift_target_pct or Decimal("0")
+    )
 
     # Prefer admin edits over LLM proposal
     try:
-        source_deltas = json.loads(evaluation.admin_edits) if evaluation.admin_edits else json.loads(evaluation.proposed_deltas)
+        source_deltas = (
+            json.loads(evaluation.admin_edits)
+            if evaluation.admin_edits
+            else json.loads(evaluation.proposed_deltas)
+        )
     except Exception:
         source_deltas = json.loads(evaluation.proposed_deltas)
 
@@ -280,9 +313,7 @@ async def reject_fundamental_evaluation(
     }
 
 
-async def trigger_compute_for_round(
-    db: AsyncSession, round_number: int
-) -> dict:
+async def trigger_compute_for_round(db: AsyncSession, round_number: int) -> dict:
     """Admin-triggered fan-out. For each ACTIVE team with an archetype, run LLM eval + save.
 
     Returns summary dict. Skips teams already having a PENDING or APPROVED eval for this round.
@@ -290,9 +321,7 @@ async def trigger_compute_for_round(
     from app.models import TeamStatus
     from app.services.llm_service import call_openrouter
 
-    team_result = await db.execute(
-        select(Team).where(Team.status == TeamStatus.ACTIVE)
-    )
+    team_result = await db.execute(select(Team).where(Team.status == TeamStatus.ACTIVE))
     teams = team_result.scalars().all()
 
     created: list[str] = []

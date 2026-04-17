@@ -42,7 +42,9 @@ class ConnectionManager:
             self._team_connections[team_id].add(ws)
         logger.info(
             "WS connected: role=%s, team=%s, total=%d",
-            role, team_id, self.connection_count,
+            role,
+            team_id,
+            self.connection_count,
         )
 
     def remove(self, ws: WebSocket):
@@ -55,7 +57,8 @@ class ConnectionManager:
                 del self._team_connections[team_id]
         logger.info(
             "WS disconnected: role=%s, total=%d",
-            meta.get("role"), self.connection_count,
+            meta.get("role"),
+            self.connection_count,
         )
 
     async def broadcast(self, message: dict):

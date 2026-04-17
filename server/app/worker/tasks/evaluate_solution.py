@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(
     name="solution.evaluate",
-    time_limit=120,        # LLM calls can take 30-60s (override global 60s)
+    time_limit=120,  # LLM calls can take 30-60s (override global 60s)
     soft_time_limit=100,
     max_retries=2,
     default_retry_delay=10,
@@ -49,13 +49,15 @@ async def _evaluate(solution_id: str):
             await db.commit()
 
             # Notify admin after commit (per RESEARCH anti-patterns)
-            publish_broadcast_sync({
-                "type": "evaluation_pending",
-                "payload": {
-                    "evaluation_id": str(evaluation.id),
-                    "team_id": str(evaluation.team_id),
-                },
-            })
+            publish_broadcast_sync(
+                {
+                    "type": "evaluation_pending",
+                    "payload": {
+                        "evaluation_id": str(evaluation.id),
+                        "team_id": str(evaluation.team_id),
+                    },
+                }
+            )
             logger.info(
                 "Evaluation created for solution %s (eval %s)",
                 solution_id,
@@ -85,10 +87,13 @@ async def _evaluate(solution_id: str):
                         fail_db.add(eval_obj)
                         await fail_db.commit()
 
-                        publish_to_team_sync(solution.team_id, {
-                            "type": "evaluation_failed",
-                            "payload": {"solution_id": solution_id},
-                        })
+                        publish_to_team_sync(
+                            solution.team_id,
+                            {
+                                "type": "evaluation_failed",
+                                "payload": {"solution_id": solution_id},
+                            },
+                        )
             except Exception as inner_e:
                 logger.error(
                     "Failed to record FAILED evaluation for solution %s: %s",

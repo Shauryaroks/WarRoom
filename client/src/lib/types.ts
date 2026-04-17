@@ -353,7 +353,7 @@ export interface MarketingDecision {
 export interface SupplyChainDecision {
   inventory_policy: "LEAN" | "BALANCED" | "STOCKED";
   distribution_expansion: ("TIER1" | "TIER2" | "RURAL")[];
-  capacity_utilization: number;  // 60 to 100
+  capacity_utilization: number; // 60 to 100
 }
 
 export interface NewProductDecision {
@@ -362,7 +362,10 @@ export interface NewProductDecision {
   target_category?: string;
 }
 
-export type DecisionPayload = MarketingDecision | SupplyChainDecision | NewProductDecision;
+export type DecisionPayload =
+  | MarketingDecision
+  | SupplyChainDecision
+  | NewProductDecision;
 
 export interface DecisionSubmitItem {
   lever_category: LeverCategory;
@@ -377,7 +380,7 @@ export interface BulkDecisionSubmitRequest {
 export interface DecisionResponse {
   id: string;
   lever_category: LeverCategory;
-  decisions_json: string;  // JSON string
+  decisions_json: string; // JSON string
   budget_spent: string;
   submitted_at: string;
 }
@@ -422,7 +425,12 @@ export interface FundamentalEvalListItem {
   ticker: string;
   team_name: string;
   round_number: number;
-  status: "PROCESSING" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "FAILED";
+  status:
+    | "PROCESSING"
+    | "PENDING_APPROVAL"
+    | "APPROVED"
+    | "REJECTED"
+    | "FAILED";
   proposed_deltas: FundamentalDeltas;
   admin_edits: FundamentalDeltas | null;
   narrative: string | null;

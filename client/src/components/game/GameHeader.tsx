@@ -33,15 +33,25 @@ export function GameHeader() {
   return (
     <header className="flex justify-between items-center w-full px-2 md:px-4 h-12 bg-[#0e0e0e] border-b border-[#2a2a2a] z-50 shrink-0">
       <div className="flex items-center gap-3 md:gap-6 min-w-0">
-        <span className="text-xl font-black tracking-tighter text-[#2196f3] shrink-0">COMPLEX</span>
+        <span className="text-xl font-black tracking-tighter text-[#2196f3] shrink-0">
+          COMPLEX
+        </span>
         <div className="flex items-center gap-2 md:gap-4 border-l border-[#2a2a2a] pl-3 md:pl-6 min-w-0">
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TEAM</span>
-            <span className="font-mono text-xs font-bold text-[#9ecaff] truncate max-w-[120px] md:max-w-none">{teamName}</span>
+            <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+              TEAM
+            </span>
+            <span className="font-mono text-xs font-bold text-[#9ecaff] truncate max-w-[120px] md:max-w-none">
+              {teamName}
+            </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TICKER</span>
-            <span className="font-mono text-xs font-bold text-[#e5e2e1]">${ticker}</span>
+            <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+              TICKER
+            </span>
+            <span className="font-mono text-xs font-bold text-[#e5e2e1]">
+              ${ticker}
+            </span>
           </div>
         </div>
       </div>
@@ -58,18 +68,24 @@ export function GameHeader() {
           </span>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">ELAPSED</span>
+          <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+            ELAPSED
+          </span>
           <span className="font-mono text-sm font-bold text-[#e5e2e1] tabular-nums">
             {formatElapsed(elapsedSeconds)}
           </span>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">CASH</span>
+          <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+            CASH
+          </span>
           <span className="font-mono text-sm font-bold text-[#40e56c] tabular-nums">
             {formatCash(cash)}
           </span>
         </div>
-        <div className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}>
+        <div
+          className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}
+        >
           {statusLabel}
         </div>
       </div>

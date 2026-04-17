@@ -39,7 +39,10 @@ export default function TeamsPage() {
         .catch(() => {
           // Will retry via WebSocket events
         });
-      api.getArchetypes().then(setArchetypes).catch(() => {});
+      api
+        .getArchetypes()
+        .then(setArchetypes)
+        .catch(() => {});
     }
   }, [isAuthenticated, role, setTeams]);
 
@@ -62,7 +65,7 @@ export default function TeamsPage() {
         }
       }
     },
-    [setTeams, removeTeam]
+    [setTeams, removeTeam],
   );
 
   useWebSocket({
@@ -77,7 +80,7 @@ export default function TeamsPage() {
       toast.success("Team approved");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to approve team"
+        err instanceof Error ? err.message : "Failed to approve team",
       );
     }
   }
@@ -88,9 +91,7 @@ export default function TeamsPage() {
       updateTeamStatus(teamId, "REJECTED");
       toast.success("Team rejected");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to reject team"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to reject team");
     }
   }
 
@@ -104,9 +105,7 @@ export default function TeamsPage() {
       }
       toast.success(result.message);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to remove team"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to remove team");
     }
   }
 
@@ -152,7 +151,7 @@ export default function TeamsPage() {
       handleCaselineCancel();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to assign caseline"
+        err instanceof Error ? err.message : "Failed to assign caseline",
       );
     } finally {
       setCaselineSaving(false);
@@ -186,8 +185,7 @@ export default function TeamsPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <h3 className="font-mono text-sm font-bold text-[#9ecaff] tracking-widest uppercase">
-                ASSIGN_CASELINE //{" "}
-                {caselineTeam?.name ?? caselineTeamId}
+                ASSIGN_CASELINE // {caselineTeam?.name ?? caselineTeamId}
               </h3>
               {caselineTeam?.archetype_name && (
                 <span className="bg-[#2196f3]/20 text-[#2196f3] px-2 py-0.5 font-mono text-xs font-bold uppercase">
@@ -214,20 +212,32 @@ export default function TeamsPage() {
                 onChange={async (e) => {
                   const archetypeId = e.target.value;
                   if (!archetypeId || !caselineTeamId) return;
-                  const archetype = archetypes.find((a) => a.id === archetypeId);
+                  const archetype = archetypes.find(
+                    (a) => a.id === archetypeId,
+                  );
                   if (!archetype) return;
                   try {
-                    const result = await api.assignArchetype(caselineTeamId, archetypeId);
-                    toast.success(`Archetype assigned: ${result.archetype_name}`);
+                    const result = await api.assignArchetype(
+                      caselineTeamId,
+                      archetypeId,
+                    );
+                    toast.success(
+                      `Archetype assigned: ${result.archetype_name}`,
+                    );
                     setCaselineDoc(archetype.dossier_content);
                     setCompanyName(archetype.name);
                     setStartingCash(archetype.starting_cash);
                     setInitialStockPrice(archetype.starting_stock_price);
                     // Refresh teams to show updated archetype_name
-                    api.getTeams().then(setTeams).catch(() => {});
+                    api
+                      .getTeams()
+                      .then(setTeams)
+                      .catch(() => {});
                   } catch (err) {
                     toast.error(
-                      err instanceof Error ? err.message : "Failed to assign archetype"
+                      err instanceof Error
+                        ? err.message
+                        : "Failed to assign archetype",
                     );
                   }
                 }}

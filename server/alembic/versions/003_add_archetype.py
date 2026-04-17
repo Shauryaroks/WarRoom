@@ -29,7 +29,9 @@ def upgrade() -> None:
         sa.Column("benchmark_bands", sa.Text(), nullable=False),
         sa.Column("starting_cash", sa.Numeric(15, 2), nullable=False),
         sa.Column("starting_stock_price", sa.Numeric(10, 2), nullable=False),
-        sa.Column("starting_shares", sa.Integer(), nullable=False, server_default="1000000"),
+        sa.Column(
+            "starting_shares", sa.Integer(), nullable=False, server_default="1000000"
+        ),
         sa.Column("swot_strengths", sa.Text(), nullable=True),
         sa.Column("swot_weaknesses", sa.Text(), nullable=True),
         sa.Column("swot_opportunities", sa.Text(), nullable=True),

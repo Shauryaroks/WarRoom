@@ -83,7 +83,9 @@ async def submit_solution(
     """
     # T-05-05: Only strategists can submit
     if current_user["role"] != "strategist":
-        raise HTTPException(status_code=403, detail="Only strategists can submit solutions")
+        raise HTTPException(
+            status_code=403, detail="Only strategists can submit solutions"
+        )
 
     # Validate game is ACTIVE (crisis responses allowed during PAUSED)
     game_state = await get_game_state_readonly(db)
@@ -108,7 +110,9 @@ async def submit_solution(
 
     # ELIM-03: Eliminated teams cannot submit solutions
     if team.status == TeamStatus.ELIMINATED:
-        raise HTTPException(status_code=403, detail="Eliminated teams cannot submit solutions")
+        raise HTTPException(
+            status_code=403, detail="Eliminated teams cannot submit solutions"
+        )
 
     # T-05-06: Server-side time window validation
     if sol_type == SolutionType.INITIAL:
@@ -144,6 +148,7 @@ async def submit_solution(
 
     # Dispatch Celery task for LLM evaluation
     from app.worker.tasks.evaluate_solution import evaluate_solution
+
     evaluate_solution.delay(str(solution.id))
 
     return SolutionResponse(

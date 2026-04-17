@@ -16,7 +16,7 @@ interface CrisisOverlayProps {
 export function CrisisOverlay({ crisis }: CrisisOverlayProps) {
   const [remaining, setRemaining] = useState(() => {
     const elapsed = Math.floor(
-      (Date.now() - new Date(crisis.started_at).getTime()) / 1000
+      (Date.now() - new Date(crisis.started_at).getTime()) / 1000,
     );
     return Math.max(0, crisis.timer_seconds - elapsed);
   });
@@ -24,7 +24,7 @@ export function CrisisOverlay({ crisis }: CrisisOverlayProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = Math.floor(
-        (Date.now() - new Date(crisis.started_at).getTime()) / 1000
+        (Date.now() - new Date(crisis.started_at).getTime()) / 1000,
       );
       const next = Math.max(0, crisis.timer_seconds - elapsed);
       setRemaining(next);

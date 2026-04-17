@@ -122,9 +122,7 @@ def upgrade() -> None:
         # Sentiment
         sa.Column("sentiment_map", sa.Text, nullable=True),
         # Market cap
-        sa.Column(
-            "aggregate_market_cap_at_purge", sa.Numeric(15, 2), nullable=True
-        ),
+        sa.Column("aggregate_market_cap_at_purge", sa.Numeric(15, 2), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
 
@@ -300,7 +298,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
 
-
     # Activity events table (from migration 002)
     op.create_table(
         "activity_events",
@@ -320,13 +317,17 @@ def upgrade() -> None:
 
     # Caseline columns on teams (from migration 004)
     op.add_column("teams", sa.Column("caseline_document", sa.Text(), nullable=True))
-    op.add_column("teams", sa.Column("company_display_name", sa.String(100), nullable=True))
+    op.add_column(
+        "teams", sa.Column("company_display_name", sa.String(100), nullable=True)
+    )
 
     # Solutions table (from migration 004)
     op.create_table(
         "solutions",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+        sa.Column(
+            "team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False
+        ),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
             "solution_type",
@@ -340,11 +341,26 @@ def upgrade() -> None:
     op.create_table(
         "evaluations",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("solution_id", UUID(as_uuid=True), sa.ForeignKey("solutions.id"), unique=True, nullable=False),
-        sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+        sa.Column(
+            "solution_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("solutions.id"),
+            unique=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False
+        ),
         sa.Column(
             "status",
-            sa.Enum("PROCESSING", "PENDING_APPROVAL", "APPROVED", "REJECTED", "FAILED", name="evaluationstatus"),
+            sa.Enum(
+                "PROCESSING",
+                "PENDING_APPROVAL",
+                "APPROVED",
+                "REJECTED",
+                "FAILED",
+                name="evaluationstatus",
+            ),
             nullable=True,
         ),
         sa.Column("scoring_metrics", sa.Text(), nullable=True),

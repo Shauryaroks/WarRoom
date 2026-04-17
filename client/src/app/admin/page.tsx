@@ -10,7 +10,11 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
 import { TeamTable } from "@/components/admin/team-table";
 import { toast } from "sonner";
-import type { GameStatePayload, GamePhase, GamePhaseChangedPayload } from "@/lib/types";
+import type {
+  GameStatePayload,
+  GamePhase,
+  GamePhaseChangedPayload,
+} from "@/lib/types";
 
 function formatElapsed(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -108,7 +112,7 @@ export default function AdminPage() {
         }
       }
     },
-    [setTeams, removeTeam]
+    [setTeams, removeTeam],
   );
 
   useWebSocket({
@@ -174,7 +178,7 @@ export default function AdminPage() {
       toast.success("Team approved");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to approve team"
+        err instanceof Error ? err.message : "Failed to approve team",
       );
     }
   }
@@ -185,9 +189,7 @@ export default function AdminPage() {
       updateTeamStatus(teamId, "REJECTED");
       toast.success("Team rejected");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to reject team"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to reject team");
     }
   }
 
@@ -201,9 +203,7 @@ export default function AdminPage() {
       }
       toast.success(result.message);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to remove team"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to remove team");
     }
   }
 
@@ -235,7 +235,9 @@ export default function AdminPage() {
       setGamePhase(data.game_phase);
       toast.success("Live Floor opened");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to open Live Floor");
+      setError(
+        err instanceof Error ? err.message : "Failed to open Live Floor",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -261,7 +263,7 @@ export default function AdminPage() {
       t.status !== "BANKRUPT" &&
       t.status !== "ELIMINATED" &&
       t.status !== "REJECTED" &&
-      t.status !== "PENDING"
+      t.status !== "PENDING",
   ).length;
 
   return (
@@ -273,8 +275,7 @@ export default function AdminPage() {
             GAME_CONTROL_STATION
           </h2>
           <span className="flex items-center gap-2 font-mono text-[11px] text-[#40e56c]">
-            <span className="w-2 h-2 bg-[#40e56c] animate-pulse" />{" "}
-            SYSTEM_LIVE
+            <span className="w-2 h-2 bg-[#40e56c] animate-pulse" /> SYSTEM_LIVE
           </span>
         </div>
 
@@ -330,14 +331,18 @@ export default function AdminPage() {
                 disabled={isLoading || gamePhase === "war_room"}
                 className="border border-[#f59e0b]/50 bg-[#f59e0b]/5 text-[#f59e0b] py-3 flex flex-col items-center justify-center gap-1 hover:bg-[#f59e0b]/10 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                <span className="font-mono text-[12px] font-bold">ENTER WAR ROOM</span>
+                <span className="font-mono text-[12px] font-bold">
+                  ENTER WAR ROOM
+                </span>
               </button>
               <button
                 onClick={handleOpenLiveFloor}
                 disabled={isLoading || gamePhase === "live_floor"}
                 className="border border-[#4caf50]/50 bg-[#4caf50]/5 text-[#4caf50] py-3 flex flex-col items-center justify-center gap-1 hover:bg-[#4caf50]/10 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                <span className="font-mono text-[12px] font-bold">OPEN LIVE FLOOR</span>
+                <span className="font-mono text-[12px] font-bold">
+                  OPEN LIVE FLOOR
+                </span>
               </button>
             </div>
           </div>
@@ -470,7 +475,8 @@ export default function AdminPage() {
               WAR_ROOM_MACRO_BRIEF
             </h3>
             <p className="font-mono text-[11px] text-[#89919d] mb-3">
-              Enter the problem statement / macro brief for this quarter. Teams will see this during War Room.
+              Enter the problem statement / macro brief for this quarter. Teams
+              will see this during War Room.
             </p>
             <textarea
               value={macroBriefText}

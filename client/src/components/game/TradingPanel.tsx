@@ -44,9 +44,9 @@ export function TradingPanel() {
         tradeType,
       });
     } catch (err) {
-      useTradingStore.getState().setTradeError(
-        err instanceof Error ? err.message : "Preview failed"
-      );
+      useTradingStore
+        .getState()
+        .setTradeError(err instanceof Error ? err.message : "Preview failed");
     } finally {
       setIsLoadingPreview(false);
     }
@@ -59,7 +59,8 @@ export function TradingPanel() {
     useTradingStore.getState().setTradeError(null);
 
     try {
-      const action = pendingTrade.tradeType === "BUY" ? api.buyShares : api.sellShares;
+      const action =
+        pendingTrade.tradeType === "BUY" ? api.buyShares : api.sellShares;
       const result = await action.call(api, {
         target_team_id: pendingTrade.targetTeamId,
         shares: pendingTrade.shares,
@@ -77,9 +78,9 @@ export function TradingPanel() {
       setQuantity("");
       setSelectedTargetId("");
     } catch (err) {
-      useTradingStore.getState().setTradeError(
-        err instanceof Error ? err.message : "Trade failed"
-      );
+      useTradingStore
+        .getState()
+        .setTradeError(err instanceof Error ? err.message : "Trade failed");
     } finally {
       useTradingStore.getState().setExecutingTrade(false);
     }
@@ -102,12 +103,22 @@ export function TradingPanel() {
 
         <div className="bg-[#201f1f] p-4 space-y-2">
           <div className="font-mono text-sm text-[#e5e2e1]">
-            <span className={pendingTrade.tradeType === "BUY" ? "text-[#40e56c]" : "text-[#FF1744]"}>
+            <span
+              className={
+                pendingTrade.tradeType === "BUY"
+                  ? "text-[#40e56c]"
+                  : "text-[#FF1744]"
+              }
+            >
               {pendingTrade.tradeType}
             </span>{" "}
             {pendingTrade.shares} shares of{" "}
             <span className="text-[#9ecaff]">{pendingTrade.targetTicker}</span>{" "}
-            at ${price.toFixed(2)} = ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            at ${price.toFixed(2)} = $
+            {total.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </div>
         </div>
 
@@ -211,7 +222,12 @@ export function TradingPanel() {
       {/* Preview button */}
       <button
         onClick={handlePreview}
-        disabled={!selectedTargetId || !quantity || parseInt(quantity) <= 0 || isLoadingPreview}
+        disabled={
+          !selectedTargetId ||
+          !quantity ||
+          parseInt(quantity) <= 0 ||
+          isLoadingPreview
+        }
         className="w-full milled-metal-btn text-white font-mono text-xs font-bold py-2 px-4 disabled:opacity-50 transition-opacity"
       >
         {isLoadingPreview ? "LOADING..." : "PREVIEW ORDER"}

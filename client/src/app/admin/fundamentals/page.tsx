@@ -81,7 +81,7 @@ export default function FundamentalsPage() {
         failed: Array<{ ticker: string; error: string }>;
       };
       toast.success(
-        `Round ${roundInput}: ${created.length} created, ${skipped.length} skipped, ${failed.length} failed`
+        `Round ${roundInput}: ${created.length} created, ${skipped.length} skipped, ${failed.length} failed`,
       );
       await load();
     } catch (err) {
@@ -193,9 +193,7 @@ export default function FundamentalsPage() {
                 className="bg-[#0e0e0e] border border-[#2a2a2a]"
               >
                 <button
-                  onClick={() =>
-                    setExpandedId(expanded ? null : item.id)
-                  }
+                  onClick={() => setExpandedId(expanded ? null : item.id)}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1c1b1b]"
                 >
                   <div className="flex items-center gap-3">
@@ -216,7 +214,10 @@ export default function FundamentalsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-[10px] text-[#89919d]">
-                      MS {fmtDelta(d.market_share_delta)} · MG {fmtDelta(d.margin_delta)} · OP {fmtDelta(d.ops_efficiency_delta)} · GR {fmtDelta(d.growth_delta)}
+                      MS {fmtDelta(d.market_share_delta)} · MG{" "}
+                      {fmtDelta(d.margin_delta)} · OP{" "}
+                      {fmtDelta(d.ops_efficiency_delta)} · GR{" "}
+                      {fmtDelta(d.growth_delta)}
                     </span>
                     <span
                       className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 ${STATUS_COLORS[item.status] || ""}`}
@@ -271,9 +272,15 @@ export default function FundamentalsPage() {
 
                     {/* Timestamps */}
                     <div className="flex gap-4 text-[9px] text-[#404752] font-mono">
-                      {item.created_at && <span>created: {item.created_at.slice(0, 19)}</span>}
-                      {item.approved_at && <span>approved: {item.approved_at.slice(0, 19)}</span>}
-                      {item.rejected_at && <span>rejected: {item.rejected_at.slice(0, 19)}</span>}
+                      {item.created_at && (
+                        <span>created: {item.created_at.slice(0, 19)}</span>
+                      )}
+                      {item.approved_at && (
+                        <span>approved: {item.approved_at.slice(0, 19)}</span>
+                      )}
+                      {item.rejected_at && (
+                        <span>rejected: {item.rejected_at.slice(0, 19)}</span>
+                      )}
                     </div>
 
                     {/* Actions (PENDING only) */}

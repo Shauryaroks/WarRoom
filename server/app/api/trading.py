@@ -117,21 +117,15 @@ async def buy_shares(
     Only traders can execute trades (T-04-06).
     """
     if current_user["role"] != "trader":
-        raise HTTPException(
-            status_code=403, detail="Only traders can execute trades"
-        )
+        raise HTTPException(status_code=403, detail="Only traders can execute trades")
 
     # Phase 8 D-02: Trading halted during War Room
     game_state = await get_game_state_readonly(db)
     if getattr(game_state, "game_phase", None) == "war_room":
-        raise HTTPException(
-            status_code=409, detail="Trading is halted during War Room"
-        )
+        raise HTTPException(status_code=409, detail="Trading is halted during War Room")
 
     # ELIM-03: Eliminated teams cannot trade
-    buyer_team = await db.scalar(
-        select(Team).where(Team.id == current_user["team_id"])
-    )
+    buyer_team = await db.scalar(select(Team).where(Team.id == current_user["team_id"]))
     if buyer_team and buyer_team.status == TeamStatus.ELIMINATED:
         raise HTTPException(status_code=403, detail="Eliminated teams cannot trade")
 
@@ -141,15 +135,13 @@ async def buy_shares(
         target_id = uuid.UUID(req.target_team_id)
 
         # D-09: Cannot buy eliminated team's stock
-        target_team = await db.scalar(
-            select(Team).where(Team.id == target_id)
-        )
+        target_team = await db.scalar(select(Team).where(Team.id == target_id))
         if target_team and target_team.status == TeamStatus.ELIMINATED:
-            raise HTTPException(status_code=409, detail="Cannot trade eliminated company stock")
+            raise HTTPException(
+                status_code=409, detail="Cannot trade eliminated company stock"
+            )
 
-        txn = await execute_buy(
-            db, current_user["team_id"], target_id, req.shares
-        )
+        txn = await execute_buy(db, current_user["team_id"], target_id, req.shares)
         await db.commit()
 
         # Get updated holding count for response
@@ -162,22 +154,22 @@ async def buy_shares(
         shares_owned = holding.shares_owned if holding else 0
 
         # Get updated cash balance
-        buyer = await db.scalar(
-            select(Team).where(Team.id == current_user["team_id"])
-        )
+        buyer = await db.scalar(select(Team).where(Team.id == current_user["team_id"]))
 
         # Broadcast trade event AFTER commit (anti-pattern avoidance)
-        await publish_broadcast({
-            "type": "trade_executed",
-            "payload": {
-                "buyer_team_id": str(current_user["team_id"]),
-                "target_ticker": str(txn.target_team_id),
-                "shares": txn.shares,
-                "price_per_share": str(txn.price_per_share),
-                "total_value": str(txn.total_value),
-                "transaction_type": "BUY",
-            },
-        })
+        await publish_broadcast(
+            {
+                "type": "trade_executed",
+                "payload": {
+                    "buyer_team_id": str(current_user["team_id"]),
+                    "target_ticker": str(txn.target_team_id),
+                    "shares": txn.shares,
+                    "price_per_share": str(txn.price_per_share),
+                    "total_value": str(txn.total_value),
+                    "transaction_type": "BUY",
+                },
+            }
+        )
 
         return TradeResult(
             transaction_id=str(txn.id),
@@ -197,16 +189,12 @@ async def sell_shares(
 ) -> TradeResult:
     """Execute a sell order. Only traders can execute trades."""
     if current_user["role"] != "trader":
-        raise HTTPException(
-            status_code=403, detail="Only traders can execute trades"
-        )
+        raise HTTPException(status_code=403, detail="Only traders can execute trades")
 
     # Phase 8 D-02: Trading halted during War Room
     game_state_sell = await get_game_state_readonly(db)
     if getattr(game_state_sell, "game_phase", None) == "war_room":
-        raise HTTPException(
-            status_code=409, detail="Trading is halted during War Room"
-        )
+        raise HTTPException(status_code=409, detail="Trading is halted during War Room")
 
     # ELIM-03: Eliminated teams cannot trade
     seller_team = await db.scalar(
@@ -219,9 +207,7 @@ async def sell_shares(
         import uuid
 
         target_id = uuid.UUID(req.target_team_id)
-        txn = await execute_sell(
-            db, current_user["team_id"], target_id, req.shares
-        )
+        txn = await execute_sell(db, current_user["team_id"], target_id, req.shares)
         await db.commit()
 
         # Get updated holding count for response
@@ -234,22 +220,22 @@ async def sell_shares(
         shares_owned = holding.shares_owned if holding else 0
 
         # Get updated cash balance
-        seller = await db.scalar(
-            select(Team).where(Team.id == current_user["team_id"])
-        )
+        seller = await db.scalar(select(Team).where(Team.id == current_user["team_id"]))
 
         # Broadcast trade event AFTER commit
-        await publish_broadcast({
-            "type": "trade_executed",
-            "payload": {
-                "seller_team_id": str(current_user["team_id"]),
-                "target_ticker": str(txn.target_team_id),
-                "shares": txn.shares,
-                "price_per_share": str(txn.price_per_share),
-                "total_value": str(txn.total_value),
-                "transaction_type": "SELL",
-            },
-        })
+        await publish_broadcast(
+            {
+                "type": "trade_executed",
+                "payload": {
+                    "seller_team_id": str(current_user["team_id"]),
+                    "target_ticker": str(txn.target_team_id),
+                    "shares": txn.shares,
+                    "price_per_share": str(txn.price_per_share),
+                    "total_value": str(txn.total_value),
+                    "transaction_type": "SELL",
+                },
+            }
+        )
 
         return TradeResult(
             transaction_id=str(txn.id),

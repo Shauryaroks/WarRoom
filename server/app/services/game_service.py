@@ -74,9 +74,7 @@ async def get_game_state_readonly(db: AsyncSession) -> GameState:
     return state
 
 
-async def transition_state(
-    db: AsyncSession, target_status: GameStatus
-) -> GameState:
+async def transition_state(db: AsyncSession, target_status: GameStatus) -> GameState:
     """Execute a state transition with validation, persistence, and broadcast.
 
     Order per D-01: DB write first, then Redis update, then WebSocket broadcast.
@@ -210,9 +208,7 @@ async def warm_redis_cache() -> None:
     async with AsyncSessionLocal() as session:
         state = await get_game_state_readonly(session)
         await _update_redis_cache(state)
-        logger.info(
-            "Redis cache warmed: game status=%s", state.status.value
-        )
+        logger.info("Redis cache warmed: game status=%s", state.status.value)
 
 
 # ---------------------------------------------------------------------------
@@ -290,9 +286,7 @@ async def set_game_phase(
 # ---------------------------------------------------------------------------
 
 
-async def get_operating_budget(
-    db: AsyncSession, team_id: uuid.UUID
-) -> dict:
+async def get_operating_budget(db: AsyncSession, team_id: uuid.UUID) -> dict:
     """Calculate operating budget for a team based on archetype and performance.
 
     Per D-09: budget = archetype.starting_cash * performance multiplier.
@@ -300,9 +294,7 @@ async def get_operating_budget(
     """
     # Load team with archetype eager-loaded
     result = await db.execute(
-        select(Team)
-        .options(selectinload(Team.archetype))
-        .where(Team.id == team_id)
+        select(Team).options(selectinload(Team.archetype)).where(Team.id == team_id)
     )
     team = result.scalar_one_or_none()
     if team is None:

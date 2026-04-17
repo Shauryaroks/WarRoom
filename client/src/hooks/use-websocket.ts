@@ -49,7 +49,11 @@ function connectSingleton(token: string) {
   // Prevent duplicate connection attempts
   if (isConnecting) return;
   const existing = useWsStore.getState().ws;
-  if (existing && (existing.readyState === WebSocket.CONNECTING || existing.readyState === WebSocket.OPEN)) {
+  if (
+    existing &&
+    (existing.readyState === WebSocket.CONNECTING ||
+      existing.readyState === WebSocket.OPEN)
+  ) {
     return;
   }
 
@@ -150,7 +154,9 @@ interface UseWebSocketReturn {
   sendMessage: (data: Record<string, unknown>) => void;
 }
 
-export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
+export function useWebSocket(
+  options: UseWebSocketOptions = {},
+): UseWebSocketReturn {
   const { onMessage, enabled = true } = options;
   const token = useAuthStore((s) => s.token);
   const isConnected = useWsStore((s) => s.isConnected);

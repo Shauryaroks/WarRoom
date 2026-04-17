@@ -9,7 +9,13 @@ import { useMarketStore } from "@/stores/market-store";
 import { useTradingStore } from "@/stores/trading-store";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
-import type { GameStatePayload, PriceTickData, NewsItem, GamePhaseChangedPayload, CrisisPayload } from "@/lib/types";
+import type {
+  GameStatePayload,
+  PriceTickData,
+  NewsItem,
+  GamePhaseChangedPayload,
+  CrisisPayload,
+} from "@/lib/types";
 
 import { GameHeader } from "@/components/game/GameHeader";
 import { GameSidebar, type SidebarTab } from "@/components/game/GameSidebar";
@@ -36,7 +42,7 @@ export default function GamePage() {
 
   // Default tab based on role
   const [activeTab, setActiveTab] = useState<SidebarTab>(
-    role === "trader" ? "TRADING" : "CASELINE"
+    role === "trader" ? "TRADING" : "CASELINE",
   );
   const [newsOpen, setNewsOpen] = useState(false);
 
@@ -51,7 +57,8 @@ export default function GamePage() {
   const [gameStateLoaded, setGameStateLoaded] = useState(false);
   useEffect(() => {
     if (!isAuthenticated) return;
-    api.getGameState()
+    api
+      .getGameState()
       .then((state) => {
         useGameStore.getState().setGameState({
           status: state.status as GameStatePayload["status"],
@@ -71,33 +78,45 @@ export default function GamePage() {
     if (!isAuthenticated) return;
 
     // Fetch companies
-    api.getCompanies()
+    api
+      .getCompanies()
       .then((companies) => {
         useMarketStore.getState().setCompanies(companies);
         // Auto-select first company if none selected
-        if (!useMarketStore.getState().selectedCompanyId && companies.length > 0) {
+        if (
+          !useMarketStore.getState().selectedCompanyId &&
+          companies.length > 0
+        ) {
           useMarketStore.getState().selectCompany(companies[0].team_id);
         }
       })
-      .catch(() => { /* Market data unavailable */ });
+      .catch(() => {
+        /* Market data unavailable */
+      });
 
     // Fetch portfolio
-    api.getPortfolio()
+    api
+      .getPortfolio()
       .then((data) => {
         useTradingStore.getState().setPortfolio(data);
       })
-      .catch(() => { /* Portfolio unavailable */ });
+      .catch(() => {
+        /* Portfolio unavailable */
+      });
   }, [isAuthenticated]);
 
   // Fetch price history when selected company changes
   useEffect(() => {
     if (!selectedCompanyId || !isAuthenticated) return;
 
-    api.getPriceHistory(selectedCompanyId)
+    api
+      .getPriceHistory(selectedCompanyId)
       .then((history) => {
         useMarketStore.getState().loadPriceHistory(selectedCompanyId, history);
       })
-      .catch(() => { /* Price history unavailable */ });
+      .catch(() => {
+        /* Price history unavailable */
+      });
   }, [selectedCompanyId, isAuthenticated]);
 
   // Handle WebSocket messages
@@ -114,11 +133,14 @@ export default function GamePage() {
       }
       case "trade_executed": {
         // Refresh portfolio on any trade execution
-        api.getPortfolio()
+        api
+          .getPortfolio()
           .then((portfolio) => {
             useTradingStore.getState().setPortfolio(portfolio);
           })
-          .catch(() => { /* Portfolio refresh failed */ });
+          .catch(() => {
+            /* Portfolio refresh failed */
+          });
         break;
       }
       case "game_state_changed":
@@ -156,15 +178,20 @@ export default function GamePage() {
       }
       case "team_eliminated": {
         // Refresh companies to get updated status
-        api.getCompanies()
-          .then((companies) => useMarketStore.getState().setCompanies(companies))
+        api
+          .getCompanies()
+          .then((companies) =>
+            useMarketStore.getState().setCompanies(companies),
+          )
           .catch(() => {});
         break;
       }
       case "game_phase_changed": {
         const phasePayload = data.payload as GamePhaseChangedPayload;
         if (phasePayload) {
-          useGameStore.getState().setGamePhase(phasePayload.game_phase, phasePayload.macro_brief);
+          useGameStore
+            .getState()
+            .setGamePhase(phasePayload.game_phase, phasePayload.macro_brief);
         }
         break;
       }
@@ -187,7 +214,7 @@ export default function GamePage() {
   }
 
   // Computed values (safe after hooks, before render)
-  const chartData = selectedCompanyId ? (candles[selectedCompanyId] || []) : [];
+  const chartData = selectedCompanyId ? candles[selectedCompanyId] || [] : [];
   // CompanyInfo from /market/companies doesn't carry status; rely on teamStatus from WS.
   const isEliminated = role !== "admin" && teamStatus === "ELIMINATED";
 
@@ -227,8 +254,12 @@ export default function GamePage() {
       {status === "PAUSED" && !activeCrisis && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
           <div className="border border-[#9ecaff]/30 bg-[#131313] px-8 py-6 text-center">
-            <div className="font-mono text-2xl font-bold text-[#9ecaff]">GAME PAUSED</div>
-            <p className="mt-2 text-sm text-[#89919d]">Waiting for admin to resume...</p>
+            <div className="font-mono text-2xl font-bold text-[#9ecaff]">
+              GAME PAUSED
+            </div>
+            <p className="mt-2 text-sm text-[#89919d]">
+              Waiting for admin to resume...
+            </p>
           </div>
         </div>
       )}

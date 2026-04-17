@@ -84,7 +84,7 @@ export function SolutionsPanel() {
   }, [fetchCooldown]);
 
   const hasInitialSubmission = solutions.some(
-    (s) => s.solution_type === "INITIAL"
+    (s) => s.solution_type === "INITIAL",
   );
   const isCooldownActive = cooldownSeconds > 0;
 
@@ -101,12 +101,18 @@ export function SolutionsPanel() {
       toast.success(
         currentSolutionType === "INITIAL"
           ? "Strategic roadmap submitted"
-          : "Microtweak submitted"
+          : "Microtweak submitted",
       );
     } catch {
       toast.error("Submission failed");
     }
-  }, [content, isSubmitting, isCooldownActive, submitSolution, currentSolutionType]);
+  }, [
+    content,
+    isSubmitting,
+    isCooldownActive,
+    submitSolution,
+    currentSolutionType,
+  ]);
 
   // Trader view
   if (role === "trader") {
@@ -217,10 +223,7 @@ export function SolutionsPanel() {
                 ] || { label: "QUEUED", color: "#89919d" };
 
                 return (
-                  <div
-                    key={solution.id}
-                    className="bg-[#1c1b1b] p-2 space-y-1"
-                  >
+                  <div key={solution.id} className="bg-[#1c1b1b] p-2 space-y-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] text-[#89919d] font-mono uppercase">

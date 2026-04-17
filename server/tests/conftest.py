@@ -141,9 +141,9 @@ async def mock_archetype_with_bands(mock_db):
     market_share mid=15, margin mid=10, growth mid=5, ops_efficiency mid=70.
     """
     bands = {
-        "market_share":   [10, 20],
-        "margin":         [5, 15],
-        "growth":         [2, 8],
+        "market_share": [10, 20],
+        "margin": [5, 15],
+        "growth": [2, 8],
         "ops_efficiency": [60, 80],
     }
     archetype = Archetype(
@@ -204,12 +204,14 @@ async def mock_fundamental_evaluation(mock_db, mock_team_with_fundamentals):
         id=uuid.uuid4(),
         team_id=mock_team_with_fundamentals.id,
         round_number=1,
-        proposed_deltas=json.dumps({
-            "market_share_delta": 1.0,
-            "margin_delta": 0.5,
-            "growth_delta": 0.3,
-            "ops_efficiency_delta": 2.0,
-        }),
+        proposed_deltas=json.dumps(
+            {
+                "market_share_delta": 1.0,
+                "margin_delta": 0.5,
+                "growth_delta": 0.3,
+                "ops_efficiency_delta": 2.0,
+            }
+        ),
         admin_edits=None,
         narrative="Strong quarter, modest gains",
         status=FundamentalEvalStatus.PENDING_APPROVAL,

@@ -11,7 +11,7 @@ export function AdminTopNav() {
         new Date().toLocaleTimeString("en-US", {
           hour12: false,
           timeZone: "UTC",
-        })
+        }),
       );
     }
     tick();

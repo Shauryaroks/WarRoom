@@ -69,10 +69,7 @@ export function TeamTable({
         </thead>
         <tbody>
           {teams.map((team) => (
-            <tr
-              key={team.id}
-              className="hover:bg-[#2a2a2a] transition-colors"
-            >
+            <tr key={team.id} className="hover:bg-[#2a2a2a] transition-colors">
               <td className="py-5 pr-4 font-mono font-bold text-[#e5e2e1] text-sm">
                 <span>{team.name}</span>
                 {team.archetype_name && (

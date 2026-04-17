@@ -48,7 +48,9 @@ class ApiClient {
     const pathHint = path ?? window.location.pathname;
     const isAdminContext =
       pathHint.startsWith("/api/v1/admin") || pathHint.startsWith("/admin");
-    const storageKey = isAdminContext ? "complex-auth-admin" : "complex-auth-team";
+    const storageKey = isAdminContext
+      ? "complex-auth-admin"
+      : "complex-auth-team";
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -63,7 +65,7 @@ class ApiClient {
 
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const token = this.getToken(path);
     const headers: Record<string, string> = {
@@ -102,7 +104,7 @@ class ApiClient {
       }
 
       throw new Error(
-        error.detail || `Request failed with status ${res.status}`
+        error.detail || `Request failed with status ${res.status}`,
       );
     }
 
@@ -183,7 +185,7 @@ class ApiClient {
   }
 
   async approveTeam(
-    teamId: string
+    teamId: string,
   ): Promise<{ message: string; team_id: string; new_status: string }> {
     return this.request(`/api/v1/admin/teams/${teamId}/approve`, {
       method: "POST",
@@ -191,7 +193,7 @@ class ApiClient {
   }
 
   async rejectTeam(
-    teamId: string
+    teamId: string,
   ): Promise<{ message: string; team_id: string; new_status: string }> {
     return this.request(`/api/v1/admin/teams/${teamId}/reject`, {
       method: "POST",
@@ -201,7 +203,7 @@ class ApiClient {
   async removeTeam(teamId: string): Promise<TeamRemoveResponse> {
     return this.request<TeamRemoveResponse>(
       `/api/v1/admin/teams/${teamId}/remove`,
-      { method: "POST" }
+      { method: "POST" },
     );
   }
 
@@ -247,7 +249,7 @@ class ApiClient {
   async advanceRound(): Promise<RoundAdvanceResponse> {
     return this.request<RoundAdvanceResponse>(
       "/api/v1/admin/game/advance-round",
-      { method: "POST" }
+      { method: "POST" },
     );
   }
 
@@ -258,10 +260,10 @@ class ApiClient {
 
   async getPriceHistory(
     teamId: string,
-    limit = 100
+    limit = 100,
   ): Promise<PriceHistoryPoint[]> {
     return this.request<PriceHistoryPoint[]>(
-      `/api/v1/market/prices/${teamId}?limit=${limit}`
+      `/api/v1/market/prices/${teamId}?limit=${limit}`,
     );
   }
 
@@ -318,13 +320,13 @@ class ApiClient {
   async getEvaluations(status?: string): Promise<EvaluationListItem[]> {
     const query = status && status !== "ALL" ? `?status=${status}` : "";
     return this.request<EvaluationListItem[]>(
-      `/api/v1/admin/evaluations${query}`
+      `/api/v1/admin/evaluations${query}`,
     );
   }
 
   async getEvaluation(evaluationId: string): Promise<EvaluationListItem> {
     return this.request<EvaluationListItem>(
-      `/api/v1/admin/evaluations/${evaluationId}`
+      `/api/v1/admin/evaluations/${evaluationId}`,
     );
   }
 
@@ -337,38 +339,38 @@ class ApiClient {
       news_body: string;
       news_sentiment: number;
       price_timeline: string;
-    }>
+    }>,
   ): Promise<EvaluationActionResponse> {
     return this.request<EvaluationActionResponse>(
       `/api/v1/admin/evaluations/${evaluationId}`,
       {
         method: "PUT",
         body: JSON.stringify(data),
-      }
+      },
     );
   }
 
   async approveEvaluation(
-    evaluationId: string
+    evaluationId: string,
   ): Promise<EvaluationActionResponse> {
     return this.request<EvaluationActionResponse>(
       `/api/v1/admin/evaluations/${evaluationId}/approve`,
       {
         method: "POST",
-      }
+      },
     );
   }
 
   async rejectEvaluation(
     evaluationId: string,
-    adminNotes?: string
+    adminNotes?: string,
   ): Promise<EvaluationActionResponse> {
     return this.request<EvaluationActionResponse>(
       `/api/v1/admin/evaluations/${evaluationId}/reject`,
       {
         method: "POST",
         body: JSON.stringify({ admin_notes: adminNotes || "" }),
-      }
+      },
     );
   }
 
@@ -379,15 +381,21 @@ class ApiClient {
 
   // === Phase 9: Fundamentals Queue ===
 
-  async listFundamentalsQueue(status?: string): Promise<FundamentalEvalListItem[]> {
+  async listFundamentalsQueue(
+    status?: string,
+  ): Promise<FundamentalEvalListItem[]> {
     const q = status ? `?status_filter=${encodeURIComponent(status)}` : "";
-    return this.request<FundamentalEvalListItem[]>(`/api/v1/admin/fundamentals-queue${q}`);
+    return this.request<FundamentalEvalListItem[]>(
+      `/api/v1/admin/fundamentals-queue${q}`,
+    );
   }
 
-  async approveFundamental(evaluationId: string): Promise<FundamentalApproveResponse> {
+  async approveFundamental(
+    evaluationId: string,
+  ): Promise<FundamentalApproveResponse> {
     return this.request<FundamentalApproveResponse>(
       `/api/v1/admin/fundamentals-queue/${evaluationId}/approve`,
-      { method: "POST" }
+      { method: "POST" },
     );
   }
 
@@ -397,18 +405,15 @@ class ApiClient {
       {
         method: "POST",
         body: JSON.stringify({ admin_notes: adminNotes || "" }),
-      }
+      },
     );
   }
 
   async computeFundamentals(roundNumber: number) {
-    return this.request(
-      "/api/v1/admin/fundamentals-queue/compute",
-      {
-        method: "POST",
-        body: JSON.stringify({ round_number: roundNumber }),
-      }
-    );
+    return this.request("/api/v1/admin/fundamentals-queue/compute", {
+      method: "POST",
+      body: JSON.stringify({ round_number: roundNumber }),
+    });
   }
 
   async assignCaseline(
@@ -418,14 +423,14 @@ class ApiClient {
       company_display_name?: string;
       starting_cash?: number;
       initial_stock_price?: number;
-    }
+    },
   ): Promise<CaselineAssignResponse> {
     return this.request<CaselineAssignResponse>(
       `/api/v1/admin/teams/${teamId}/caseline`,
       {
         method: "PUT",
         body: JSON.stringify(data),
-      }
+      },
     );
   }
 
@@ -436,7 +441,7 @@ class ApiClient {
   }
 
   async createArchetype(
-    data: Omit<ArchetypeResponse, "id" | "is_preset" | "created_at">
+    data: Omit<ArchetypeResponse, "id" | "is_preset" | "created_at">,
   ): Promise<ArchetypeResponse> {
     return this.request<ArchetypeResponse>("/api/v1/admin/archetypes", {
       method: "POST",
@@ -444,42 +449,44 @@ class ApiClient {
     });
   }
 
-  async deleteArchetype(
-    archetypeId: string
-  ): Promise<{ message: string }> {
+  async deleteArchetype(archetypeId: string): Promise<{ message: string }> {
     return this.request<{ message: string }>(
       `/api/v1/admin/archetypes/${archetypeId}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
   }
 
   async assignArchetype(
     teamId: string,
-    archetypeId: string
+    archetypeId: string,
   ): Promise<ArchetypeAssignResponse> {
     return this.request<ArchetypeAssignResponse>(
       `/api/v1/admin/teams/${teamId}/assign-archetype`,
       {
         method: "POST",
         body: JSON.stringify({ archetype_id: archetypeId }),
-      }
+      },
     );
   }
 
   async seedArchetypes(): Promise<ArchetypeSeedResponse> {
     return this.request<ArchetypeSeedResponse>(
       "/api/v1/admin/archetypes/seed",
-      { method: "POST" }
+      { method: "POST" },
     );
   }
 
   // === Phase 8: Decisions & Game Phase ===
 
   async submitDecisions(body: BulkDecisionSubmitRequest) {
-    return this.request<{ message: string; decisions: DecisionResponse[]; total_budget_spent: string }>(
-      "/api/v1/decisions/submit",
-      { method: "POST", body: JSON.stringify(body) }
-    );
+    return this.request<{
+      message: string;
+      decisions: DecisionResponse[];
+      total_budget_spent: string;
+    }>("/api/v1/decisions/submit", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   }
 
   async getCurrentDecisions() {
@@ -489,12 +496,14 @@ class ApiClient {
   async submitOperatingPlan(content: string) {
     return this.request<{ message: string; plan_id: string }>(
       "/api/v1/decisions/operating-plan",
-      { method: "POST", body: JSON.stringify({ content }) }
+      { method: "POST", body: JSON.stringify({ content }) },
     );
   }
 
   async getOperatingPlan() {
-    return this.request<OperatingPlanResponse>("/api/v1/decisions/operating-plan");
+    return this.request<OperatingPlanResponse>(
+      "/api/v1/decisions/operating-plan",
+    );
   }
 
   async enterWarRoom(macroBrief: string) {

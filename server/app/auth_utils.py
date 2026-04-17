@@ -82,9 +82,7 @@ async def get_current_user(
             raise HTTPException(
                 status_code=401, detail="Invalid token: missing team_id"
             )
-        result = await db.execute(
-            select(Team).where(Team.id == uuid.UUID(team_id))
-        )
+        result = await db.execute(select(Team).where(Team.id == uuid.UUID(team_id)))
         team = result.scalar_one_or_none()
         if not team:
             raise HTTPException(status_code=401, detail="Team not found")

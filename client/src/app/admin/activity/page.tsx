@@ -79,7 +79,7 @@ export default function ActivityPage() {
         });
       }
     },
-    [addActivity]
+    [addActivity],
   );
 
   useWebSocket({

@@ -38,16 +38,12 @@ async def preview_trade(
         raise ValueError("Shares must be positive")
 
     # Get target team for price info
-    target = await db.scalar(
-        select(Team).where(Team.id == target_team_id)
-    )
+    target = await db.scalar(select(Team).where(Team.id == target_team_id))
     if not target:
         raise ValueError("Target team not found")
 
     # Get buyer team for cash info
-    buyer = await db.scalar(
-        select(Team).where(Team.id == buyer_team_id)
-    )
+    buyer = await db.scalar(select(Team).where(Team.id == buyer_team_id))
     if not buyer:
         raise ValueError("Buyer team not found")
 
@@ -102,9 +98,7 @@ async def execute_buy(
 
     # 1. Lock target team row -> get stock_price, public_float
     target = await db.scalar(
-        select(Team)
-        .where(Team.id == target_team_id)
-        .with_for_update()
+        select(Team).where(Team.id == target_team_id).with_for_update()
     )
     if not target:
         raise ValueError("Target team not found")
@@ -121,24 +115,18 @@ async def execute_buy(
 
     if total_external + shares > max_external:
         available = max_external - total_external
-        raise ValueError(
-            f"Would exceed 30% cap. Available: {available} shares"
-        )
+        raise ValueError(f"Would exceed 30% cap. Available: {available} shares")
 
     # 3. Lock buyer team -> check cash
     buyer = await db.scalar(
-        select(Team)
-        .where(Team.id == buyer_team_id)
-        .with_for_update()
+        select(Team).where(Team.id == buyer_team_id).with_for_update()
     )
     if not buyer:
         raise ValueError("Buyer team not found")
 
     total_cost = target.stock_price * shares
     if buyer.cash < total_cost:
-        raise ValueError(
-            f"Insufficient cash. Need: {total_cost}, Have: {buyer.cash}"
-        )
+        raise ValueError(f"Insufficient cash. Need: {total_cost}, Have: {buyer.cash}")
 
     # 4. Execute trade
     # Deduct cash
@@ -206,9 +194,7 @@ async def execute_sell(
 
     # 1. Lock target team -> get stock_price
     target = await db.scalar(
-        select(Team)
-        .where(Team.id == target_team_id)
-        .with_for_update()
+        select(Team).where(Team.id == target_team_id).with_for_update()
     )
     if not target:
         raise ValueError("Target team not found")
@@ -224,15 +210,11 @@ async def execute_sell(
     )
     if not holding or holding.shares_owned < shares:
         owned = holding.shares_owned if holding else 0
-        raise ValueError(
-            f"Insufficient shares. Own: {owned}, Selling: {shares}"
-        )
+        raise ValueError(f"Insufficient shares. Own: {owned}, Selling: {shares}")
 
     # 3. Lock seller team -> add cash
     seller = await db.scalar(
-        select(Team)
-        .where(Team.id == seller_team_id)
-        .with_for_update()
+        select(Team).where(Team.id == seller_team_id).with_for_update()
     )
     if not seller:
         raise ValueError("Seller team not found")
@@ -290,14 +272,13 @@ async def get_portfolio(db: AsyncSession, team_id: uuid.UUID) -> dict:
     Returns all values as strings (Decimal precision per RESEARCH Pitfall 5).
     """
     # Get team for cash balance
-    team = await db.scalar(
-        select(Team).where(Team.id == team_id)
-    )
+    team = await db.scalar(select(Team).where(Team.id == team_id))
     if not team:
         raise ValueError("Team not found")
 
     # Get all holdings with target team eagerly loaded
     from sqlalchemy.orm import joinedload
+
     holdings_result = await db.execute(
         select(StockHolding)
         .options(joinedload(StockHolding.target_team))
@@ -339,17 +320,19 @@ async def get_portfolio(db: AsyncSession, team_id: uuid.UUID) -> dict:
 
         total_holdings_value += market_value
 
-        holdings_data.append({
-            "target_team_id": str(h.target_team_id),
-            "ticker": target.ticker,
-            "shares_owned": h.shares_owned,
-            "avg_buy_price": str(avg_buy_price),
-            "current_price": str(target.stock_price.quantize(Decimal("0.01"))),
-            "market_value": str(market_value.quantize(Decimal("0.01"))),
-            "pnl": str(pnl.quantize(Decimal("0.01"))),
-            "pnl_pct": str(pnl_pct),
-            "ownership_pct": str(ownership_pct),
-        })
+        holdings_data.append(
+            {
+                "target_team_id": str(h.target_team_id),
+                "ticker": target.ticker,
+                "shares_owned": h.shares_owned,
+                "avg_buy_price": str(avg_buy_price),
+                "current_price": str(target.stock_price.quantize(Decimal("0.01"))),
+                "market_value": str(market_value.quantize(Decimal("0.01"))),
+                "pnl": str(pnl.quantize(Decimal("0.01"))),
+                "pnl_pct": str(pnl_pct),
+                "ownership_pct": str(ownership_pct),
+            }
+        )
 
     net_worth = team.cash + total_holdings_value
 

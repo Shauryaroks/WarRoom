@@ -96,7 +96,9 @@ def _mock_execute_result(value):
     """Create a mock execute result that returns value from scalar_one_or_none."""
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = value
-    mock_result.scalars.return_value.all.return_value = value if isinstance(value, list) else [value]
+    mock_result.scalars.return_value.all.return_value = (
+        value if isinstance(value, list) else [value]
+    )
     mock_result.scalar.return_value = value
     return mock_result
 
@@ -112,7 +114,7 @@ async def test_remove_team_hard_delete_in_setup(
 
     # First execute returns team, second returns game_state
     mock_db_session.execute.side_effect = [
-        _mock_execute_result(sample_team),      # select Team
+        _mock_execute_result(sample_team),  # select Team
         _mock_execute_result(setup_game_state),  # select GameState (readonly)
         MagicMock(),  # delete Directive
         MagicMock(),  # delete StockHolding (owner)
@@ -151,7 +153,7 @@ async def test_remove_team_soft_in_active(
     _override_deps(admin_user, mock_db_session)
 
     mock_db_session.execute.side_effect = [
-        _mock_execute_result(sample_team),       # select Team
+        _mock_execute_result(sample_team),  # select Team
         _mock_execute_result(active_game_state),  # select GameState
     ]
 
@@ -211,17 +213,22 @@ async def test_inject_news(admin_user, mock_db_session):
     mock_db_session.refresh = mock_refresh
 
     try:
-        with patch("app.api.admin.publish_broadcast", new_callable=AsyncMock) as mock_broadcast:
+        with patch(
+            "app.api.admin.publish_broadcast", new_callable=AsyncMock
+        ) as mock_broadcast:
             async with AsyncClient(
                 transport=ASGITransport(app=app),
                 base_url="http://test",
             ) as client:
-                resp = await client.post("/api/v1/admin/news/inject", json={
-                    "headline": "Market crash incoming",
-                    "body": "The market is about to crash",
-                    "news_type": "GLOBAL",
-                    "affected_tickers": [],
-                })
+                resp = await client.post(
+                    "/api/v1/admin/news/inject",
+                    json={
+                        "headline": "Market crash incoming",
+                        "body": "The market is about to crash",
+                        "news_type": "GLOBAL",
+                        "affected_tickers": [],
+                    },
+                )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -261,17 +268,22 @@ async def test_inject_news_local(admin_user, mock_db_session):
     mock_db_session.refresh = mock_refresh
 
     try:
-        with patch("app.api.admin.publish_broadcast", new_callable=AsyncMock) as mock_broadcast:
+        with patch(
+            "app.api.admin.publish_broadcast", new_callable=AsyncMock
+        ) as mock_broadcast:
             async with AsyncClient(
                 transport=ASGITransport(app=app),
                 base_url="http://test",
             ) as client:
-                resp = await client.post("/api/v1/admin/news/inject", json={
-                    "headline": "ACME stock surge",
-                    "body": "ACME reports record earnings",
-                    "news_type": "LOCAL",
-                    "affected_tickers": ["ACME", "BETA"],
-                })
+                resp = await client.post(
+                    "/api/v1/admin/news/inject",
+                    json={
+                        "headline": "ACME stock surge",
+                        "body": "ACME reports record earnings",
+                        "news_type": "LOCAL",
+                        "affected_tickers": ["ACME", "BETA"],
+                    },
+                )
 
         assert resp.status_code == 200
 
@@ -312,14 +324,19 @@ async def test_broadcast(admin_user, mock_db_session):
     mock_db_session.refresh = mock_refresh
 
     try:
-        with patch("app.api.admin.publish_broadcast", new_callable=AsyncMock) as mock_broadcast:
+        with patch(
+            "app.api.admin.publish_broadcast", new_callable=AsyncMock
+        ) as mock_broadcast:
             async with AsyncClient(
                 transport=ASGITransport(app=app),
                 base_url="http://test",
             ) as client:
-                resp = await client.post("/api/v1/admin/broadcast", json={
-                    "message": "Attention all teams: market freeze in 5 minutes",
-                })
+                resp = await client.post(
+                    "/api/v1/admin/broadcast",
+                    json={
+                        "message": "Attention all teams: market freeze in 5 minutes",
+                    },
+                )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -361,7 +378,9 @@ async def test_advance_round(admin_user, mock_db_session, setup_game_state):
     mock_db_session.refresh = mock_refresh
 
     try:
-        with patch("app.api.admin.publish_broadcast", new_callable=AsyncMock) as mock_broadcast:
+        with patch(
+            "app.api.admin.publish_broadcast", new_callable=AsyncMock
+        ) as mock_broadcast:
             async with AsyncClient(
                 transport=ASGITransport(app=app),
                 base_url="http://test",

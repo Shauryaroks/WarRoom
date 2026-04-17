@@ -19,7 +19,10 @@ depends_on = None
 def upgrade() -> None:
     # Create levercategory enum type
     lever_enum = sa.Enum(
-        "PRICING", "MARKETING", "SUPPLY_CHAIN", "NEW_PRODUCT",
+        "PRICING",
+        "MARKETING",
+        "SUPPLY_CHAIN",
+        "NEW_PRODUCT",
         name="levercategory",
     )
     lever_enum.create(op.get_bind(), checkfirst=True)
@@ -29,24 +32,31 @@ def upgrade() -> None:
         "decisions",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
         sa.Column(
-            "team_id", UUID(as_uuid=True),
-            sa.ForeignKey("teams.id"), nullable=False,
+            "team_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("teams.id"),
+            nullable=False,
         ),
         sa.Column("round_number", sa.Integer(), nullable=False),
         sa.Column("lever_category", lever_enum, nullable=False),
         sa.Column("decisions_json", sa.Text(), nullable=False),
         sa.Column(
-            "budget_spent", sa.Numeric(15, 2),
-            server_default="0", nullable=False,
+            "budget_spent",
+            sa.Numeric(15, 2),
+            server_default="0",
+            nullable=False,
         ),
         sa.Column(
-            "submitted_at", sa.DateTime(timezone=True),
+            "submitted_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
         sa.Column("window_start", sa.DateTime(timezone=True), nullable=False),
         sa.Column("window_end", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint(
-            "team_id", "round_number", "lever_category",
+            "team_id",
+            "round_number",
+            "lever_category",
             name="uq_decision_team_round_lever",
         ),
     )
@@ -61,17 +71,21 @@ def upgrade() -> None:
         "operating_plans",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
         sa.Column(
-            "team_id", UUID(as_uuid=True),
-            sa.ForeignKey("teams.id"), nullable=False,
+            "team_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("teams.id"),
+            nullable=False,
         ),
         sa.Column("round_number", sa.Integer(), nullable=False),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
-            "submitted_at", sa.DateTime(timezone=True),
+            "submitted_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
         sa.UniqueConstraint(
-            "team_id", "round_number",
+            "team_id",
+            "round_number",
             name="uq_operating_plan_team_round",
         ),
     )
@@ -88,7 +102,9 @@ def upgrade() -> None:
     op.add_column(
         "game_state",
         sa.Column(
-            "current_quarter_start", sa.DateTime(timezone=True), nullable=True,
+            "current_quarter_start",
+            sa.DateTime(timezone=True),
+            nullable=True,
         ),
     )
 

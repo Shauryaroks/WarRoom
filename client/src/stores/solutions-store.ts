@@ -14,7 +14,7 @@ interface SolutionsState {
   fetchCooldown: () => Promise<void>;
   submitSolution: (
     content: string,
-    solutionType: "INITIAL" | "MICROTWEAK"
+    solutionType: "INITIAL" | "MICROTWEAK",
   ) => Promise<void>;
   clearError: () => void;
 }
@@ -33,8 +33,7 @@ export const useSolutionsStore = create<SolutionsState>()((set, get) => ({
       set({ solutions, isLoading: false });
     } catch (err) {
       set({
-        error:
-          err instanceof Error ? err.message : "Failed to load solutions",
+        error: err instanceof Error ? err.message : "Failed to load solutions",
         isLoading: false,
       });
     }

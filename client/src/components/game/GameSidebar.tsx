@@ -1,6 +1,12 @@
 "use client";
 
-import { BookOpen, TrendingUp, FileText, Sliders, Newspaper } from "lucide-react";
+import {
+  BookOpen,
+  TrendingUp,
+  FileText,
+  Sliders,
+  Newspaper,
+} from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
 export type SidebarTab = "CASELINE" | "TRADING" | "SOLUTIONS" | "DECISIONS";
@@ -21,13 +27,29 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { id: "CASELINE", label: "CASELINE", icon: BookOpen, roles: ["strategist", "trader"] },
+  {
+    id: "CASELINE",
+    label: "CASELINE",
+    icon: BookOpen,
+    roles: ["strategist", "trader"],
+  },
   { id: "TRADING", label: "TRADING", icon: TrendingUp, roles: ["trader"] },
-  { id: "SOLUTIONS", label: "SOLUTIONS", icon: FileText, roles: ["strategist"] },
+  {
+    id: "SOLUTIONS",
+    label: "SOLUTIONS",
+    icon: FileText,
+    roles: ["strategist"],
+  },
   { id: "DECISIONS", label: "DECISIONS", icon: Sliders, roles: ["strategist"] },
 ];
 
-export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, role }: GameSidebarProps) {
+export function GameSidebar({
+  activeTab,
+  onTabChange,
+  onToggleNews,
+  newsOpen,
+  role,
+}: GameSidebarProps) {
   const visibleTabs = TABS.filter((tab) => role && tab.roles.includes(role));
 
   return (
@@ -47,7 +69,9 @@ export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, ro
               }`}
             >
               <Icon className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-              <span className="font-mono text-[9px] uppercase tracking-wide">{tab.label}</span>
+              <span className="font-mono text-[9px] uppercase tracking-wide">
+                {tab.label}
+              </span>
             </button>
           );
         })}
@@ -63,7 +87,9 @@ export function GameSidebar({ activeTab, onTabChange, onToggleNews, newsOpen, ro
         }`}
       >
         <Newspaper className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-        <span className="font-mono text-[9px] uppercase tracking-wide">NEWS</span>
+        <span className="font-mono text-[9px] uppercase tracking-wide">
+          NEWS
+        </span>
       </button>
     </div>
   );

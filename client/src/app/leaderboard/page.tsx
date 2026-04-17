@@ -84,9 +84,7 @@ export default function LeaderboardPage() {
                   </div>
                   <div
                     className={`col-span-3 text-right font-mono text-lg font-bold ${
-                      isEliminated
-                        ? "text-[#FF1744]"
-                        : "text-[#e5e2e1]"
+                      isEliminated ? "text-[#FF1744]" : "text-[#e5e2e1]"
                     }`}
                   >
                     ${Number(entry.stock_price).toFixed(2)}

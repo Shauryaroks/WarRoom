@@ -116,9 +116,7 @@ async def _generate(evaluation_id: str, team_id: str):
                 return
 
             # Load team
-            team_result = await db.execute(
-                select(Team).where(Team.id == team_uuid)
-            )
+            team_result = await db.execute(select(Team).where(Team.id == team_uuid))
             team = team_result.scalar_one_or_none()
             if team is None:
                 logger.error("News generation: team %s not found", team_id)
@@ -190,29 +188,33 @@ async def _generate(evaluation_id: str, team_id: str):
             await db.refresh(news_we)
 
             # Broadcast both news items via Redis pub/sub (per NEWS-03)
-            publish_broadcast_sync({
-                "type": "news_injected",
-                "payload": {
-                    "id": str(news_mc.id),
-                    "headline": news_mc.headline,
-                    "content": news_mc.content,
-                    "source_type": news_mc.source_type,
-                    "affected_tickers": [team.ticker],
-                    "created_at": news_mc.created_at.isoformat(),
-                },
-            })
+            publish_broadcast_sync(
+                {
+                    "type": "news_injected",
+                    "payload": {
+                        "id": str(news_mc.id),
+                        "headline": news_mc.headline,
+                        "content": news_mc.content,
+                        "source_type": news_mc.source_type,
+                        "affected_tickers": [team.ticker],
+                        "created_at": news_mc.created_at.isoformat(),
+                    },
+                }
+            )
 
-            publish_broadcast_sync({
-                "type": "news_injected",
-                "payload": {
-                    "id": str(news_we.id),
-                    "headline": news_we.headline,
-                    "content": news_we.content,
-                    "source_type": news_we.source_type,
-                    "affected_sectors": world_event["affected_sectors"],
-                    "created_at": news_we.created_at.isoformat(),
-                },
-            })
+            publish_broadcast_sync(
+                {
+                    "type": "news_injected",
+                    "payload": {
+                        "id": str(news_we.id),
+                        "headline": news_we.headline,
+                        "content": news_we.content,
+                        "source_type": news_we.source_type,
+                        "affected_sectors": world_event["affected_sectors"],
+                        "created_at": news_we.created_at.isoformat(),
+                    },
+                }
+            )
 
             logger.info(
                 "News generated for evaluation %s (team %s): MC=%s, WE=%s",

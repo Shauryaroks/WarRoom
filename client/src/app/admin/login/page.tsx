@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     } else {
       const fieldError = result.error.issues.find((issue) =>
-        issue.path.includes(name)
+        issue.path.includes(name),
       );
       setErrors((prev) => ({
         ...prev,
@@ -73,13 +73,21 @@ export default function AdminLoginPage() {
       useAuthStore.getState().adminLogin(response.token);
       router.push("/admin");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Try again.";
-      if (message.toLowerCase().includes("access denied") || message.toLowerCase().includes("not admin") || message.toLowerCase().includes("forbidden")) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong. Try again.";
+      if (
+        message.toLowerCase().includes("access denied") ||
+        message.toLowerCase().includes("not admin") ||
+        message.toLowerCase().includes("forbidden")
+      ) {
         toast.error("Access denied.", {
           style: { borderLeft: "4px solid #FF1744" },
           duration: 5000,
         });
-      } else if (message.toLowerCase().includes("invalid") || message.toLowerCase().includes("credentials")) {
+      } else if (
+        message.toLowerCase().includes("invalid") ||
+        message.toLowerCase().includes("credentials")
+      ) {
         toast.error("Invalid email or password.", {
           style: { borderLeft: "4px solid #FF1744" },
           duration: 5000,
@@ -99,8 +107,12 @@ export default function AdminLoginPage() {
     <div className="bg-[#131313] min-h-screen flex flex-col items-center justify-center p-4">
       {/* Top header */}
       <header className="fixed top-0 left-0 w-full px-6 h-12 flex justify-between items-center bg-[#0e0e0e] z-50">
-        <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
-        <span className="font-mono text-[9px] font-medium text-[#89919d] uppercase tracking-widest">ADMIN_ACCESS_PORTAL</span>
+        <span className="text-xl font-black tracking-tighter text-[#2196f3]">
+          COMPLEX
+        </span>
+        <span className="font-mono text-[9px] font-medium text-[#89919d] uppercase tracking-widest">
+          ADMIN_ACCESS_PORTAL
+        </span>
       </header>
 
       {/* Main card */}
@@ -111,14 +123,21 @@ export default function AdminLoginPage() {
         <div className="p-8">
           {/* Card heading */}
           <div className="mb-10">
-            <h1 className="font-sans font-extrabold text-2xl tracking-tight text-[#e5e2e1] mb-1">ADMIN_ACCESS</h1>
-            <p className="font-mono text-[10px] text-[#89919d] uppercase tracking-widest">ELEVATED_PRIVILEGES // ROOT_GATE</p>
+            <h1 className="font-sans font-extrabold text-2xl tracking-tight text-[#e5e2e1] mb-1">
+              ADMIN_ACCESS
+            </h1>
+            <p className="font-mono text-[10px] text-[#89919d] uppercase tracking-widest">
+              ELEVATED_PRIVILEGES // ROOT_GATE
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* AUTH_EMAIL */}
             <div className="space-y-1">
-              <label htmlFor="email" className="font-mono text-[10px] text-[#FF1744] uppercase font-bold tracking-tighter">
+              <label
+                htmlFor="email"
+                className="font-mono text-[10px] text-[#FF1744] uppercase font-bold tracking-tighter"
+              >
                 AUTH_EMAIL
               </label>
               <input
@@ -139,7 +158,10 @@ export default function AdminLoginPage() {
 
             {/* ACCESS_KEY */}
             <div className="space-y-1">
-              <label htmlFor="password" className="font-mono text-[10px] text-[#FF1744] uppercase font-bold tracking-tighter">
+              <label
+                htmlFor="password"
+                className="font-mono text-[10px] text-[#FF1744] uppercase font-bold tracking-tighter"
+              >
                 ACCESS_KEY
               </label>
               <input
@@ -176,7 +198,9 @@ export default function AdminLoginPage() {
             <div className="w-2 h-2 bg-[#FF1744]/40" />
             <div className="w-2 h-2 bg-[#FF1744]/80" />
           </div>
-          <span className="font-mono text-[8px] text-[#404752] uppercase tracking-[0.3em]">ENCRYPTION_LAYER_AES256</span>
+          <span className="font-mono text-[8px] text-[#404752] uppercase tracking-[0.3em]">
+            ENCRYPTION_LAYER_AES256
+          </span>
         </div>
       </main>
     </div>

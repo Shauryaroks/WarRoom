@@ -34,9 +34,7 @@ def upgrade() -> None:
 
     # Add CRISIS_RESPONSE to the solutiontype enum
     # Note: IF NOT EXISTS prevents failure if enum value already present
-    op.execute(
-        "ALTER TYPE solutiontype ADD VALUE IF NOT EXISTS 'CRISIS_RESPONSE'"
-    )
+    op.execute("ALTER TYPE solutiontype ADD VALUE IF NOT EXISTS 'CRISIS_RESPONSE'")
 
 
 def downgrade() -> None:

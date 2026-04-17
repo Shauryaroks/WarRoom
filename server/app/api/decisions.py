@@ -53,7 +53,11 @@ router = APIRouter(prefix="/api/v1/decisions", tags=["decisions"])
 DECISION_WINDOW_MINUTES = 20
 
 # Fixed costs for budget calculation (per D-11)
-SUPPLY_CHAIN_TIER_COSTS = {"TIER1": Decimal("5"), "TIER2": Decimal("3"), "RURAL": Decimal("2")}  # Cr
+SUPPLY_CHAIN_TIER_COSTS = {
+    "TIER1": Decimal("5"),
+    "TIER2": Decimal("3"),
+    "RURAL": Decimal("2"),
+}  # Cr
 NEW_PRODUCT_RD_COST = Decimal("10")  # Cr
 
 
@@ -95,7 +99,9 @@ def _validate_supply_chain(d: dict) -> None:
         raise ValueError("distribution_expansion must be a list")
     for tier in de:
         if tier not in VALID_DISTRIBUTION_TIERS:
-            raise ValueError(f"Invalid distribution tier: {tier}. Must be one of {VALID_DISTRIBUTION_TIERS}")
+            raise ValueError(
+                f"Invalid distribution tier: {tier}. Must be one of {VALID_DISTRIBUTION_TIERS}"
+            )
 
     cu = d.get("capacity_utilization")
     if cu is None or not isinstance(cu, (int, float)):
@@ -143,7 +149,12 @@ def _calculate_budget_spent(
         # Marketing spend = percentage of total budget (scaled by a marketing_spend_rate)
         # For now, marketing costs 30% of total budget when fully allocated
         marketing_spend_rate = Decimal("0.3")
-        return (total_budget * marketing_spend_rate * Decimal(str(total_pct)) / Decimal("100")).quantize(Decimal("0.01"))
+        return (
+            total_budget
+            * marketing_spend_rate
+            * Decimal(str(total_pct))
+            / Decimal("100")
+        ).quantize(Decimal("0.01"))
 
     if lever == LeverCategory.SUPPLY_CHAIN:
         expansions = decisions_json.get("distribution_expansion", [])
@@ -180,7 +191,9 @@ async def submit_decisions(
     """
     # T-08-01: Strategist only
     if current_user["role"] != "strategist":
-        raise HTTPException(status_code=403, detail="Only strategists can submit decisions")
+        raise HTTPException(
+            status_code=403, detail="Only strategists can submit decisions"
+        )
 
     team_id = current_user["team_id"]
 
@@ -247,11 +260,13 @@ async def submit_decisions(
         budget_spent = _calculate_budget_spent(lever, dec.decisions_json, total_budget)
         total_spent += budget_spent
 
-        upsert_data.append({
-            "lever": lever,
-            "decisions_json": dec.decisions_json,
-            "budget_spent": budget_spent,
-        })
+        upsert_data.append(
+            {
+                "lever": lever,
+                "decisions_json": dec.decisions_json,
+                "budget_spent": budget_spent,
+            }
+        )
 
     # D-12: Budget validation
     if total_spent > total_budget:
@@ -308,7 +323,10 @@ async def submit_decisions(
 
     logger.info(
         "Team %s submitted %d decisions for round %d (total spent: %s)",
-        team_id, len(responses), current_round, total_spent,
+        team_id,
+        len(responses),
+        current_round,
+        total_spent,
     )
 
     return BulkDecisionSubmitResponse(
@@ -361,7 +379,9 @@ async def submit_operating_plan(
     T-08-07: max_length enforced by Pydantic schema.
     """
     if current_user["role"] != "strategist":
-        raise HTTPException(status_code=403, detail="Only strategists can submit operating plans")
+        raise HTTPException(
+            status_code=403, detail="Only strategists can submit operating plans"
+        )
 
     team_id = current_user["team_id"]
 
@@ -432,7 +452,9 @@ async def get_operating_plan(
     plan = result.scalar_one_or_none()
 
     if not plan:
-        raise HTTPException(status_code=404, detail="No operating plan for current round")
+        raise HTTPException(
+            status_code=404, detail="No operating plan for current round"
+        )
 
     return {
         "id": str(plan.id),

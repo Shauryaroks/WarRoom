@@ -80,7 +80,7 @@
   --muted-foreground: #89919d;
   --accent: #2196f3;
   --accent-foreground: #ffffff;
-  --destructive: #FF1744;
+  --destructive: #ff1744;
   --destructive-foreground: #ffffff;
   --border: #404752;
   --input: #201f1f;
@@ -90,7 +90,7 @@
   --info: #9ecaff;
   --chart-1: #2196f3;
   --chart-2: #40e56c;
-  --chart-3: #FF1744;
+  --chart-3: #ff1744;
   --chart-4: #9ecaff;
   --chart-5: #89919d;
   --sidebar: #0e0e0e;
@@ -128,7 +128,8 @@
   html {
     @apply font-sans;
   }
-  input:focus, textarea:focus {
+  input:focus,
+  textarea:focus {
     outline: none !important;
     box-shadow: none !important;
     border-left: 2px solid #2196f3 !important;

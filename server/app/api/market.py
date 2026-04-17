@@ -125,7 +125,17 @@ async def get_leaderboard(
 
     result = await db.execute(
         select(Team)
-        .where(Team.status.in_([TeamStatus.READY, TeamStatus.ACTIVE, TeamStatus.COOLDOWN, TeamStatus.BANKRUPT, TeamStatus.ELIMINATED]))
+        .where(
+            Team.status.in_(
+                [
+                    TeamStatus.READY,
+                    TeamStatus.ACTIVE,
+                    TeamStatus.COOLDOWN,
+                    TeamStatus.BANKRUPT,
+                    TeamStatus.ELIMINATED,
+                ]
+            )
+        )
         .order_by(
             # Active/cooldown teams first, eliminated last
             case(
@@ -155,15 +165,17 @@ async def get_leaderboard(
                 pct = ((current_p - previous_p) / previous_p) * 100
                 change_pct = f"{pct:.2f}"
 
-        entries.append(LeaderboardEntry(
-            rank=rank_idx,
-            team_id=str(team.id),
-            name=team.name,
-            ticker=team.ticker,
-            stock_price=str(team.stock_price),
-            change_pct=change_pct,
-            status=team.status.value,
-        ))
+        entries.append(
+            LeaderboardEntry(
+                rank=rank_idx,
+                team_id=str(team.id),
+                name=team.name,
+                ticker=team.ticker,
+                stock_price=str(team.stock_price),
+                change_pct=change_pct,
+                status=team.status.value,
+            )
+        )
 
     return entries
 
@@ -197,7 +209,9 @@ async def get_news_feed(
             headline=n.headline,
             content=n.content,
             source_type=n.source_type,
-            affected_tickers=json.loads(n.affected_tickers) if n.affected_tickers else [],
+            affected_tickers=json.loads(n.affected_tickers)
+            if n.affected_tickers
+            else [],
             created_at=n.created_at.isoformat(),
         )
         for n in items

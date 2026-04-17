@@ -235,9 +235,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 @router.post("/login", response_model=AdminLoginResponse)
-async def admin_login(
-    request: AdminLoginRequest, db: AsyncSession = Depends(get_db)
-):
+async def admin_login(request: AdminLoginRequest, db: AsyncSession = Depends(get_db)):
     """Admin login. Separate from team login per D-03."""
     result = await db.execute(select(Admin).where(Admin.email == request.email))
     admin = result.scalar_one_or_none()
@@ -255,9 +253,7 @@ async def admin_login(
     response_model=AdminSeedResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def seed_admin(
-    request: AdminSeedRequest, db: AsyncSession = Depends(get_db)
-):
+async def seed_admin(request: AdminSeedRequest, db: AsyncSession = Depends(get_db)):
     """Bootstrap initial admin account. Only works if no admins exist (T-03-02 mitigation)."""
     result = await db.execute(select(func.count()).select_from(Admin))
     count = result.scalar()
@@ -289,7 +285,11 @@ async def list_teams(
     """List all teams. Optionally filter by status. Requires admin."""
     from sqlalchemy.orm import selectinload
 
-    query = select(Team).options(selectinload(Team.archetype)).order_by(Team.created_at.desc())
+    query = (
+        select(Team)
+        .options(selectinload(Team.archetype))
+        .order_by(Team.created_at.desc())
+    )
 
     if status_filter:
         try:
@@ -339,11 +339,13 @@ async def approve_team(
     team.status = TeamStatus.READY
     team.approved_at = datetime.now(timezone.utc)
 
-    db.add(ActivityEvent(
-        event_type="TEAM_APPROVED",
-        actor="admin",
-        description=f"Team '{team.name}' approved",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="TEAM_APPROVED",
+            actor="admin",
+            description=f"Team '{team.name}' approved",
+        )
+    )
     await db.commit()
 
     return TeamActionResponse(
@@ -371,11 +373,13 @@ async def reject_team(
 
     team.status = TeamStatus.REJECTED
 
-    db.add(ActivityEvent(
-        event_type="TEAM_REJECTED",
-        actor="admin",
-        description=f"Team '{team.name}' rejected",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="TEAM_REJECTED",
+            actor="admin",
+            description=f"Team '{team.name}' rejected",
+        )
+    )
     await db.commit()
 
     return TeamActionResponse(
@@ -404,18 +408,30 @@ async def remove_team(
     game_state = await get_game_state_readonly(db)
 
     if game_state.status == GameStatus.FINISHED:
-        raise HTTPException(status_code=409, detail="Cannot remove teams from a finished game")
+        raise HTTPException(
+            status_code=409, detail="Cannot remove teams from a finished game"
+        )
 
     team_name = team.name
 
     if game_state.status == GameStatus.SETUP:
         # Hard delete: remove related records first to avoid FK violations
         await db.execute(delete(Directive).where(Directive.team_id == team_id))
-        await db.execute(delete(StockHolding).where(StockHolding.owner_team_id == team_id))
-        await db.execute(delete(StockHolding).where(StockHolding.target_team_id == team_id))
-        await db.execute(delete(Transaction).where(Transaction.buyer_team_id == team_id))
-        await db.execute(delete(Transaction).where(Transaction.seller_team_id == team_id))
-        await db.execute(delete(Transaction).where(Transaction.target_team_id == team_id))
+        await db.execute(
+            delete(StockHolding).where(StockHolding.owner_team_id == team_id)
+        )
+        await db.execute(
+            delete(StockHolding).where(StockHolding.target_team_id == team_id)
+        )
+        await db.execute(
+            delete(Transaction).where(Transaction.buyer_team_id == team_id)
+        )
+        await db.execute(
+            delete(Transaction).where(Transaction.seller_team_id == team_id)
+        )
+        await db.execute(
+            delete(Transaction).where(Transaction.target_team_id == team_id)
+        )
         await db.execute(delete(CashLedger).where(CashLedger.team_id == team_id))
         await db.execute(delete(PriceHistory).where(PriceHistory.team_id == team_id))
         await db.delete(team)
@@ -426,18 +442,24 @@ async def remove_team(
         team.bankrupt_since = datetime.now(timezone.utc)
         remove_type = "soft"
 
-    db.add(ActivityEvent(
-        event_type="TEAM_REMOVED",
-        actor="admin",
-        description=f"Team '{team_name}' removed ({remove_type} delete)",
-        metadata_json=json.dumps({"team_id": str(team_id), "remove_type": remove_type}),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="TEAM_REMOVED",
+            actor="admin",
+            description=f"Team '{team_name}' removed ({remove_type} delete)",
+            metadata_json=json.dumps(
+                {"team_id": str(team_id), "remove_type": remove_type}
+            ),
+        )
+    )
     await db.commit()
 
-    await publish_broadcast({
-        "type": "team_removed",
-        "payload": {"team_id": str(team_id), "remove_type": remove_type},
-    })
+    await publish_broadcast(
+        {
+            "type": "team_removed",
+            "payload": {"team_id": str(team_id), "remove_type": remove_type},
+        }
+    )
 
     return TeamRemoveResponse(
         message=f"Team '{team_name}' {'permanently removed' if remove_type == 'hard' else 'marked as bankrupt'}",
@@ -480,30 +502,36 @@ async def inject_news(
         headline=request.headline,
         content=request.body,
         source_type="ADMIN_INJECTED",
-        affected_tickers=json.dumps(request.affected_tickers) if request.affected_tickers else None,
+        affected_tickers=json.dumps(request.affected_tickers)
+        if request.affected_tickers
+        else None,
     )
     db.add(news)
 
-    db.add(ActivityEvent(
-        event_type="NEWS_INJECTED",
-        actor="admin",
-        description=f"News injected: {request.headline}",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="NEWS_INJECTED",
+            actor="admin",
+            description=f"News injected: {request.headline}",
+        )
+    )
     await db.commit()
     await db.refresh(news)
 
-    await publish_broadcast({
-        "type": "news_injected",
-        "payload": {
-            "id": str(news.id),
-            "headline": news.headline,
-            "content": news.content,
-            "source_type": "ADMIN_INJECTED",
-            "news_type": request.news_type,
-            "affected_tickers": request.affected_tickers,
-            "created_at": news.created_at.isoformat(),
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "news_injected",
+            "payload": {
+                "id": str(news.id),
+                "headline": news.headline,
+                "content": news.content,
+                "source_type": "ADMIN_INJECTED",
+                "news_type": request.news_type,
+                "affected_tickers": request.affected_tickers,
+                "created_at": news.created_at.isoformat(),
+            },
+        }
+    )
 
     return NewsInjectResponse(message="News injected", news_id=str(news.id))
 
@@ -525,26 +553,30 @@ async def broadcast_message(
     )
     db.add(news)
 
-    db.add(ActivityEvent(
-        event_type="BROADCAST_SENT",
-        actor="admin",
-        description=f"Broadcast: {request.message[:80]}",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="BROADCAST_SENT",
+            actor="admin",
+            description=f"Broadcast: {request.message[:80]}",
+        )
+    )
     await db.commit()
     await db.refresh(news)
 
-    await publish_broadcast({
-        "type": "news_injected",
-        "payload": {
-            "id": str(news.id),
-            "headline": news.headline,
-            "content": None,
-            "source_type": "ADMIN_BROADCAST",
-            "news_type": "GLOBAL",
-            "affected_tickers": [],
-            "created_at": news.created_at.isoformat(),
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "news_injected",
+            "payload": {
+                "id": str(news.id),
+                "headline": news.headline,
+                "content": None,
+                "source_type": "ADMIN_BROADCAST",
+                "news_type": "GLOBAL",
+                "affected_tickers": [],
+                "created_at": news.created_at.isoformat(),
+            },
+        }
+    )
 
     return BroadcastResponse(message="Broadcast sent", news_id=str(news.id))
 
@@ -563,11 +595,13 @@ async def start_game(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    db.add(ActivityEvent(
-        event_type="GAME_STARTED",
-        actor="admin",
-        description="Game started",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="GAME_STARTED",
+            actor="admin",
+            description="Game started",
+        )
+    )
     await db.commit()
 
     return GameStateResponse(
@@ -588,11 +622,13 @@ async def pause_game(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    db.add(ActivityEvent(
-        event_type="GAME_PAUSED",
-        actor="admin",
-        description="Game paused",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="GAME_PAUSED",
+            actor="admin",
+            description="Game paused",
+        )
+    )
     await db.commit()
 
     return GameStateResponse(
@@ -621,16 +657,20 @@ async def resume_game(
     if active_crisis:
         active_crisis.status = "RESOLVED"
         active_crisis.resolved_at = datetime.now(timezone.utc)
-        await publish_broadcast({
-            "type": "crisis_resolved",
-            "payload": {"crisis_id": str(active_crisis.id)},
-        })
+        await publish_broadcast(
+            {
+                "type": "crisis_resolved",
+                "payload": {"crisis_id": str(active_crisis.id)},
+            }
+        )
 
-    db.add(ActivityEvent(
-        event_type="GAME_RESUMED",
-        actor="admin",
-        description="Game resumed",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="GAME_RESUMED",
+            actor="admin",
+            description="Game resumed",
+        )
+    )
     await db.commit()
 
     return GameStateResponse(
@@ -667,18 +707,22 @@ async def advance_round(
     state = await get_game_state(db)
     state.current_round += 1
 
-    db.add(ActivityEvent(
-        event_type="ROUND_ADVANCED",
-        actor="admin",
-        description=f"Advanced to Q{state.current_round}",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="ROUND_ADVANCED",
+            actor="admin",
+            description=f"Advanced to Q{state.current_round}",
+        )
+    )
     await db.commit()
     await db.refresh(state)
 
-    await publish_broadcast({
-        "type": "round_advanced",
-        "payload": {"current_round": state.current_round},
-    })
+    await publish_broadcast(
+        {
+            "type": "round_advanced",
+            "payload": {"current_round": state.current_round},
+        }
+    )
 
     return RoundAdvanceResponse(
         message=f"Advanced to round {state.current_round}",
@@ -698,18 +742,22 @@ async def enter_war_room(
     """Enter War Room: halts trading and ticks, teams submit operating plans (D-02)."""
     game_state = await get_game_state_readonly(db)
     if game_state.status != GameStatus.ACTIVE:
-        raise HTTPException(status_code=409, detail="Game must be ACTIVE to enter War Room")
+        raise HTTPException(
+            status_code=409, detail="Game must be ACTIVE to enter War Room"
+        )
 
     try:
         state = await set_game_phase(db, "war_room", macro_brief=macro_brief)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    db.add(ActivityEvent(
-        event_type="WAR_ROOM_ENTERED",
-        actor="admin",
-        description="Admin entered War Room",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="WAR_ROOM_ENTERED",
+            actor="admin",
+            description="Admin entered War Room",
+        )
+    )
     await db.commit()
 
     return GamePhaseResponse(
@@ -727,18 +775,22 @@ async def open_live_floor(
     """Open Live Floor: enables trading and ticks, teams submit decisions (D-02)."""
     game_state = await get_game_state_readonly(db)
     if game_state.status != GameStatus.ACTIVE:
-        raise HTTPException(status_code=409, detail="Game must be ACTIVE to open Live Floor")
+        raise HTTPException(
+            status_code=409, detail="Game must be ACTIVE to open Live Floor"
+        )
 
     try:
         state = await set_game_phase(db, "live_floor")
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    db.add(ActivityEvent(
-        event_type="LIVE_FLOOR_OPENED",
-        actor="admin",
-        description="Admin opened Live Floor",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="LIVE_FLOOR_OPENED",
+            actor="admin",
+            description="Admin opened Live Floor",
+        )
+    )
     await db.commit()
 
     return GamePhaseResponse(
@@ -794,13 +846,15 @@ async def restart_game(
     # 2. Reset teams to READY status (preserve registrations)
     result = await db.execute(
         select(Team).where(
-            Team.status.in_([
-                TeamStatus.ACTIVE,
-                TeamStatus.COOLDOWN,
-                TeamStatus.BANKRUPT,
-                TeamStatus.ELIMINATED,
-                TeamStatus.READY,
-            ])
+            Team.status.in_(
+                [
+                    TeamStatus.ACTIVE,
+                    TeamStatus.COOLDOWN,
+                    TeamStatus.BANKRUPT,
+                    TeamStatus.ELIMINATED,
+                    TeamStatus.READY,
+                ]
+            )
         )
     )
     teams = result.scalars().all()
@@ -842,11 +896,13 @@ async def restart_game(
     state.aggregate_market_cap_at_purge = None
 
     # 4. Log the restart (after clearing old events)
-    db.add(ActivityEvent(
-        event_type="GAME_RESTARTED",
-        actor="admin",
-        description="Game restarted by admin",
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="GAME_RESTARTED",
+            actor="admin",
+            description="Game restarted by admin",
+        )
+    )
 
     await db.commit()
     await db.refresh(state)
@@ -859,14 +915,16 @@ async def restart_game(
         await r.aclose()
 
     # 6. Broadcast state change
-    await publish_broadcast({
-        "type": "game_state_changed",
-        "payload": {
-            "status": GameStatus.SETUP.value,
-            "elapsed_seconds": 0,
-            "current_round": 0,
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "game_state_changed",
+            "payload": {
+                "status": GameStatus.SETUP.value,
+                "elapsed_seconds": 0,
+                "current_round": 0,
+            },
+        }
+    )
 
     return GameRestartResponse(
         message="Game restarted successfully",
@@ -885,9 +943,7 @@ async def get_activity_log(
 ):
     """Get recent activity events. Returns last 200 events."""
     result = await db.execute(
-        select(ActivityEvent)
-        .order_by(ActivityEvent.created_at.desc())
-        .limit(200)
+        select(ActivityEvent).order_by(ActivityEvent.created_at.desc()).limit(200)
     )
     events = result.scalars().all()
 
@@ -914,9 +970,7 @@ async def get_news_history(
 ):
     """Get recent news items. Returns last 100 news entries."""
     result = await db.execute(
-        select(MarketNews)
-        .order_by(MarketNews.created_at.desc())
-        .limit(100)
+        select(MarketNews).order_by(MarketNews.created_at.desc()).limit(100)
     )
     news_items = result.scalars().all()
 
@@ -926,7 +980,9 @@ async def get_news_history(
             headline=n.headline,
             content=n.content,
             source_type=n.source_type,
-            affected_tickers=json.loads(n.affected_tickers) if n.affected_tickers else [],
+            affected_tickers=json.loads(n.affected_tickers)
+            if n.affected_tickers
+            else [],
             created_at=n.created_at.isoformat(),
         )
         for n in news_items
@@ -943,13 +999,17 @@ def _evaluation_to_list_item(evaluation: Evaluation, team: Team) -> EvaluationLi
         team_id=str(evaluation.team_id),
         team_name=team.name,
         team_ticker=team.ticker,
-        solution_type=evaluation.solution.solution_type.value if evaluation.solution else "UNKNOWN",
+        solution_type=evaluation.solution.solution_type.value
+        if evaluation.solution
+        else "UNKNOWN",
         status=evaluation.status.value,
         overall_score=evaluation.overall_score,
         scoring_metrics=evaluation.scoring_metrics,
         news_headline=evaluation.news_headline,
         news_body=evaluation.news_body,
-        news_sentiment=float(evaluation.news_sentiment) if evaluation.news_sentiment is not None else None,
+        news_sentiment=float(evaluation.news_sentiment)
+        if evaluation.news_sentiment is not None
+        else None,
         price_timeline=evaluation.price_timeline,
         llm_model=evaluation.llm_model,
         admin_notes=evaluation.admin_notes,
@@ -1017,9 +1077,7 @@ async def edit_evaluation(
     db: AsyncSession = Depends(get_db),
 ):
     """Edit evaluation fields before approval (EVAL-04). Only PENDING_APPROVAL (T-05-08)."""
-    result = await db.execute(
-        select(Evaluation).where(Evaluation.id == evaluation_id)
-    )
+    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id))
     evaluation = result.scalar_one_or_none()
     if not evaluation:
         raise HTTPException(status_code=404, detail="Evaluation not found")
@@ -1041,6 +1099,7 @@ async def edit_evaluation(
         evaluation.news_body = request.news_body
     if request.news_sentiment is not None:
         from decimal import Decimal
+
         evaluation.news_sentiment = Decimal(str(request.news_sentiment))
     if request.price_timeline is not None:
         evaluation.price_timeline = request.price_timeline
@@ -1053,7 +1112,9 @@ async def edit_evaluation(
     )
 
 
-@router.post("/evaluations/{evaluation_id}/approve", response_model=EvaluationActionResponse)
+@router.post(
+    "/evaluations/{evaluation_id}/approve", response_model=EvaluationActionResponse
+)
 async def approve_evaluation_endpoint(
     evaluation_id: uuid.UUID,
     _admin: dict = Depends(require_admin),
@@ -1065,29 +1126,34 @@ async def approve_evaluation_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    db.add(ActivityEvent(
-        event_type="EVALUATION_APPROVED",
-        actor="admin",
-        description=f"Evaluation approved for {result['ticker']} (target: ${result['target_price']})",
-        metadata_json=json.dumps(result),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="EVALUATION_APPROVED",
+            actor="admin",
+            description=f"Evaluation approved for {result['ticker']} (target: ${result['target_price']})",
+            metadata_json=json.dumps(result),
+        )
+    )
     await db.commit()
 
     # D-01: Dispatch news generation after approval
     from app.worker.tasks.generate_news import generate_news
+
     generate_news.delay(str(evaluation_id), result["team_id"])
 
     # Broadcast news to all teams
-    await publish_broadcast({
-        "type": "evaluation_approved",
-        "payload": {
-            "evaluation_id": str(evaluation_id),
-            "team_id": result["team_id"],
-            "ticker": result["ticker"],
-            "target_price": result["target_price"],
-            "news_id": result["news_id"],
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "evaluation_approved",
+            "payload": {
+                "evaluation_id": str(evaluation_id),
+                "team_id": result["team_id"],
+                "ticker": result["ticker"],
+                "target_price": result["target_price"],
+                "news_id": result["news_id"],
+            },
+        }
+    )
 
     return EvaluationActionResponse(
         message=f"Evaluation approved. Target price: ${result['target_price']}",
@@ -1099,7 +1165,9 @@ class RejectEvaluationRequest(BaseModel):
     admin_notes: str = ""
 
 
-@router.post("/evaluations/{evaluation_id}/reject", response_model=EvaluationActionResponse)
+@router.post(
+    "/evaluations/{evaluation_id}/reject", response_model=EvaluationActionResponse
+)
 async def reject_evaluation_endpoint(
     evaluation_id: uuid.UUID,
     request: RejectEvaluationRequest = RejectEvaluationRequest(),
@@ -1112,22 +1180,27 @@ async def reject_evaluation_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    db.add(ActivityEvent(
-        event_type="EVALUATION_REJECTED",
-        actor="admin",
-        description=f"Evaluation rejected for team {result['team_id']}",
-        metadata_json=json.dumps(result),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="EVALUATION_REJECTED",
+            actor="admin",
+            description=f"Evaluation rejected for team {result['team_id']}",
+            metadata_json=json.dumps(result),
+        )
+    )
     await db.commit()
 
     # D-10: Notify team of rejection
-    await publish_to_team(uuid.UUID(result["team_id"]), {
-        "type": "evaluation_rejected",
-        "payload": {
-            "evaluation_id": result["evaluation_id"],
-            "admin_notes": request.admin_notes,
+    await publish_to_team(
+        uuid.UUID(result["team_id"]),
+        {
+            "type": "evaluation_rejected",
+            "payload": {
+                "evaluation_id": result["evaluation_id"],
+                "admin_notes": request.admin_notes,
+            },
         },
-    })
+    )
 
     return EvaluationActionResponse(
         message="Evaluation rejected",
@@ -1166,17 +1239,21 @@ async def assign_caseline(
     # D-14: Update financial fields if provided
     if request.starting_cash is not None:
         from decimal import Decimal
+
         team.cash = Decimal(str(request.starting_cash))
     if request.initial_stock_price is not None:
         from decimal import Decimal
+
         team.stock_price = Decimal(str(request.initial_stock_price))
 
-    db.add(ActivityEvent(
-        event_type="CASELINE_ASSIGNED",
-        actor="admin",
-        description=f"Caseline assigned to team '{team.name}'",
-        metadata_json=json.dumps({"team_id": str(team_id)}),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="CASELINE_ASSIGNED",
+            actor="admin",
+            description=f"Caseline assigned to team '{team.name}'",
+            metadata_json=json.dumps({"team_id": str(team_id)}),
+        )
+    )
     await db.commit()
 
     return CaselineAssignResponse(
@@ -1222,27 +1299,33 @@ async def inject_crisis(
     except ValueError:
         pass  # Already paused is fine
 
-    db.add(ActivityEvent(
-        event_type="CRISIS_INJECTED",
-        actor="admin",
-        description=f"Crisis injected: {request.scenario[:80]}",
-        metadata_json=json.dumps({
-            "crisis_id": str(crisis.id),
-            "timer_seconds": request.timer_seconds,
-        }),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="CRISIS_INJECTED",
+            actor="admin",
+            description=f"Crisis injected: {request.scenario[:80]}",
+            metadata_json=json.dumps(
+                {
+                    "crisis_id": str(crisis.id),
+                    "timer_seconds": request.timer_seconds,
+                }
+            ),
+        )
+    )
     await db.commit()
     await db.refresh(crisis)
 
-    await publish_broadcast({
-        "type": "crisis_started",
-        "payload": {
-            "crisis_id": str(crisis.id),
-            "scenario": crisis.scenario,
-            "timer_seconds": crisis.timer_seconds,
-            "started_at": crisis.created_at.isoformat(),
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "crisis_started",
+            "payload": {
+                "crisis_id": str(crisis.id),
+                "scenario": crisis.scenario,
+                "timer_seconds": crisis.timer_seconds,
+                "started_at": crisis.created_at.isoformat(),
+            },
+        }
+    )
 
     return CrisisInjectResponse(
         message="Crisis injected and game paused",
@@ -1264,9 +1347,7 @@ async def eliminate_team(
     T-06-04: require_admin enforces admin-only access.
     T-06-06: SELECT FOR UPDATE prevents race conditions.
     """
-    result = await db.execute(
-        select(Team).where(Team.id == team_id).with_for_update()
-    )
+    result = await db.execute(select(Team).where(Team.id == team_id).with_for_update())
     team = result.scalar_one_or_none()
 
     if not team:
@@ -1280,7 +1361,9 @@ async def eliminate_team(
 
     # Compute rank: count of active/cooldown teams with higher stock price + 1
     rank_result = await db.execute(
-        select(func.count()).select_from(Team).where(
+        select(func.count())
+        .select_from(Team)
+        .where(
             Team.status.in_([TeamStatus.ACTIVE, TeamStatus.COOLDOWN]),
             Team.stock_price > team.stock_price,
             Team.id != team_id,
@@ -1297,26 +1380,32 @@ async def eliminate_team(
     team.eliminated_at = datetime.now(timezone.utc)
     team.rank_at_elimination = rank
 
-    db.add(ActivityEvent(
-        event_type="TEAM_ELIMINATED",
-        actor="admin",
-        description=f"Team '{team.name}' eliminated at rank #{rank}",
-        metadata_json=json.dumps({
-            "team_id": str(team_id),
-            "ticker": team.ticker,
-            "rank": rank,
-        }),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="TEAM_ELIMINATED",
+            actor="admin",
+            description=f"Team '{team.name}' eliminated at rank #{rank}",
+            metadata_json=json.dumps(
+                {
+                    "team_id": str(team_id),
+                    "ticker": team.ticker,
+                    "rank": rank,
+                }
+            ),
+        )
+    )
     await db.commit()
 
-    await publish_broadcast({
-        "type": "team_eliminated",
-        "payload": {
-            "team_id": str(team_id),
-            "ticker": team.ticker,
-            "rank": rank,
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "team_eliminated",
+            "payload": {
+                "team_id": str(team_id),
+                "ticker": team.ticker,
+                "rank": rank,
+            },
+        }
+    )
 
     return EliminateTeamResponse(
         message=f"Team '{team.name}' eliminated at rank #{rank}",
@@ -1418,7 +1507,9 @@ def _validate_benchmark_bands(bands_str: str) -> None:
     try:
         bands = json.loads(bands_str)
     except json.JSONDecodeError:
-        raise HTTPException(status_code=422, detail="benchmark_bands must be valid JSON")
+        raise HTTPException(
+            status_code=422, detail="benchmark_bands must be valid JSON"
+        )
 
     required_keys = {"market_share", "margin", "growth", "ops_efficiency"}
     if set(bands.keys()) != required_keys:
@@ -1447,9 +1538,7 @@ async def list_archetypes(
     db: AsyncSession = Depends(get_db),
 ):
     """List all archetypes. Requires admin."""
-    result = await db.execute(
-        select(Archetype).order_by(Archetype.created_at.desc())
-    )
+    result = await db.execute(select(Archetype).order_by(Archetype.created_at.desc()))
     archetypes = result.scalars().all()
     return [_archetype_to_response(a) for a in archetypes]
 
@@ -1468,11 +1557,12 @@ async def create_archetype(
     _validate_benchmark_bands(request.benchmark_bands)
 
     # Check duplicate slug (409)
-    existing = await db.execute(
-        select(Archetype).where(Archetype.slug == request.slug)
-    )
+    existing = await db.execute(select(Archetype).where(Archetype.slug == request.slug))
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail=f"Archetype with slug '{request.slug}' already exists")
+        raise HTTPException(
+            status_code=409,
+            detail=f"Archetype with slug '{request.slug}' already exists",
+        )
 
     archetype = Archetype(
         name=request.name,
@@ -1505,9 +1595,7 @@ async def get_archetype(
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single archetype. Requires admin."""
-    result = await db.execute(
-        select(Archetype).where(Archetype.id == archetype_id)
-    )
+    result = await db.execute(select(Archetype).where(Archetype.id == archetype_id))
     archetype = result.scalar_one_or_none()
     if not archetype:
         raise HTTPException(status_code=404, detail="Archetype not found")
@@ -1522,9 +1610,7 @@ async def update_archetype(
     db: AsyncSession = Depends(get_db),
 ):
     """Update an archetype. Requires admin."""
-    result = await db.execute(
-        select(Archetype).where(Archetype.id == archetype_id)
-    )
+    result = await db.execute(select(Archetype).where(Archetype.id == archetype_id))
     archetype = result.scalar_one_or_none()
     if not archetype:
         raise HTTPException(status_code=404, detail="Archetype not found")
@@ -1573,9 +1659,7 @@ async def delete_archetype(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an archetype. Cannot delete presets or archetypes with assigned teams (T-07-06)."""
-    result = await db.execute(
-        select(Archetype).where(Archetype.id == archetype_id)
-    )
+    result = await db.execute(select(Archetype).where(Archetype.id == archetype_id))
     archetype = result.scalar_one_or_none()
     if not archetype:
         raise HTTPException(status_code=404, detail="Archetype not found")
@@ -1588,7 +1672,9 @@ async def delete_archetype(
         select(func.count()).select_from(Team).where(Team.archetype_id == archetype_id)
     )
     if (team_count_result.scalar() or 0) > 0:
-        raise HTTPException(status_code=409, detail="Cannot delete archetype with assigned teams")
+        raise HTTPException(
+            status_code=409, detail="Cannot delete archetype with assigned teams"
+        )
 
     await db.delete(archetype)
     await db.commit()
@@ -1652,16 +1738,20 @@ async def assign_archetype(
         str((_bands["ops_efficiency"][0] + _bands["ops_efficiency"][1]) / 2)
     )
 
-    db.add(ActivityEvent(
-        event_type="ARCHETYPE_ASSIGNED",
-        actor="admin",
-        description=f"Archetype '{archetype.name}' assigned to team '{team.name}'",
-        metadata_json=json.dumps({
-            "team_id": str(team_id),
-            "archetype_id": str(archetype.id),
-            "archetype_slug": archetype.slug,
-        }),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="ARCHETYPE_ASSIGNED",
+            actor="admin",
+            description=f"Archetype '{archetype.name}' assigned to team '{team.name}'",
+            metadata_json=json.dumps(
+                {
+                    "team_id": str(team_id),
+                    "archetype_id": str(archetype.id),
+                    "archetype_slug": archetype.slug,
+                }
+            ),
+        )
+    )
     await db.commit()
 
     return ArchetypeAssignResponse(
@@ -1680,12 +1770,14 @@ _PRESET_ARCHETYPES = [
         "slug": "legacy-giant",
         "description": "A decades-old FMCG conglomerate with unrivaled distribution reach and deep brand trust, but struggling to innovate in a rapidly evolving market.",
         "sector": "FOODS",
-        "benchmark_bands": json.dumps({
-            "market_share": [20, 25],
-            "margin": [10, 14],
-            "growth": [4, 8],
-            "ops_efficiency": [70, 85],
-        }),
+        "benchmark_bands": json.dumps(
+            {
+                "market_share": [20, 25],
+                "margin": [10, 14],
+                "growth": [4, 8],
+                "ops_efficiency": [70, 85],
+            }
+        ),
         "starting_cash": Decimal("4000000000"),
         "starting_stock_price": Decimal("100"),
         "starting_shares": 1000000,
@@ -1739,12 +1831,14 @@ To win, Legacy Giant must leverage its distribution advantage while accelerating
         "slug": "d2c-challenger",
         "description": "A venture-backed digital-native snack brand with explosive growth, strong online presence, but burning cash and limited offline reach.",
         "sector": "FOODS",
-        "benchmark_bands": json.dumps({
-            "market_share": [1, 3],
-            "margin": [-5, 10],
-            "growth": [60, 100],
-            "ops_efficiency": [40, 60],
-        }),
+        "benchmark_bands": json.dumps(
+            {
+                "market_share": [1, 3],
+                "margin": [-5, 10],
+                "growth": [60, 100],
+                "ops_efficiency": [40, 60],
+            }
+        ),
         "starting_cash": Decimal("250000000"),
         "starting_stock_price": Decimal("100"),
         "starting_shares": 1000000,
@@ -1799,12 +1893,14 @@ D2C Challenger's path to victory requires achieving profitability before cash ru
         "slug": "regional-leader",
         "description": "A highly efficient regional snack brand with cult following in its home market, strong margins, but limited national presence.",
         "sector": "FOODS",
-        "benchmark_bands": json.dumps({
-            "market_share": [12, 16],
-            "margin": [14, 18],
-            "growth": [10, 15],
-            "ops_efficiency": [80, 92],
-        }),
+        "benchmark_bands": json.dumps(
+            {
+                "market_share": [12, 16],
+                "margin": [14, 18],
+                "growth": [10, 15],
+                "ops_efficiency": [80, 92],
+            }
+        ),
         "starting_cash": Decimal("1500000000"),
         "starting_stock_price": Decimal("100"),
         "starting_shares": 1000000,
@@ -1859,12 +1955,14 @@ Regional Leader's path to victory lies in smart national expansion without sacri
         "slug": "premium-niche",
         "description": "A premium-positioned snack brand targeting health-conscious urban consumers with high margins but a small addressable market.",
         "sector": "FOODS",
-        "benchmark_bands": json.dumps({
-            "market_share": [2, 5],
-            "margin": [22, 30],
-            "growth": [20, 35],
-            "ops_efficiency": [55, 70],
-        }),
+        "benchmark_bands": json.dumps(
+            {
+                "market_share": [2, 5],
+                "margin": [22, 30],
+                "growth": [20, 35],
+                "ops_efficiency": [55, 70],
+            }
+        ),
         "starting_cash": Decimal("800000000"),
         "starting_stock_price": Decimal("100"),
         "starting_shares": 1000000,
@@ -2015,11 +2113,17 @@ async def list_fundamentals_queue(
 
     if status_filter:
         try:
-            query = query.where(FundamentalEvaluation.status == FundamentalEvalStatus(status_filter))
+            query = query.where(
+                FundamentalEvaluation.status == FundamentalEvalStatus(status_filter)
+            )
         except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid status: {status_filter}")
+            raise HTTPException(
+                status_code=422, detail=f"Invalid status: {status_filter}"
+            )
     else:
-        query = query.where(FundamentalEvaluation.status == FundamentalEvalStatus.PENDING_APPROVAL)
+        query = query.where(
+            FundamentalEvaluation.status == FundamentalEvalStatus.PENDING_APPROVAL
+        )
 
     query = query.order_by(FundamentalEvaluation.created_at.desc())
 
@@ -2028,24 +2132,31 @@ async def list_fundamentals_queue(
 
     items = []
     for ev, team in rows:
-        items.append(FundamentalEvalListItem(
-            id=str(ev.id),
-            team_id=str(ev.team_id),
-            ticker=team.ticker,
-            team_name=team.name,
-            round_number=ev.round_number,
-            status=ev.status.value,
-            proposed_deltas=json.loads(ev.proposed_deltas) if ev.proposed_deltas else {},
-            admin_edits=json.loads(ev.admin_edits) if ev.admin_edits else None,
-            narrative=ev.narrative,
-            created_at=ev.created_at.isoformat() if ev.created_at else None,
-            approved_at=ev.approved_at.isoformat() if ev.approved_at else None,
-            rejected_at=ev.rejected_at.isoformat() if ev.rejected_at else None,
-        ))
+        items.append(
+            FundamentalEvalListItem(
+                id=str(ev.id),
+                team_id=str(ev.team_id),
+                ticker=team.ticker,
+                team_name=team.name,
+                round_number=ev.round_number,
+                status=ev.status.value,
+                proposed_deltas=json.loads(ev.proposed_deltas)
+                if ev.proposed_deltas
+                else {},
+                admin_edits=json.loads(ev.admin_edits) if ev.admin_edits else None,
+                narrative=ev.narrative,
+                created_at=ev.created_at.isoformat() if ev.created_at else None,
+                approved_at=ev.approved_at.isoformat() if ev.approved_at else None,
+                rejected_at=ev.rejected_at.isoformat() if ev.rejected_at else None,
+            )
+        )
     return items
 
 
-@router.post("/fundamentals-queue/{evaluation_id}/approve", response_model=FundamentalApproveResponse)
+@router.post(
+    "/fundamentals-queue/{evaluation_id}/approve",
+    response_model=FundamentalApproveResponse,
+)
 async def approve_fundamental_eval(
     evaluation_id: uuid.UUID,
     admin: dict = Depends(require_admin),
@@ -2060,23 +2171,27 @@ async def approve_fundamental_eval(
         status_code = 404 if "not found" in msg.lower() else 409
         raise HTTPException(status_code=status_code, detail=msg)
 
-    db.add(ActivityEvent(
-        event_type="FUNDAMENTAL_APPROVED",
-        actor="admin",
-        description=f"Fundamentals approved for {result['ticker']} (drift target: {result['drift_target_pct']})",
-        metadata_json=json.dumps(result),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="FUNDAMENTAL_APPROVED",
+            actor="admin",
+            description=f"Fundamentals approved for {result['ticker']} (drift target: {result['drift_target_pct']})",
+            metadata_json=json.dumps(result),
+        )
+    )
     await db.commit()
 
-    await publish_broadcast({
-        "type": "fundamentals_updated",
-        "payload": {
-            "evaluation_id": result["evaluation_id"],
-            "team_id": result["team_id"],
-            "ticker": result["ticker"],
-            "drift_target_pct": result["drift_target_pct"],
-        },
-    })
+    await publish_broadcast(
+        {
+            "type": "fundamentals_updated",
+            "payload": {
+                "evaluation_id": result["evaluation_id"],
+                "team_id": result["team_id"],
+                "ticker": result["ticker"],
+                "drift_target_pct": result["drift_target_pct"],
+            },
+        }
+    )
 
     return FundamentalApproveResponse(
         evaluation_id=result["evaluation_id"],
@@ -2121,12 +2236,14 @@ async def compute_fundamentals_endpoint(
 
     summary = await trigger_compute_for_round(db, request.round_number)
 
-    db.add(ActivityEvent(
-        event_type="FUNDAMENTALS_COMPUTED",
-        actor="admin",
-        description=f"Round {request.round_number}: {len(summary['created'])} created, {len(summary['skipped'])} skipped, {len(summary['failed'])} failed",
-        metadata_json=json.dumps(summary),
-    ))
+    db.add(
+        ActivityEvent(
+            event_type="FUNDAMENTALS_COMPUTED",
+            actor="admin",
+            description=f"Round {request.round_number}: {len(summary['created'])} created, {len(summary['skipped'])} skipped, {len(summary['failed'])} failed",
+            metadata_json=json.dumps(summary),
+        )
+    )
     await db.commit()
 
     return summary

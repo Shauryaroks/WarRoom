@@ -51,17 +51,17 @@ class TransactionType(str, enum.Enum):
 
 
 class SolutionType(str, enum.Enum):
-    INITIAL = "INITIAL"              # Full strategic roadmap (per D-02)
-    MICROTWEAK = "MICROTWEAK"        # Additive tweak (per D-03)
+    INITIAL = "INITIAL"  # Full strategic roadmap (per D-02)
+    MICROTWEAK = "MICROTWEAK"  # Additive tweak (per D-03)
     CRISIS_RESPONSE = "CRISIS_RESPONSE"  # Crisis event response (per D-04)
 
 
 class EvaluationStatus(str, enum.Enum):
-    PROCESSING = "PROCESSING"          # LLM call in progress
+    PROCESSING = "PROCESSING"  # LLM call in progress
     PENDING_APPROVAL = "PENDING_APPROVAL"  # Awaiting admin review (per EVAL-03)
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
-    FAILED = "FAILED"                  # LLM call failed
+    FAILED = "FAILED"  # LLM call failed
 
 
 class DirectiveStatus(str, enum.Enum):
@@ -123,13 +123,19 @@ class Archetype(Base):
     dossier_content: Mapped[str] = mapped_column(Text, nullable=False)
     benchmark_bands: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
     starting_cash: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
-    starting_stock_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    starting_shares: Mapped[int] = mapped_column(Integer, nullable=False, default=1000000)
+    starting_stock_price: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False
+    )
+    starting_shares: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1000000
+    )
     swot_strengths: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     swot_weaknesses: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     swot_opportunities: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     swot_threats: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    real_world_inspiration: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    real_world_inspiration: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True
+    )
     is_preset: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
@@ -155,15 +161,9 @@ class Team(Base):
     strategist_email: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False
     )
-    strategist_password_hash: Mapped[str] = mapped_column(
-        String(255), nullable=False
-    )
-    trader_email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False
-    )
-    trader_password_hash: Mapped[str] = mapped_column(
-        String(255), nullable=False
-    )
+    strategist_password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    trader_email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    trader_password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     status: Mapped[TeamStatus] = mapped_column(
         Enum(TeamStatus), default=TeamStatus.PENDING
@@ -183,9 +183,7 @@ class Team(Base):
 
     # Financial State
     cash: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("1000000"))
-    stock_price: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), default=Decimal("100")
-    )
+    stock_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("100"))
     shares_outstanding: Mapped[int] = mapped_column(Integer, default=1000000)
     public_float: Mapped[int] = mapped_column(Integer, default=100000)
     treasury_shares: Mapped[int] = mapped_column(Integer, default=900000)
@@ -231,9 +229,7 @@ class Team(Base):
     eliminated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    elimination_reason: Mapped[Optional[str]] = mapped_column(
-        String(20), nullable=True
-    )
+    elimination_reason: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     rank_at_elimination: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     # Admin rejection reason
@@ -246,7 +242,9 @@ class Team(Base):
 
     # Caseline document (per D-12, D-14)
     caseline_document: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    company_display_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    company_display_name: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
@@ -333,9 +331,7 @@ class Directive(Base):
     )
 
     # Financial Impact (JSON stored as text)
-    financial_impact: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
-    )  # JSON
+    financial_impact: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
 
     # Board Feedback
     board_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -403,9 +399,7 @@ class Evaluation(Base):
     )
 
     # LLM output: scoring metrics (per D-06 -- placeholder fields)
-    scoring_metrics: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
-    )  # JSON
+    scoring_metrics: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     overall_score: Mapped[Optional[float]] = mapped_column(nullable=True)
 
     # LLM output: price timeline (per D-06)
@@ -423,9 +417,7 @@ class Evaluation(Base):
     # LLM call tracking
     llm_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     llm_latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    llm_cost: Mapped[Optional[Decimal]] = mapped_column(
-        Numeric(10, 6), nullable=True
-    )
+    llm_cost: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 6), nullable=True)
     raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Approval tracking
@@ -445,9 +437,7 @@ class Evaluation(Base):
     )
 
     # Relationships
-    solution: Mapped["Solution"] = relationship(
-        "Solution", back_populates="evaluation"
-    )
+    solution: Mapped["Solution"] = relationship("Solution", back_populates="evaluation")
     team: Mapped["Team"] = relationship("Team")
 
 
@@ -467,7 +457,9 @@ class FundamentalEvaluation(Base):
     )
     round_number: Mapped[int] = mapped_column(Integer, nullable=False)
     proposed_deltas: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
-    admin_edits: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string, null until edited
+    admin_edits: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON string, null until edited
     narrative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[FundamentalEvalStatus] = mapped_column(
         Enum(FundamentalEvalStatus, name="fundamentalevalstatus"),
@@ -734,9 +726,7 @@ class Decision(Base):
         Enum(LeverCategory), nullable=False
     )
     decisions_json: Mapped[str] = mapped_column(Text, nullable=False)
-    budget_spent: Mapped[Decimal] = mapped_column(
-        Numeric(15, 2), default=Decimal("0")
-    )
+    budget_spent: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"))
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
@@ -752,12 +742,16 @@ class Decision(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "team_id", "round_number", "lever_category",
+            "team_id",
+            "round_number",
+            "lever_category",
             name="uq_decision_team_round_lever",
         ),
         Index(
             "ix_decisions_team_round_lever",
-            "team_id", "round_number", "lever_category",
+            "team_id",
+            "round_number",
+            "lever_category",
         ),
     )
 
@@ -782,7 +776,8 @@ class OperatingPlan(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "team_id", "round_number",
+            "team_id",
+            "round_number",
             name="uq_operating_plan_team_round",
         ),
     )

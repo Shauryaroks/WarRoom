@@ -24,7 +24,7 @@ export function CaselinePanel() {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "Failed to load caseline"
+            err instanceof Error ? err.message : "Failed to load caseline",
           );
           setIsLoading(false);
         }
@@ -60,14 +60,10 @@ export function CaselinePanel() {
           )}
           <div className="flex justify-between">
             <span className="text-[10px] text-[#89919d] uppercase">TEAM</span>
-            <span className="font-mono text-xs text-[#e5e2e1]">
-              {teamName}
-            </span>
+            <span className="font-mono text-xs text-[#e5e2e1]">{teamName}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[10px] text-[#89919d] uppercase">
-              TICKER
-            </span>
+            <span className="text-[10px] text-[#89919d] uppercase">TICKER</span>
             <span className="font-mono text-xs text-[#9ecaff]">${ticker}</span>
           </div>
           <div className="flex justify-between">
@@ -99,33 +95,50 @@ export function CaselinePanel() {
             </div>
 
             {/* Benchmark bands summary */}
-            {caseline.benchmark_bands && (() => {
-              try {
-                const bands = JSON.parse(caseline.benchmark_bands);
-                return (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-[#89919d] uppercase">MKT SHARE</span>
-                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.market_share[0]}-{bands.market_share[1]}%</span>
+            {caseline.benchmark_bands &&
+              (() => {
+                try {
+                  const bands = JSON.parse(caseline.benchmark_bands);
+                  return (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-[#89919d] uppercase">
+                          MKT SHARE
+                        </span>
+                        <span className="font-mono text-xs text-[#e5e2e1]">
+                          {bands.market_share[0]}-{bands.market_share[1]}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-[#89919d] uppercase">
+                          MARGIN
+                        </span>
+                        <span className="font-mono text-xs text-[#e5e2e1]">
+                          {bands.margin[0]}-{bands.margin[1]}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-[#89919d] uppercase">
+                          GROWTH
+                        </span>
+                        <span className="font-mono text-xs text-[#e5e2e1]">
+                          {bands.growth[0]}-{bands.growth[1]}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-[#89919d] uppercase">
+                          OPS EFF
+                        </span>
+                        <span className="font-mono text-xs text-[#e5e2e1]">
+                          {bands.ops_efficiency[0]}-{bands.ops_efficiency[1]}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-[#89919d] uppercase">MARGIN</span>
-                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.margin[0]}-{bands.margin[1]}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-[#89919d] uppercase">GROWTH</span>
-                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.growth[0]}-{bands.growth[1]}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-[#89919d] uppercase">OPS EFF</span>
-                      <span className="font-mono text-xs text-[#e5e2e1]">{bands.ops_efficiency[0]}-{bands.ops_efficiency[1]}%</span>
-                    </div>
-                  </div>
-                );
-              } catch {
-                return null;
-              }
-            })()}
+                  );
+                } catch {
+                  return null;
+                }
+              })()}
           </div>
         </div>
       )}

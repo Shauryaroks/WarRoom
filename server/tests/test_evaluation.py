@@ -91,19 +91,23 @@ def _make_evaluation(solution, team, status=EvaluationStatus.PENDING_APPROVAL):
     ev.solution_id = solution.id
     ev.team_id = team.id
     ev.status = status
-    ev.scoring_metrics = json.dumps({
-        "strategic_quality": 0.7,
-        "feasibility": 0.6,
-        "innovation": 0.8,
-        "market_awareness": 0.5,
-        "overall_score": 0.65,
-    })
+    ev.scoring_metrics = json.dumps(
+        {
+            "strategic_quality": 0.7,
+            "feasibility": 0.6,
+            "innovation": 0.8,
+            "market_awareness": 0.5,
+            "overall_score": 0.65,
+        }
+    )
     ev.overall_score = 0.65
-    ev.price_timeline = json.dumps([
-        {"month": 1, "price_change_pct": 5.0},
-        {"month": 2, "price_change_pct": 3.0},
-        {"month": 3, "price_change_pct": 2.0},
-    ])
+    ev.price_timeline = json.dumps(
+        [
+            {"month": 1, "price_change_pct": 5.0},
+            {"month": 2, "price_change_pct": 3.0},
+            {"month": 3, "price_change_pct": 2.0},
+        ]
+    )
     ev.news_headline = "Test Corp Announces Expansion"
     ev.news_body = "Test Corp revealed plans to expand into AI-driven markets."
     ev.news_sentiment = Decimal("0.60")
@@ -233,11 +237,13 @@ class TestApproveEvaluation:
         eval_obj.solution_id = solution.id
         eval_obj.team_id = team.id
         eval_obj.status = EvaluationStatus.PENDING_APPROVAL
-        eval_obj.price_timeline = json.dumps([
-            {"month": 1, "price_change_pct": 5.0},
-            {"month": 2, "price_change_pct": 3.0},
-            {"month": 3, "price_change_pct": 2.0},
-        ])
+        eval_obj.price_timeline = json.dumps(
+            [
+                {"month": 1, "price_change_pct": 5.0},
+                {"month": 2, "price_change_pct": 3.0},
+                {"month": 3, "price_change_pct": 2.0},
+            ]
+        )
         eval_obj.news_headline = "Test Corp Expansion"
         eval_obj.news_body = "Test Corp plans to expand."
         eval_obj.news_sentiment = Decimal("0.60")

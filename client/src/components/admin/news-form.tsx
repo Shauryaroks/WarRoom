@@ -23,7 +23,7 @@ export function NewsForm({ teams, onSubmit, isSubmitting }: NewsFormProps) {
     setSelectedTickers((prev) =>
       prev.includes(ticker)
         ? prev.filter((t) => t !== ticker)
-        : [...prev, ticker]
+        : [...prev, ticker],
     );
   }
 

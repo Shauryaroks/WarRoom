@@ -105,7 +105,8 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return;
 
-    const chartData = data && data.length > 0 ? data : generatePlaceholderData();
+    const chartData =
+      data && data.length > 0 ? data : generatePlaceholderData();
 
     const formattedData = chartData.map((c) => ({
       time: c.time as Time,

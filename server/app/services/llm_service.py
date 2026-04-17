@@ -157,7 +157,9 @@ async def call_openrouter(
             "temperature": temperature,
             "response_format": {
                 "type": "json_schema",
-                "json_schema": json_schema if json_schema is not None else EVALUATION_SCHEMA,
+                "json_schema": json_schema
+                if json_schema is not None
+                else EVALUATION_SCHEMA,
             },
         }
 
@@ -168,7 +170,9 @@ async def call_openrouter(
                 response.raise_for_status()
         except httpx.HTTPStatusError as e:
             last_error = f"HTTP {e.response.status_code} from {attempt_model}: {e.response.text[:300]}"
-            logger.warning("LLM call failed on %s, trying next: %s", attempt_model, last_error)
+            logger.warning(
+                "LLM call failed on %s, trying next: %s", attempt_model, last_error
+            )
             continue
         except httpx.TimeoutException:
             last_error = f"Timeout from {attempt_model}"

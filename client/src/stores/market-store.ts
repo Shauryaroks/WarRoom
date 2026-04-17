@@ -47,7 +47,8 @@ function aggregateToCandles(ticks: PriceTick[]): CandleData[] {
   const buckets = new Map<number, PriceTick[]>();
 
   for (const tick of ticks) {
-    const bucket = Math.floor(tick.timestamp / CANDLE_INTERVAL) * CANDLE_INTERVAL;
+    const bucket =
+      Math.floor(tick.timestamp / CANDLE_INTERVAL) * CANDLE_INTERVAL;
     if (!buckets.has(bucket)) buckets.set(bucket, []);
     buckets.get(bucket)!.push(tick);
   }

@@ -50,24 +50,44 @@ def upgrade() -> None:
     # Use PG_ENUM with create_type=False to bind to the Postgres enums already
     # created via the raw DDL above; this avoids SQLAlchemy re-emitting CREATE TYPE.
     fundstatus_col = PG_ENUM(
-        "PROCESSING", "PENDING_APPROVAL", "APPROVED", "REJECTED", "FAILED",
+        "PROCESSING",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "REJECTED",
+        "FAILED",
         name="fundamentalevalstatus",
         create_type=False,
     )
     shocksource_col = PG_ENUM(
-        "CRISIS", "LLM_EVENT",
+        "CRISIS",
+        "LLM_EVENT",
         name="shocksource",
         create_type=False,
     )
 
     # --- Team new columns (D-30, nullable for safe rollout) ---
-    op.add_column("teams", sa.Column("fundamental_market_share", sa.Numeric(10, 4), nullable=True))
-    op.add_column("teams", sa.Column("fundamental_margin", sa.Numeric(10, 4), nullable=True))
-    op.add_column("teams", sa.Column("fundamental_growth", sa.Numeric(10, 4), nullable=True))
-    op.add_column("teams", sa.Column("fundamental_ops_efficiency", sa.Numeric(10, 4), nullable=True))
-    op.add_column("teams", sa.Column("drift_target_pct", sa.Numeric(8, 6), nullable=True))
-    op.add_column("teams", sa.Column("drift_floor_pct", sa.Numeric(8, 6), nullable=True))
-    op.add_column("teams", sa.Column("ramp_started_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        "teams", sa.Column("fundamental_market_share", sa.Numeric(10, 4), nullable=True)
+    )
+    op.add_column(
+        "teams", sa.Column("fundamental_margin", sa.Numeric(10, 4), nullable=True)
+    )
+    op.add_column(
+        "teams", sa.Column("fundamental_growth", sa.Numeric(10, 4), nullable=True)
+    )
+    op.add_column(
+        "teams",
+        sa.Column("fundamental_ops_efficiency", sa.Numeric(10, 4), nullable=True),
+    )
+    op.add_column(
+        "teams", sa.Column("drift_target_pct", sa.Numeric(8, 6), nullable=True)
+    )
+    op.add_column(
+        "teams", sa.Column("drift_floor_pct", sa.Numeric(8, 6), nullable=True)
+    )
+    op.add_column(
+        "teams", sa.Column("ramp_started_at", sa.DateTime(timezone=True), nullable=True)
+    )
 
     # --- Team v1 column drops (D-31) ---
     op.drop_column("teams", "target_price")
@@ -77,7 +97,9 @@ def upgrade() -> None:
     op.create_table(
         "fundamental_evaluations",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+        sa.Column(
+            "team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False
+        ),
         sa.Column("round_number", sa.Integer(), nullable=False),
         sa.Column("proposed_deltas", sa.Text(), nullable=False),
         sa.Column("admin_edits", sa.Text(), nullable=True),
@@ -92,8 +114,18 @@ def upgrade() -> None:
         sa.Column("llm_latency_ms", sa.Integer(), nullable=True),
         sa.Column("raw_response", sa.Text(), nullable=True),
         sa.Column("admin_notes", sa.Text(), nullable=True),
-        sa.Column("approved_by_admin_id", UUID(as_uuid=True), sa.ForeignKey("admins.id"), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "approved_by_admin_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("admins.id"),
+            nullable=True,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("approved_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("rejected_at", sa.DateTime(timezone=True), nullable=True),
         sa.UniqueConstraint("team_id", "round_number", name="uq_fundeval_team_round"),
@@ -104,7 +136,9 @@ def upgrade() -> None:
     op.create_table(
         "pending_shocks",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False),
+        sa.Column(
+            "team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id"), nullable=False
+        ),
         sa.Column("magnitude_pct", sa.Numeric(6, 3), nullable=False),
         sa.Column(
             "source",
@@ -112,20 +146,29 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("source_ref_id", UUID(as_uuid=True), nullable=True),
-        sa.Column("enqueued_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "enqueued_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("applied_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_pending_shocks_team_unapplied", "pending_shocks", ["team_id", "applied_at"])
+    op.create_index(
+        "ix_pending_shocks_team_unapplied", "pending_shocks", ["team_id", "applied_at"]
+    )
 
     # --- Backfill fundamentals for existing archetype-assigned teams (D-03, Open Question 5) ---
     # Idempotent: only updates teams where fundamental_market_share IS NULL.
     conn = op.get_bind()
-    archetypes = conn.execute(sa.text("SELECT id, benchmark_bands FROM archetypes")).fetchall()
+    archetypes = conn.execute(
+        sa.text("SELECT id, benchmark_bands FROM archetypes")
+    ).fetchall()
     for row in archetypes:
         bands = json.loads(row.benchmark_bands)
-        mid_ms = (bands["market_share"][0]   + bands["market_share"][1])   / 2
-        mid_mg = (bands["margin"][0]         + bands["margin"][1])         / 2
-        mid_gr = (bands["growth"][0]         + bands["growth"][1])         / 2
+        mid_ms = (bands["market_share"][0] + bands["market_share"][1]) / 2
+        mid_mg = (bands["margin"][0] + bands["margin"][1]) / 2
+        mid_gr = (bands["growth"][0] + bands["growth"][1]) / 2
         mid_op = (bands["ops_efficiency"][0] + bands["ops_efficiency"][1]) / 2
         conn.execute(
             sa.text(

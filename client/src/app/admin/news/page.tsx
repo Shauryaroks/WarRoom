@@ -17,9 +17,7 @@ function SourceChip({ sourceType }: { sourceType: string }) {
   const color = colorMap[sourceType] || "text-gray-500";
 
   return (
-    <span className={`font-mono text-sm font-bold ${color}`}>
-      {sourceType}
-    </span>
+    <span className={`font-mono text-sm font-bold ${color}`}>{sourceType}</span>
   );
 }
 
@@ -77,7 +75,7 @@ export default function NewsPage() {
         addNews(payload);
       }
     },
-    [addNews]
+    [addNews],
   );
 
   useWebSocket({ onMessage: handleWsMessage });
@@ -90,9 +88,7 @@ export default function NewsPage() {
           api.getTeams(),
         ]);
         setNews(newsHistory);
-        setTeams(
-          teamList.map((t) => ({ id: t.id, ticker: t.ticker }))
-        );
+        setTeams(teamList.map((t) => ({ id: t.id, ticker: t.ticker })));
       } catch {
         // Data load failure is non-fatal -- UI shows empty state
       }
@@ -120,9 +116,7 @@ export default function NewsPage() {
       });
       toast.success("News injected");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to inject news"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to inject news");
     } finally {
       setIsSubmittingNews(false);
     }
@@ -147,7 +141,7 @@ export default function NewsPage() {
       setBroadcastMessage("");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to send broadcast"
+        err instanceof Error ? err.message : "Failed to send broadcast",
       );
     } finally {
       setIsSubmittingBroadcast(false);

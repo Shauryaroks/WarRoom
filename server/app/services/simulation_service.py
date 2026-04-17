@@ -89,7 +89,9 @@ def compute_weighted_z(team: Team, bands: dict) -> Decimal:
         return Decimal("0")
     ms = z_score(team.fundamental_market_share, bands.get("market_share", [0, 100]))
     mg = z_score(team.fundamental_margin, bands.get("margin", [0, 30]))
-    op = z_score(team.fundamental_ops_efficiency, bands.get("ops_efficiency", [60, 100]))
+    op = z_score(
+        team.fundamental_ops_efficiency, bands.get("ops_efficiency", [60, 100])
+    )
     gr = z_score(team.fundamental_growth, bands.get("growth", [0, 50]))
     return (
         WEIGHT_MARKET_SHARE * ms
@@ -132,7 +134,9 @@ async def compute_sentiment(
         select(Transaction).where(
             and_(
                 Transaction.target_team_id == team_id,
-                Transaction.transaction_type.in_([TransactionType.BUY, TransactionType.SELL]),
+                Transaction.transaction_type.in_(
+                    [TransactionType.BUY, TransactionType.SELL]
+                ),
                 Transaction.executed_at >= cutoff,
             )
         )

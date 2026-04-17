@@ -94,9 +94,7 @@ async def build_prompt(db: AsyncSession, solution_id: uuid.UUID) -> list[dict]:
 
     # Load recent market news (last 10)
     news_result = await db.execute(
-        select(MarketNews)
-        .order_by(desc(MarketNews.created_at))
-        .limit(10)
+        select(MarketNews).order_by(desc(MarketNews.created_at)).limit(10)
     )
     recent_news = news_result.scalars().all()
 
@@ -150,13 +148,15 @@ Also provide:
         "trajectory, and a news article. Be fair but rigorous."
     )
 
-    user_content = "\n\n".join([
-        company_profile,
-        solution_section,
-        competitor_section,
-        news_section,
-        scoring_section,
-    ])
+    user_content = "\n\n".join(
+        [
+            company_profile,
+            solution_section,
+            competitor_section,
+            news_section,
+            scoring_section,
+        ]
+    )
 
     return [
         {"role": "system", "content": system_prompt},
@@ -182,9 +182,7 @@ async def save_evaluation(
         The created Evaluation record.
     """
     # Load solution to get team_id
-    result = await db.execute(
-        select(Solution).where(Solution.id == solution_id)
-    )
+    result = await db.execute(select(Solution).where(Solution.id == solution_id))
     solution = result.scalar_one_or_none()
     if solution is None:
         raise ValueError(f"Solution {solution_id} not found")
@@ -211,9 +209,7 @@ async def save_evaluation(
     return evaluation
 
 
-async def approve_evaluation(
-    db: AsyncSession, evaluation_id: uuid.UUID
-) -> dict:
+async def approve_evaluation(db: AsyncSession, evaluation_id: uuid.UUID) -> dict:
     """Approve an evaluation: write target_price to Team, publish news.
 
     Per D-11: Converts price_timeline to target_price/ticks_to_target.
@@ -229,9 +225,7 @@ async def approve_evaluation(
     Raises:
         ValueError: If evaluation not found or not in PENDING_APPROVAL status.
     """
-    result = await db.execute(
-        select(Evaluation).where(Evaluation.id == evaluation_id)
-    )
+    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id))
     evaluation = result.scalar_one_or_none()
     if evaluation is None:
         raise ValueError(f"Evaluation {evaluation_id} not found")
@@ -242,9 +236,7 @@ async def approve_evaluation(
         )
 
     # Load team
-    team_result = await db.execute(
-        select(Team).where(Team.id == evaluation.team_id)
-    )
+    team_result = await db.execute(select(Team).where(Team.id == evaluation.team_id))
     team = team_result.scalar_one()
 
     # Phase 9 D-28: Approve no longer writes target_price; price is driven by
@@ -252,9 +244,7 @@ async def approve_evaluation(
     # Keep the timeline parsing for reporting but DO NOT mutate team price fields.
     timeline = json.loads(evaluation.price_timeline)
     final_change_pct = sum(entry["price_change_pct"] for entry in timeline)
-    target_price = round(
-        team.stock_price * Decimal(str(1 + final_change_pct / 100)), 2
-    )
+    target_price = round(team.stock_price * Decimal(str(1 + final_change_pct / 100)), 2)
 
     # Create MarketNews from LLM output
     news = MarketNews(
@@ -298,9 +288,7 @@ async def reject_evaluation(
     Raises:
         ValueError: If evaluation not found or not in PENDING_APPROVAL status.
     """
-    result = await db.execute(
-        select(Evaluation).where(Evaluation.id == evaluation_id)
-    )
+    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id))
     evaluation = result.scalar_one_or_none()
     if evaluation is None:
         raise ValueError(f"Evaluation {evaluation_id} not found")

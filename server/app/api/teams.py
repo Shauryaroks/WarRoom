@@ -54,7 +54,9 @@ async def public_game_state(
     """Get game state. Accessible to any authenticated user (not just admin)."""
     state = await get_game_state_readonly(db)
     if not state:
-        return PublicGameStateResponse(status="SETUP", elapsed_seconds=0, current_round=0)
+        return PublicGameStateResponse(
+            status="SETUP", elapsed_seconds=0, current_round=0
+        )
     elapsed = calculate_elapsed_seconds(state)
     return PublicGameStateResponse(
         status=state.status.value,

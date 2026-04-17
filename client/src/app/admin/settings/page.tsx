@@ -66,11 +66,17 @@ export default function SettingsPage() {
         });
       })
       .catch(() => {});
-    api.getArchetypes().then(setArchetypes).catch(() => {});
+    api
+      .getArchetypes()
+      .then(setArchetypes)
+      .catch(() => {});
   }, [setGameState]);
 
   function loadArchetypes() {
-    api.getArchetypes().then(setArchetypes).catch(() => {});
+    api
+      .getArchetypes()
+      .then(setArchetypes)
+      .catch(() => {});
   }
 
   async function handleSeedArchetypes() {
@@ -78,12 +84,12 @@ export default function SettingsPage() {
     try {
       const result = await api.seedArchetypes();
       toast.success(
-        `Seeded ${result.created.length} archetypes, skipped ${result.skipped.length}`
+        `Seeded ${result.created.length} archetypes, skipped ${result.skipped.length}`,
       );
       loadArchetypes();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to seed archetypes"
+        err instanceof Error ? err.message : "Failed to seed archetypes",
       );
     } finally {
       setIsSeeding(false);
@@ -97,7 +103,7 @@ export default function SettingsPage() {
       loadArchetypes();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to delete archetype"
+        err instanceof Error ? err.message : "Failed to delete archetype",
       );
     }
   }
@@ -127,21 +133,30 @@ export default function SettingsPage() {
   }
 
   async function handleCreateArchetype() {
-    if (!formName.trim() || !formDossier.trim() || !formCash || !formStockPrice) {
+    if (
+      !formName.trim() ||
+      !formDossier.trim() ||
+      !formCash ||
+      !formStockPrice
+    ) {
       toast.error("Name, dossier, starting cash, and stock price are required");
       return;
     }
     setIsCreating(true);
     try {
       const benchmarkBands = JSON.stringify({
-        market_share: [Number(formMktShareMin) || 0, Number(formMktShareMax) || 0],
+        market_share: [
+          Number(formMktShareMin) || 0,
+          Number(formMktShareMax) || 0,
+        ],
         margin: [Number(formMarginMin) || 0, Number(formMarginMax) || 0],
         growth: [Number(formGrowthMin) || 0, Number(formGrowthMax) || 0],
         ops_efficiency: [Number(formOpsMin) || 0, Number(formOpsMax) || 0],
       });
       await api.createArchetype({
         name: formName.trim(),
-        slug: formSlug.trim() || formName.trim().toLowerCase().replace(/\s+/g, "-"),
+        slug:
+          formSlug.trim() || formName.trim().toLowerCase().replace(/\s+/g, "-"),
         sector: formSector,
         description: formDescription.trim() || null,
         dossier_content: formDossier,
@@ -161,7 +176,7 @@ export default function SettingsPage() {
       loadArchetypes();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to create archetype"
+        err instanceof Error ? err.message : "Failed to create archetype",
       );
     } finally {
       setIsCreating(false);
@@ -198,7 +213,7 @@ export default function SettingsPage() {
       toast.success(`Advanced to Q${result.current_round}`);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to advance round"
+        err instanceof Error ? err.message : "Failed to advance round",
       );
     } finally {
       setIsAdvancing(false);
@@ -225,7 +240,7 @@ export default function SettingsPage() {
       toast.success("Game restarted successfully");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to restart game"
+        err instanceof Error ? err.message : "Failed to restart game",
       );
     } finally {
       setIsRestarting(false);
@@ -331,23 +346,42 @@ export default function SettingsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#2a2a2a]">
-                  <th className="text-left text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">NAME</th>
-                  <th className="text-left text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">SECTOR</th>
-                  <th className="text-right text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">STARTING_CASH</th>
-                  <th className="text-right text-xs text-gray-600 uppercase font-mono tracking-widest py-2">ACTIONS</th>
+                  <th className="text-left text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">
+                    NAME
+                  </th>
+                  <th className="text-left text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">
+                    SECTOR
+                  </th>
+                  <th className="text-right text-xs text-gray-600 uppercase font-mono tracking-widest py-2 pr-4">
+                    STARTING_CASH
+                  </th>
+                  <th className="text-right text-xs text-gray-600 uppercase font-mono tracking-widest py-2">
+                    ACTIONS
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {archetypes.map((a) => (
-                  <tr key={a.id} className="hover:bg-[#2a2a2a] transition-colors">
-                    <td className="py-3 pr-4 font-mono font-bold text-[#e5e2e1] text-sm">{a.name}</td>
-                    <td className="py-3 pr-4">
-                      <span className="font-mono text-xs text-[#89919d] uppercase">{a.sector}</span>
+                  <tr
+                    key={a.id}
+                    className="hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    <td className="py-3 pr-4 font-mono font-bold text-[#e5e2e1] text-sm">
+                      {a.name}
                     </td>
-                    <td className="py-3 pr-4 text-right font-mono text-sm text-[#e5e2e1]">{a.starting_cash}</td>
+                    <td className="py-3 pr-4">
+                      <span className="font-mono text-xs text-[#89919d] uppercase">
+                        {a.sector}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-right font-mono text-sm text-[#e5e2e1]">
+                      {a.starting_cash}
+                    </td>
                     <td className="py-3 text-right">
                       {a.is_preset ? (
-                        <span className="font-mono text-[10px] text-[#2196f3]/60 uppercase px-2 py-1 bg-[#2196f3]/10">PRESET</span>
+                        <span className="font-mono text-[10px] text-[#2196f3]/60 uppercase px-2 py-1 bg-[#2196f3]/10">
+                          PRESET
+                        </span>
                       ) : (
                         <button
                           onClick={() => handleDeleteArchetype(a.id)}
@@ -364,7 +398,9 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="text-center py-6">
-            <span className="font-mono text-xs text-gray-600 tracking-widest">NO_ARCHETYPES // CLICK SEED_PRESETS</span>
+            <span className="font-mono text-xs text-gray-600 tracking-widest">
+              NO_ARCHETYPES // CLICK SEED_PRESETS
+            </span>
           </div>
         )}
 
@@ -381,19 +417,25 @@ export default function SettingsPage() {
           <div className="border border-[#2a2a2a] p-4 flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">NAME *</label>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                  NAME *
+                </label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => {
                     setFormName(e.target.value);
-                    setFormSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+                    setFormSlug(
+                      e.target.value.toLowerCase().replace(/\s+/g, "-"),
+                    );
                   }}
                   className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">SLUG</label>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                  SLUG
+                </label>
                 <input
                   type="text"
                   value={formSlug}
@@ -402,7 +444,9 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">SECTOR</label>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                  SECTOR
+                </label>
                 <select
                   value={formSector}
                   onChange={(e) => setFormSector(e.target.value)}
@@ -415,7 +459,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">DESCRIPTION</label>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                DESCRIPTION
+              </label>
               <input
                 type="text"
                 value={formDescription}
@@ -425,7 +471,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">DOSSIER_CONTENT * // MARKDOWN</label>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                DOSSIER_CONTENT * // MARKDOWN
+              </label>
               <textarea
                 value={formDossier}
                 onChange={(e) => setFormDossier(e.target.value)}
@@ -436,16 +484,44 @@ export default function SettingsPage() {
 
             {/* Benchmark Bands */}
             <div>
-              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-2 uppercase">BENCHMARK_BANDS</label>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-2 uppercase">
+                BENCHMARK_BANDS
+              </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: "MKT_SHARE", min: formMktShareMin, max: formMktShareMax, setMin: setFormMktShareMin, setMax: setFormMktShareMax },
-                  { label: "MARGIN", min: formMarginMin, max: formMarginMax, setMin: setFormMarginMin, setMax: setFormMarginMax },
-                  { label: "GROWTH", min: formGrowthMin, max: formGrowthMax, setMin: setFormGrowthMin, setMax: setFormGrowthMax },
-                  { label: "OPS_EFF", min: formOpsMin, max: formOpsMax, setMin: setFormOpsMin, setMax: setFormOpsMax },
+                  {
+                    label: "MKT_SHARE",
+                    min: formMktShareMin,
+                    max: formMktShareMax,
+                    setMin: setFormMktShareMin,
+                    setMax: setFormMktShareMax,
+                  },
+                  {
+                    label: "MARGIN",
+                    min: formMarginMin,
+                    max: formMarginMax,
+                    setMin: setFormMarginMin,
+                    setMax: setFormMarginMax,
+                  },
+                  {
+                    label: "GROWTH",
+                    min: formGrowthMin,
+                    max: formGrowthMax,
+                    setMin: setFormGrowthMin,
+                    setMax: setFormGrowthMax,
+                  },
+                  {
+                    label: "OPS_EFF",
+                    min: formOpsMin,
+                    max: formOpsMax,
+                    setMin: setFormOpsMin,
+                    setMax: setFormOpsMax,
+                  },
                 ].map((band) => (
                   <div key={band.label} className="flex flex-col gap-1">
-                    <span className="font-mono text-[9px] text-[#89919d] uppercase">{band.label}</span>
+                    <span className="font-mono text-[9px] text-[#89919d] uppercase">
+                      {band.label}
+                    </span>
                     <div className="flex gap-1">
                       <input
                         type="number"
@@ -470,7 +546,9 @@ export default function SettingsPage() {
             {/* Financial fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">STARTING_CASH *</label>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                  STARTING_CASH *
+                </label>
                 <input
                   type="number"
                   value={formCash}
@@ -480,7 +558,9 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">STARTING_STOCK_PRICE *</label>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                  STARTING_STOCK_PRICE *
+                </label>
                 <input
                   type="number"
                   value={formStockPrice}
@@ -490,7 +570,9 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">STARTING_SHARES</label>
+                <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                  STARTING_SHARES
+                </label>
                 <input
                   type="number"
                   value={formShares}
@@ -502,16 +584,32 @@ export default function SettingsPage() {
 
             {/* SWOT fields */}
             <div>
-              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-2 uppercase">SWOT_ANALYSIS</label>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-2 uppercase">
+                SWOT_ANALYSIS
+              </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
-                  { label: "STRENGTHS", value: formStrengths, set: setFormStrengths },
-                  { label: "WEAKNESSES", value: formWeaknesses, set: setFormWeaknesses },
-                  { label: "OPPORTUNITIES", value: formOpportunities, set: setFormOpportunities },
+                  {
+                    label: "STRENGTHS",
+                    value: formStrengths,
+                    set: setFormStrengths,
+                  },
+                  {
+                    label: "WEAKNESSES",
+                    value: formWeaknesses,
+                    set: setFormWeaknesses,
+                  },
+                  {
+                    label: "OPPORTUNITIES",
+                    value: formOpportunities,
+                    set: setFormOpportunities,
+                  },
                   { label: "THREATS", value: formThreats, set: setFormThreats },
                 ].map((swot) => (
                   <div key={swot.label}>
-                    <span className="font-mono text-[9px] text-[#89919d] uppercase">{swot.label}</span>
+                    <span className="font-mono text-[9px] text-[#89919d] uppercase">
+                      {swot.label}
+                    </span>
                     <textarea
                       value={swot.value}
                       onChange={(e) => swot.set(e.target.value)}
@@ -524,7 +622,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">REAL_WORLD_INSPIRATION</label>
+              <label className="block font-mono text-[10px] text-[#89919d] tracking-widest mb-1 uppercase">
+                REAL_WORLD_INSPIRATION
+              </label>
               <input
                 type="text"
                 value={formInspiration}

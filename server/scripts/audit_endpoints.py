@@ -113,6 +113,7 @@ async def setup_tokens(client: httpx.AsyncClient, state: AuditState) -> None:
     def letter_suffix(n: int = 3) -> str:
         import random
         import string
+
         return "".join(random.choices(string.ascii_uppercase, k=n))
 
     ls = letter_suffix(5)
@@ -163,9 +164,7 @@ async def setup_tokens(client: httpx.AsyncClient, state: AuditState) -> None:
     # Approve both teams
     ah = {"Authorization": f"Bearer {state.admin_token}"}
     for tid in (state.team_id, state.other_team_id):
-        ra = await client.post(
-            f"{BASE}/api/v1/admin/teams/{tid}/approve", headers=ah
-        )
+        ra = await client.post(f"{BASE}/api/v1/admin/teams/{tid}/approve", headers=ah)
         if ra.status_code != 200:
             print(f"FATAL: Approve team {tid} failed: {ra.status_code} {ra.text}")
             sys.exit(1)
@@ -216,7 +215,12 @@ async def test_auth_endpoints(client: httpx.AsyncClient, state: AuditState) -> N
     # /api/v1/auth/register — already tested implicitly during setup; test edge cases
     r = await client.post(
         f"{BASE}/api/v1/auth/register",
-        json={"team_name": "x", "ticker": "ABC", "email": "bad@x.com", "password": "shortp"},
+        json={
+            "team_name": "x",
+            "ticker": "ABC",
+            "email": "bad@x.com",
+            "password": "shortp",
+        },
     )
     await expect(state, "POST /auth/register (short password + short name)", r, 422)
 
@@ -233,7 +237,11 @@ async def test_auth_endpoints(client: httpx.AsyncClient, state: AuditState) -> N
     # /api/v1/auth/login — unknown email
     r = await client.post(
         f"{BASE}/api/v1/auth/login",
-        json={"email": "nobody@nope.com", "password": "testpass123", "role": "strategist"},
+        json={
+            "email": "nobody@nope.com",
+            "password": "testpass123",
+            "role": "strategist",
+        },
     )
     await expect(state, "POST /auth/login (unknown email)", r, 401)
 
@@ -242,7 +250,9 @@ async def test_auth_endpoints(client: httpx.AsyncClient, state: AuditState) -> N
     await expect(state, "GET /auth/me (no auth)", r, {401, 403}, severity=WARNING)
 
     # /api/v1/auth/me — valid
-    r = await client.get(f"{BASE}/api/v1/auth/me", headers=auth_hdr(state.strategist_token))
+    r = await client.get(
+        f"{BASE}/api/v1/auth/me", headers=auth_hdr(state.strategist_token)
+    )
     await expect(state, "GET /auth/me (strategist)", r, 200)
 
     r = await client.get(f"{BASE}/api/v1/auth/me", headers=auth_hdr(state.admin_token))
@@ -254,7 +264,9 @@ async def test_teams_endpoints(client: httpx.AsyncClient, state: AuditState) -> 
     r = await client.get(f"{BASE}/api/v1/teams/approved")
     await expect(state, "GET /teams/approved (no auth)", r, {401, 403})
 
-    r = await client.get(f"{BASE}/api/v1/teams/approved", headers=auth_hdr(state.strategist_token))
+    r = await client.get(
+        f"{BASE}/api/v1/teams/approved", headers=auth_hdr(state.strategist_token)
+    )
     await expect(state, "GET /teams/approved (team)", r, 200)
 
     # /api/v1/teams/game-state
@@ -272,7 +284,9 @@ async def test_game_endpoints(client: httpx.AsyncClient, state: AuditState) -> N
     r = await client.get(f"{BASE}/api/v1/game/phase")
     await expect(state, "GET /game/phase (no auth)", r, {401, 403})
 
-    r = await client.get(f"{BASE}/api/v1/game/phase", headers=auth_hdr(state.admin_token))
+    r = await client.get(
+        f"{BASE}/api/v1/game/phase", headers=auth_hdr(state.admin_token)
+    )
     await expect(state, "GET /game/phase (admin token → 403)", r, 403)
 
     r = await client.get(
@@ -281,7 +295,9 @@ async def test_game_endpoints(client: httpx.AsyncClient, state: AuditState) -> N
     await expect(state, "GET /game/phase (team)", r, 200)
 
     # /api/v1/game/budget
-    r = await client.get(f"{BASE}/api/v1/game/budget", headers=auth_hdr(state.strategist_token))
+    r = await client.get(
+        f"{BASE}/api/v1/game/budget", headers=auth_hdr(state.strategist_token)
+    )
     # budget may return 400 if game not active — accept 200 or 400
     await expect(state, "GET /game/budget (team)", r, {200, 400})
 
@@ -313,13 +329,16 @@ async def test_market_endpoints(client: httpx.AsyncClient, state: AuditState) ->
     await expect(state, "GET /market/leaderboard (public)", r, 200)
 
 
-async def test_solutions_endpoints(client: httpx.AsyncClient, state: AuditState) -> None:
+async def test_solutions_endpoints(
+    client: httpx.AsyncClient, state: AuditState
+) -> None:
     # /solutions/my-solutions
     r = await client.get(f"{BASE}/api/v1/solutions/my-solutions")
     await expect(state, "GET /solutions/my-solutions (no auth)", r, {401, 403})
 
     r = await client.get(
-        f"{BASE}/api/v1/solutions/my-solutions", headers=auth_hdr(state.strategist_token)
+        f"{BASE}/api/v1/solutions/my-solutions",
+        headers=auth_hdr(state.strategist_token),
     )
     await expect(state, "GET /solutions/my-solutions (team)", r, 200)
 
@@ -465,7 +484,9 @@ async def test_trading_endpoints(client: httpx.AsyncClient, state: AuditState) -
     await expect(state, "GET /trading/portfolio (trader)", r, 200)
 
 
-async def test_decisions_endpoints(client: httpx.AsyncClient, state: AuditState) -> None:
+async def test_decisions_endpoints(
+    client: httpx.AsyncClient, state: AuditState
+) -> None:
     # /decisions/submit — trader forbidden
     r = await client.post(
         f"{BASE}/api/v1/decisions/submit",
@@ -540,7 +561,9 @@ async def test_decisions_endpoints(client: httpx.AsyncClient, state: AuditState)
         },
     )
     # Must never 500; 200 if game is ACTIVE + live_floor + archetype; else 400/409.
-    await expect(state, "POST /decisions/submit (real marketing lever)", r, {200, 400, 409})
+    await expect(
+        state, "POST /decisions/submit (real marketing lever)", r, {200, 400, 409}
+    )
 
 
 async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> None:
@@ -602,13 +625,20 @@ async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> 
         headers=ah,
         json={"quality_score": 2.0},
     )
-    await expect(state, "POST /admin/teams/{id}/set-score (bad score, still 410)", r, {410, 422})
+    await expect(
+        state, "POST /admin/teams/{id}/set-score (bad score, still 410)", r, {410, 422}
+    )
 
     # /admin/news/inject
     r = await client.post(
         f"{BASE}/api/v1/admin/news/inject",
         headers=ah,
-        json={"headline": "Test", "body": "body", "news_type": "GLOBAL", "affected_tickers": []},
+        json={
+            "headline": "Test",
+            "body": "body",
+            "news_type": "GLOBAL",
+            "affected_tickers": [],
+        },
     )
     await expect(state, "POST /admin/news/inject", r, 200)
 
@@ -691,9 +721,7 @@ async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> 
     r = await client.get(f"{BASE}/api/v1/admin/archetypes", headers=ah)
     await expect(state, "GET /admin/archetypes", r, 200)
 
-    r = await client.get(
-        f"{BASE}/api/v1/admin/archetypes/{bogus_uuid}", headers=ah
-    )
+    r = await client.get(f"{BASE}/api/v1/admin/archetypes/{bogus_uuid}", headers=ah)
     await expect(state, "GET /admin/archetypes/{bogus}", r, 404)
 
     r = await client.post(
@@ -766,7 +794,9 @@ async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> 
                 rr = await client.delete(
                     f"{BASE}/api/v1/admin/archetypes/{a['id']}", headers=ah
                 )
-                await expect(state, "DELETE /admin/archetypes/{preset} (forbidden)", rr, 409)
+                await expect(
+                    state, "DELETE /admin/archetypes/{preset} (forbidden)", rr, 409
+                )
                 break
 
     # Assign archetype — requires SETUP; may 409
@@ -785,7 +815,9 @@ async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> 
     await expect(state, "POST /admin/game/advance-round", r, 200)
 
 
-async def test_no_auth_on_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> None:
+async def test_no_auth_on_admin_endpoints(
+    client: httpx.AsyncClient, state: AuditState
+) -> None:
     """Quickly verify each admin endpoint rejects missing / team tokens (sample)."""
     th = auth_hdr(state.strategist_token)
     sample_paths = [

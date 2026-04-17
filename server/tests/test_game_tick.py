@@ -42,9 +42,7 @@ def test_is_game_active_returns_false_when_not_set():
 
 def test_game_tick_skips_when_not_active():
     """game_tick returns early (no side effects) when game not active."""
-    with patch(
-        "app.worker.tasks.game_tick.is_game_active", return_value=False
-    ):
+    with patch("app.worker.tasks.game_tick.is_game_active", return_value=False):
         from app.worker.tasks.game_tick import game_tick
 
         result = game_tick()

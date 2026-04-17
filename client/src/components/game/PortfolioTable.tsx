@@ -37,7 +37,10 @@ export function PortfolioTable() {
                 const pnlColor = pnl >= 0 ? "text-[#40e56c]" : "text-[#FF1744]";
 
                 return (
-                  <tr key={h.target_team_id} className="hover:bg-[#2a2a2a]/50 transition-colors">
+                  <tr
+                    key={h.target_team_id}
+                    className="hover:bg-[#2a2a2a]/50 transition-colors"
+                  >
                     <td className="py-1 pr-2 font-mono text-xs font-bold text-[#9ecaff]">
                       {h.ticker}
                     </td>
@@ -50,8 +53,11 @@ export function PortfolioTable() {
                     <td className="py-1 pr-2 font-mono text-xs text-[#e5e2e1] text-right tabular-nums">
                       ${parseFloat(h.current_price).toFixed(2)}
                     </td>
-                    <td className={`py-1 pr-2 font-mono text-xs text-right tabular-nums ${pnlColor}`}>
-                      {pnl >= 0 ? "+" : ""}{pnl.toFixed(2)} ({parseFloat(h.pnl_pct).toFixed(1)}%)
+                    <td
+                      className={`py-1 pr-2 font-mono text-xs text-right tabular-nums ${pnlColor}`}
+                    >
+                      {pnl >= 0 ? "+" : ""}
+                      {pnl.toFixed(2)} ({parseFloat(h.pnl_pct).toFixed(1)}%)
                     </td>
                     <td className="py-1 font-mono text-xs text-[#89919d] text-right tabular-nums">
                       {parseFloat(h.ownership_pct).toFixed(1)}%
@@ -67,24 +73,42 @@ export function PortfolioTable() {
       {/* Summary row */}
       <div className="flex justify-between pt-2 border-t border-[#404752]/20">
         <div className="space-y-1">
-          <div className="text-[9px] text-[#89919d] uppercase tracking-widest">HOLDINGS</div>
+          <div className="text-[9px] text-[#89919d] uppercase tracking-widest">
+            HOLDINGS
+          </div>
           <div className="font-mono text-xs text-[#e5e2e1] tabular-nums">
-            ${parseFloat(totalHoldingsValue).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            $
+            {parseFloat(totalHoldingsValue).toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </div>
         </div>
         <div className="space-y-1 text-right">
-          <div className="text-[9px] text-[#89919d] uppercase tracking-widest">NET WORTH</div>
+          <div className="text-[9px] text-[#89919d] uppercase tracking-widest">
+            NET WORTH
+          </div>
           <div className="font-mono text-xs text-[#40e56c] font-bold tabular-nums">
-            ${parseFloat(netWorth).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            $
+            {parseFloat(netWorth).toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </div>
         </div>
       </div>
 
       {/* Cash */}
       <div className="flex justify-between">
-        <div className="text-[9px] text-[#89919d] uppercase tracking-widest">CASH</div>
+        <div className="text-[9px] text-[#89919d] uppercase tracking-widest">
+          CASH
+        </div>
         <div className="font-mono text-xs text-[#e5e2e1] tabular-nums">
-          ${parseFloat(cash).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          $
+          {parseFloat(cash).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </div>
       </div>
     </div>

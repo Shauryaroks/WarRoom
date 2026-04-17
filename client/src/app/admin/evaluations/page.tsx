@@ -71,7 +71,7 @@ export default function EvaluationsPage() {
     try {
       setLoading(true);
       const data = await api.getEvaluations(
-        activeFilter === "ALL" ? undefined : activeFilter
+        activeFilter === "ALL" ? undefined : activeFilter,
       );
       setEvaluations(data);
     } catch {
@@ -90,11 +90,14 @@ export default function EvaluationsPage() {
   // WebSocket: auto-refresh on evaluation_pending
   const handleMessage = useCallback(
     (data: Record<string, unknown>) => {
-      if (data.type === "evaluation_pending" || data.type === "evaluation_updated") {
+      if (
+        data.type === "evaluation_pending" ||
+        data.type === "evaluation_updated"
+      ) {
         fetchEvaluations();
       }
     },
-    [fetchEvaluations]
+    [fetchEvaluations],
   );
 
   useWebSocket({
@@ -144,9 +147,7 @@ export default function EvaluationsPage() {
       const timeline = evaluation.price_timeline
         ? JSON.parse(evaluation.price_timeline)
         : [];
-      setEditTimeline(
-        Array.isArray(timeline) ? timeline : []
-      );
+      setEditTimeline(Array.isArray(timeline) ? timeline : []);
     } catch {
       setEditTimeline([]);
     }
@@ -169,7 +170,7 @@ export default function EvaluationsPage() {
       await fetchEvaluations();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to save changes"
+        err instanceof Error ? err.message : "Failed to save changes",
       );
     } finally {
       setActionLoading(false);
@@ -185,9 +186,7 @@ export default function EvaluationsPage() {
       setExpandedId(null);
       await fetchEvaluations();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to approve"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to approve");
     } finally {
       setActionLoading(false);
     }
@@ -204,16 +203,14 @@ export default function EvaluationsPage() {
       setRejectNotes("");
       await fetchEvaluations();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to reject"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to reject");
     } finally {
       setActionLoading(false);
     }
   }
 
   const pendingCount = evaluations.filter(
-    (e) => e.status === "PENDING_APPROVAL"
+    (e) => e.status === "PENDING_APPROVAL",
   ).length;
 
   if (!isAuthenticated || role !== "admin") {
@@ -403,9 +400,7 @@ export default function EvaluationsPage() {
                   {editMetrics && (
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                       {(
-                        Object.keys(editMetrics) as Array<
-                          keyof ScoringMetrics
-                        >
+                        Object.keys(editMetrics) as Array<keyof ScoringMetrics>
                       ).map((key) => (
                         <div key={key}>
                           <label className="block font-mono text-xs text-gray-500 mb-1 uppercase">
@@ -420,16 +415,14 @@ export default function EvaluationsPage() {
                             onChange={(e) => {
                               const val = Math.max(
                                 0,
-                                Math.min(1, parseFloat(e.target.value) || 0)
+                                Math.min(1, parseFloat(e.target.value) || 0),
                               );
                               setEditMetrics({
                                 ...editMetrics,
                                 [key]: val,
                               });
                             }}
-                            disabled={
-                              evaluation.status !== "PENDING_APPROVAL"
-                            }
+                            disabled={evaluation.status !== "PENDING_APPROVAL"}
                             className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none disabled:opacity-50"
                           />
                         </div>
@@ -482,7 +475,7 @@ export default function EvaluationsPage() {
                         onChange={(e) => {
                           const val = Math.max(
                             -1,
-                            Math.min(1, parseFloat(e.target.value) || 0)
+                            Math.min(1, parseFloat(e.target.value) || 0),
                           );
                           setEditSentiment(val);
                         }}
@@ -518,9 +511,7 @@ export default function EvaluationsPage() {
                               };
                               setEditTimeline(updated);
                             }}
-                            disabled={
-                              evaluation.status !== "PENDING_APPROVAL"
-                            }
+                            disabled={evaluation.status !== "PENDING_APPROVAL"}
                             className="w-full bg-[#0e0e0e] border border-[#2a2a2a] text-[#e5e2e1] font-mono text-sm px-3 py-2 focus:border-[#2196f3] focus:outline-none disabled:opacity-50"
                           />
                         </div>

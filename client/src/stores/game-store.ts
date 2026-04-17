@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { GameStatus, GameStatePayload, CrisisPayload, GamePhase } from "@/lib/types";
+import type {
+  GameStatus,
+  GameStatePayload,
+  CrisisPayload,
+  GamePhase,
+} from "@/lib/types";
 
 interface GameState {
   status: GameStatus;

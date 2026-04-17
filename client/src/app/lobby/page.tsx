@@ -67,7 +67,10 @@ export default function LobbyPage() {
             { id: team.id, name: team.name, ticker: team.ticker },
           ];
         });
-      } else if (data.type === "game_started" || data.type === "game_state_changed") {
+      } else if (
+        data.type === "game_started" ||
+        data.type === "game_state_changed"
+      ) {
         const payload = data.payload as GameStatePayload;
         if (payload) {
           useGameStore.getState().setGameState(payload);
@@ -78,7 +81,7 @@ export default function LobbyPage() {
         }
       }
     },
-    [router]
+    [router],
   );
 
   const { isConnected } = useWebSocket({
@@ -101,12 +104,23 @@ export default function LobbyPage() {
       {/* Fixed top header */}
       <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50">
         <div className="flex items-center gap-6">
-          <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
+          <span className="text-xl font-black tracking-tighter text-[#2196f3]">
+            COMPLEX
+          </span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="font-mono text-[10px] text-[#bfc7d4] uppercase">{teamName}</span>
-          <span className="font-mono text-[10px] text-[#2196f3] font-bold">{ticker}</span>
-          <button onClick={handleLogout} className="font-mono text-[10px] text-gray-600 hover:text-white uppercase transition-colors">LOGOUT</button>
+          <span className="font-mono text-[10px] text-[#bfc7d4] uppercase">
+            {teamName}
+          </span>
+          <span className="font-mono text-[10px] text-[#2196f3] font-bold">
+            {ticker}
+          </span>
+          <button
+            onClick={handleLogout}
+            className="font-mono text-[10px] text-gray-600 hover:text-white uppercase transition-colors"
+          >
+            LOGOUT
+          </button>
         </div>
       </header>
 
@@ -118,18 +132,30 @@ export default function LobbyPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-3 h-3 bg-[#2196f3] animate-pulse" />
-                <span className="font-mono text-xs tracking-tighter text-[#2196f3]">SYSTEM_STATUS: LIVE_CONNECTION_ESTABLISHED</span>
+                <span className="font-mono text-xs tracking-tighter text-[#2196f3]">
+                  SYSTEM_STATUS: LIVE_CONNECTION_ESTABLISHED
+                </span>
               </div>
-              <h2 className="text-4xl lg:text-7xl font-black tracking-tighter mb-4 text-white uppercase italic">COMPLEX</h2>
+              <h2 className="text-4xl lg:text-7xl font-black tracking-tighter mb-4 text-white uppercase italic">
+                COMPLEX
+              </h2>
               <div className="inline-block bg-[#2196f3] px-4 py-1 mb-8">
-                <span className="font-mono text-2xl font-bold tracking-widest text-white">TICKER: {ticker}</span>
+                <span className="font-mono text-2xl font-bold tracking-widest text-white">
+                  TICKER: {ticker}
+                </span>
               </div>
             </div>
             <div className="mt-auto">
-              <p className="text-[#bfc7d4] font-medium tracking-tight mb-2">LOBBY STATUS</p>
+              <p className="text-[#bfc7d4] font-medium tracking-tight mb-2">
+                LOBBY STATUS
+              </p>
               <div className="flex items-baseline gap-4">
-                <span className="text-2xl font-bold tracking-tight text-white uppercase">Waiting for admin to start the game...</span>
-                <span className="font-mono text-[#2196f3] animate-pulse">_</span>
+                <span className="text-2xl font-bold tracking-tight text-white uppercase">
+                  Waiting for admin to start the game...
+                </span>
+                <span className="font-mono text-[#2196f3] animate-pulse">
+                  _
+                </span>
               </div>
             </div>
           </div>
@@ -139,17 +165,27 @@ export default function LobbyPage() {
         <div className="col-span-12 lg:col-span-4 grid grid-rows-2 gap-6">
           {/* Total Approved Teams */}
           <div className="bg-[#201f1f] p-6 flex flex-col justify-center border-t border-[#404752]">
-            <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">Total Approved Teams</span>
-            <span className="font-mono text-6xl font-black text-[#2196f3]">{teams.length}</span>
+            <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">
+              Total Approved Teams
+            </span>
+            <span className="font-mono text-6xl font-black text-[#2196f3]">
+              {teams.length}
+            </span>
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-[10px] font-mono text-[#40e56c] uppercase">All nodes validated</span>
+              <span className="text-[10px] font-mono text-[#40e56c] uppercase">
+                All nodes validated
+              </span>
             </div>
           </div>
 
           {/* Network Latency */}
           <div className="bg-[#201f1f] p-6 flex flex-col justify-center border-t border-[#404752]">
-            <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">Network Latency</span>
-            <span className="font-mono text-6xl font-black text-[#e5e2e1]">14<span className="text-xl">MS</span></span>
+            <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">
+              Network Latency
+            </span>
+            <span className="font-mono text-6xl font-black text-[#e5e2e1]">
+              14<span className="text-xl">MS</span>
+            </span>
             <div className="mt-4 flex items-center gap-2">
               <ConnectionIndicator isConnected={isConnected} />
             </div>
@@ -159,8 +195,12 @@ export default function LobbyPage() {
         {/* Team Roster table */}
         <section className="col-span-12 bg-[#0e0e0e] border border-[#404752] overflow-hidden flex flex-col">
           <div className="px-6 py-3 bg-[#2a2a2a] flex justify-between items-center border-b border-[#404752]">
-            <span className="text-xs font-bold uppercase tracking-widest text-white">Verified Competition Roster</span>
-            <span className="font-mono text-[10px] text-[#2196f3] uppercase">FILTER: ALL_TEAMS</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-white">
+              Verified Competition Roster
+            </span>
+            <span className="font-mono text-[10px] text-[#2196f3] uppercase">
+              FILTER: ALL_TEAMS
+            </span>
           </div>
           <TeamList teams={teams} currentTicker={ticker} />
         </section>

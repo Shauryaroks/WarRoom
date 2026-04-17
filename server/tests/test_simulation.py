@@ -39,7 +39,9 @@ class TestInterpolatePrice:
         target = Decimal("0.01")
         # Run multiple times to catch noise driving below floor
         for _ in range(100):
-            result = interpolate_price(current, target, ticks_remaining=5, volatility_pct=0.5)
+            result = interpolate_price(
+                current, target, ticks_remaining=5, volatility_pct=0.5
+            )
             assert result >= Decimal("0.01"), f"Price dropped below floor: {result}"
 
     def test_noise_bounded_within_volatility_band(self):
@@ -49,7 +51,9 @@ class TestInterpolatePrice:
         target = Decimal("100")  # Same target so step=0, only noise matters
         volatility = 0.05
         for _ in range(100):
-            result = interpolate_price(current, target, ticks_remaining=10, volatility_pct=volatility)
+            result = interpolate_price(
+                current, target, ticks_remaining=10, volatility_pct=volatility
+            )
             change_pct = abs(float(result - current) / float(current))
             # With step=0 and noise clamped to 5%, change should be <= 5%
             assert change_pct <= volatility + 0.001, (
@@ -58,7 +62,9 @@ class TestInterpolatePrice:
 
     def test_returns_decimal_rounded_to_two_places(self):
         """Result should be a Decimal rounded to 2 decimal places."""
-        result = interpolate_price(Decimal("100.00"), Decimal("110.00"), ticks_remaining=5)
+        result = interpolate_price(
+            Decimal("100.00"), Decimal("110.00"), ticks_remaining=5
+        )
         assert isinstance(result, Decimal)
         # Check it has at most 2 decimal places
         assert result == round(result, 2)

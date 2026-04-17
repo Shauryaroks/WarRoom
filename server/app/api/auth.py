@@ -169,13 +169,9 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Check team approval status
     if team.status == TeamStatus.PENDING:
-        raise HTTPException(
-            status_code=403, detail="Team not yet approved by admin"
-        )
+        raise HTTPException(status_code=403, detail="Team not yet approved by admin")
     if team.status == TeamStatus.REJECTED:
-        raise HTTPException(
-            status_code=403, detail="Team registration was rejected"
-        )
+        raise HTTPException(status_code=403, detail="Team registration was rejected")
 
     # Create JWT
     token = create_access_token(

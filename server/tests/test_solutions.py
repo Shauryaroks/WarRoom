@@ -145,11 +145,12 @@ class TestSubmitSolution:
         app.dependency_overrides[get_db] = lambda: mock_db_session
 
         try:
-            with patch(
-                "app.api.solutions.calculate_elapsed_seconds", return_value=1800
-            ), patch(
-                "app.worker.tasks.evaluate_solution.evaluate_solution"
-            ) as mock_task:
+            with (
+                patch("app.api.solutions.calculate_elapsed_seconds", return_value=1800),
+                patch(
+                    "app.worker.tasks.evaluate_solution.evaluate_solution"
+                ) as mock_task,
+            ):
                 mock_task.delay = MagicMock()
 
                 async with AsyncClient(
@@ -176,6 +177,7 @@ class TestSubmitSolution:
         self, strategist_user, mock_db_session, active_team, game_active_late
     ):
         """SOLN-01: INITIAL submission rejected after 1-hour window."""
+
         async def mock_execute(stmt):
             result = MagicMock()
             result.scalar_one_or_none = MagicMock(return_value=game_active_late)
@@ -285,11 +287,12 @@ class TestSubmitSolution:
         app.dependency_overrides[get_db] = lambda: mock_db_session
 
         try:
-            with patch(
-                "app.api.solutions.calculate_elapsed_seconds", return_value=1800
-            ), patch(
-                "app.worker.tasks.evaluate_solution.evaluate_solution"
-            ) as mock_task:
+            with (
+                patch("app.api.solutions.calculate_elapsed_seconds", return_value=1800),
+                patch(
+                    "app.worker.tasks.evaluate_solution.evaluate_solution"
+                ) as mock_task,
+            ):
                 mock_task.delay = MagicMock()
 
                 async with AsyncClient(
@@ -314,18 +317,18 @@ class TestSubmitSolution:
             app.dependency_overrides.clear()
 
     @pytest.mark.asyncio
-    async def test_trader_cannot_submit(
-        self, trader_user, mock_db_session
-    ):
+    async def test_trader_cannot_submit(self, trader_user, mock_db_session):
         """T-05-05: Traders get 403 when trying to submit."""
         app.dependency_overrides[require_team] = lambda: trader_user
         app.dependency_overrides[get_db] = lambda: mock_db_session
 
         # Mock game state as ACTIVE
         game_state = GameState(
-            id=1, status=GameStatus.ACTIVE,
+            id=1,
+            status=GameStatus.ACTIVE,
             started_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-            pause_offset=0, current_round=1,
+            pause_offset=0,
+            current_round=1,
         )
 
         async def mock_execute(stmt):
@@ -384,11 +387,12 @@ class TestSubmitSolution:
         app.dependency_overrides[get_db] = lambda: mock_db_session
 
         try:
-            with patch(
-                "app.api.solutions.calculate_elapsed_seconds", return_value=1800
-            ), patch(
-                "app.worker.tasks.evaluate_solution.evaluate_solution"
-            ) as mock_task:
+            with (
+                patch("app.api.solutions.calculate_elapsed_seconds", return_value=1800),
+                patch(
+                    "app.worker.tasks.evaluate_solution.evaluate_solution"
+                ) as mock_task,
+            ):
                 mock_task.delay = MagicMock()
 
                 async with AsyncClient(
@@ -450,6 +454,7 @@ class TestCaselineEndpoint:
     @pytest.mark.asyncio
     async def test_get_caseline(self, strategist_user, mock_db_session, active_team):
         """D-15: Team can fetch their caseline document."""
+
         async def mock_execute(stmt):
             result = MagicMock()
             result.scalar_one = MagicMock(return_value=active_team)

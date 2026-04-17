@@ -79,10 +79,12 @@ async def _execute_tick():
 
     # Publish AFTER commit (per RESEARCH anti-patterns)
     if price_updates:
-        publish_broadcast_sync({
-            "type": "price_update",
-            "payload": {"prices": price_updates},
-        })
+        publish_broadcast_sync(
+            {
+                "type": "price_update",
+                "payload": {"prices": price_updates},
+            }
+        )
         logger.info("Price tick: %d teams updated", len(price_updates))
     else:
         logger.debug("Price tick: no active teams with targets")
