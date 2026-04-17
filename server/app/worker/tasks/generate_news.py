@@ -12,9 +12,11 @@ import logging
 import uuid
 from datetime import timezone
 
+import structlog
+
 from app.worker.celery_app import celery_app
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 NEWS_SCHEMA = {
@@ -75,11 +77,16 @@ NEWS_SCHEMA = {
 
 @celery_app.task(
     name="news.generate",
+    bind=True,
     time_limit=120,
     soft_time_limit=100,
 )
-def generate_news(evaluation_id: str, team_id: str):
+def generate_news(self, evaluation_id: str, team_id: str):
     """Generate news articles after evaluation approval. Per D-01, D-02."""
+    import structlog
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(task_id=self.request.id, team_id=team_id)
     asyncio.run(_generate(evaluation_id, team_id))
 
 
@@ -226,9 +233,7 @@ async def _generate(evaluation_id: str, team_id: str):
 
     except Exception as e:
         # Per D-03/T-06-02: News generation failure is non-critical -- log and move on
-        logger.error(
-            "News generation failed for evaluation %s: %s",
+        logger.exception(
+            "News generation failed for evaluation %s",
             evaluation_id,
-            e,
-            exc_info=True,
         )

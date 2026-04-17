@@ -6,6 +6,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: complex
+    ports:
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +35,13 @@ services:
       - ./server/.env
     healthcheck:
       # python3 is already on PATH via /opt/venv (Dockerfile ENV PATH). No `uv run` overhead.
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:80/health')"]
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:80/health')",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -51,7 +59,11 @@ services:
       - ./server/.env
     healthcheck:
       # Beat writes to cwd; celery inspect on the worker is a lighter check than re-running `uv run` fresh.
-      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping --timeout 5 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A app.worker.celery_app inspect ping --timeout 5 || exit 1",
+        ]
       interval: 10s
       timeout: 10s
       retries: 5

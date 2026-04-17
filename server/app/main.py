@@ -8,14 +8,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+import structlog
 
 from app.api import admin, auth, decisions, game, market, solutions, teams, trading
 from app.auth_utils import decode_token
 from app.redis_pubsub import start_redis_relay
 from app.services.game_service import warm_redis_cache
 from app.websocket import manager
+from app.logging import setup_logging
 
-logger = logging.getLogger("complex")
+setup_logging()
+logger = structlog.get_logger("complex")
 
 
 # --- Lifespan ---
@@ -76,27 +79,40 @@ else:
 # --- Request Logging Middleware ---
 
 
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
+class StructlogContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Skip health check logging to reduce noise
         if request.url.path == "/health":
             return await call_next(request)
 
-        start = time.time()
-        response = await call_next(request)
-        duration_ms = (time.time() - start) * 1000
-
-        logger.info(
-            "%s %s %d %.1fms",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
+        request_id = str(uuid.uuid4())
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
         )
-        return response
+
+        start = time.time()
+        try:
+            response = await call_next(request)
+            duration_ms = (time.time() - start) * 1000
+            structlog.contextvars.bind_contextvars(
+                status_code=response.status_code,
+                duration_ms=duration_ms,
+            )
+            logger.info("Request completed")
+            return response
+        except Exception as e:
+            duration_ms = (time.time() - start) * 1000
+            structlog.contextvars.bind_contextvars(
+                status_code=500,
+                duration_ms=duration_ms,
+            )
+            logger.exception("Request failed")
+            raise
 
 
-app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(StructlogContextMiddleware)
 
 
 # --- Routers ---
@@ -116,31 +132,44 @@ app.include_router(game.router)
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
+    structlog.contextvars.clear_contextvars()
+    request_id = str(uuid.uuid4())
+    structlog.contextvars.bind_contextvars(
+        request_id=request_id, method="WS", path="/ws"
+    )
     await ws.accept()
 
     # Step 1: Authenticate -- expect first message to be {"type": "auth", "token": "..."}
     try:
         auth_msg = await asyncio.wait_for(ws.receive_json(), timeout=10.0)
     except (asyncio.TimeoutError, Exception):
+        logger.warning("WebSocket authentication timeout")
         await ws.close(code=4001, reason="Authentication timeout")
         return
 
     if auth_msg.get("type") != "auth" or "token" not in auth_msg:
+        logger.warning("WebSocket expected auth message")
         await ws.close(code=4002, reason="Expected auth message")
         return
 
     try:
         payload = decode_token(auth_msg["token"])
     except HTTPException:
+        logger.warning("WebSocket invalid token")
         await ws.close(code=4003, reason="Invalid token")
         return
 
     role = payload.get("role", "")
+    subject_id = payload.get("sub", "")
     team_id = None
     if role in ("strategist", "trader"):
         team_id_str = payload.get("team_id")
         if team_id_str:
             team_id = uuid.UUID(team_id_str)
+            structlog.contextvars.bind_contextvars(team_id=team_id_str)
+
+    structlog.contextvars.bind_contextvars(user_id=subject_id)
+    logger.info("WebSocket connected", role=role)
 
     # Step 2: Register connection
     manager.add(ws, team_id, role)
@@ -174,8 +203,9 @@ async def websocket_endpoint(ws: WebSocket):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        logger.error("WebSocket error: %s", e)
+        logger.exception("WebSocket error")
     finally:
+        logger.info("WebSocket disconnected")
         manager.remove(ws)
 
 

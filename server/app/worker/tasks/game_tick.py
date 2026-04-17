@@ -49,42 +49,69 @@ def is_game_active() -> bool:
         r.close()
 
 
-@celery_app.task(name="game.tick")
-def game_tick():
+@celery_app.task(name="game.tick", bind=True)
+def game_tick(self):
     """Periodic tick task. Guarded by game state check (GAME-04).
 
     Returns early with no side effects when game is not ACTIVE.
     When active: calculates prices for all teams, writes PriceHistory,
     broadcasts price_update via Redis pub/sub.
     """
+    import structlog
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(task_id=self.request.id)
+
     if not is_game_active():
         return  # Silent return -- game not active, no work to do
 
-    asyncio.run(_execute_tick())
+    r = redis.from_url(celery_app.conf.broker_url)
+    try:
+        round_number = r.get("game:round_number")
+        if round_number:
+            structlog.contextvars.bind_contextvars(round_number=int(round_number))
+
+        tick_count = r.incr("game:tick_count")
+    finally:
+        r.close()
+
+    asyncio.run(_execute_tick(tick_count))
 
 
-async def _execute_tick():
+async def _execute_tick(tick_count: int):
     """Execute the price tick: calculate prices, commit, then broadcast.
 
     Per RESEARCH anti-patterns: publish Redis AFTER db.commit() to avoid
     broadcasting data from a rolled-back transaction.
     """
+    import structlog
+
+    logger = structlog.get_logger(__name__)
     from app.database import get_worker_session
     from app.services.simulation_service import calculate_all_prices
     from app.redis_pubsub import publish_broadcast_sync
 
-    async with get_worker_session() as db:
-        price_updates = await calculate_all_prices(db)
-        await db.commit()
+    logger.debug("Executing game tick", tick_count=tick_count)
 
-    # Publish AFTER commit (per RESEARCH anti-patterns)
-    if price_updates:
-        publish_broadcast_sync(
-            {
-                "type": "price_update",
-                "payload": {"prices": price_updates},
-            }
-        )
-        logger.info("Price tick: %d teams updated", len(price_updates))
-    else:
-        logger.debug("Price tick: no active teams with targets")
+    try:
+        async with get_worker_session() as db:
+            price_updates = await calculate_all_prices(db)
+            await db.commit()
+
+        # Publish AFTER commit (per RESEARCH anti-patterns)
+        if price_updates:
+            publish_broadcast_sync(
+                {
+                    "type": "price_update",
+                    "payload": {"prices": price_updates},
+                }
+            )
+            if tick_count % 10 == 0:
+                logger.info("Price tick: %d teams updated", len(price_updates))
+            else:
+                logger.debug("Price tick: %d teams updated", len(price_updates))
+        else:
+            logger.debug("Price tick: no active teams with targets")
+    except Exception:
+        logger.exception("Game tick failed")
+        raise

@@ -9,20 +9,27 @@ import asyncio
 import logging
 import uuid
 
+import structlog
+
 from app.worker.celery_app import celery_app
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @celery_app.task(
     name="solution.evaluate",
+    bind=True,
     time_limit=120,  # LLM calls can take 30-60s (override global 60s)
     soft_time_limit=100,
     max_retries=2,
     default_retry_delay=10,
 )
-def evaluate_solution(solution_id: str):
+def evaluate_solution(self, solution_id: str):
     """Evaluate a solution via OpenRouter LLM. Per EVAL-01."""
+    import structlog
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(task_id=self.request.id)
     asyncio.run(_evaluate(solution_id))
 
 
@@ -65,7 +72,7 @@ async def _evaluate(solution_id: str):
             )
 
         except Exception as e:
-            logger.error("Evaluation failed for solution %s: %s", solution_id, e)
+            logger.exception("Evaluation failed for solution %s", solution_id)
             await db.rollback()
 
             # Mark evaluation as FAILED if solution exists
@@ -95,10 +102,9 @@ async def _evaluate(solution_id: str):
                             },
                         )
             except Exception as inner_e:
-                logger.error(
-                    "Failed to record FAILED evaluation for solution %s: %s",
+                logger.exception(
+                    "Failed to record FAILED evaluation for solution %s",
                     solution_id,
-                    inner_e,
                 )
 
             raise  # Let Celery retry

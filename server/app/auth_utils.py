@@ -75,6 +75,9 @@ async def get_current_user(
         admin = result.scalar_one_or_none()
         if not admin:
             raise HTTPException(status_code=401, detail="Admin not found")
+        import structlog
+
+        structlog.contextvars.bind_contextvars(user_id=str(admin.id))
         return {"id": admin.id, "role": "admin", "team_id": None, "entity": admin}
     else:
         team_id = payload.get("team_id")
@@ -86,6 +89,9 @@ async def get_current_user(
         team = result.scalar_one_or_none()
         if not team:
             raise HTTPException(status_code=401, detail="Team not found")
+        import structlog
+
+        structlog.contextvars.bind_contextvars(user_id=subject_id, team_id=str(team.id))
         return {
             "id": uuid.UUID(subject_id),
             "role": role,
