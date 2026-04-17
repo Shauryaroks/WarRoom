@@ -7,11 +7,11 @@ import { useAuthStore } from "@/stores/auth-store";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import type {
-  PricingDecision,
   MarketingDecision,
   SupplyChainDecision,
   NewProductDecision,
   DecisionSubmitItem,
+  LeverCategory,
 } from "@/lib/types";
 
 // === Budget cost constants ===
@@ -23,12 +23,6 @@ const SUPPLY_CHAIN_COST: Record<string, number> = {
 const NEW_PRODUCT_RD_COST = 10;
 
 // === Default state for each lever ===
-const DEFAULT_PRICING: PricingDecision = {
-  list_price_change: 0,
-  promo_depth: 0,
-  channel_pricing: "GT",
-};
-
 const DEFAULT_MARKETING: MarketingDecision = {
   atl_pct: 25,
   digital_pct: 25,
@@ -55,34 +49,58 @@ function LeverSection({
   cost,
   open,
   onToggle,
+  included,
+  onIncludeChange,
   children,
 }: {
   title: string;
   cost: number;
   open: boolean;
   onToggle: () => void;
+  included: boolean;
+  onIncludeChange: (v: boolean) => void;
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-[#2a2a2a] bg-[#0e0e0e]">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#1c1b1b] transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          {open ? (
-            <ChevronDown className="w-3 h-3 text-[#89919d]" />
-          ) : (
-            <ChevronRight className="w-3 h-3 text-[#89919d]" />
-          )}
-          <span className="font-mono text-[10px] uppercase tracking-widest text-[#e5e2e1]">
-            {title}
+    <div className={`border ${included ? "border-[#2a2a2a]" : "border-[#1c1b1b]"} bg-[#0e0e0e]`}>
+      <div className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#1c1b1b] transition-colors">
+        <label
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={included}
+            onChange={(e) => onIncludeChange(e.target.checked)}
+            className="w-3 h-3 accent-[#2196f3] bg-[#1c1b1b] border-[#2a2a2a]"
+          />
+          <span className="font-mono text-[9px] uppercase tracking-widest text-[#89919d]">
+            INCLUDE
           </span>
-        </div>
-        <span className="font-mono text-[10px] text-[#89919d]">
-          Rs {cost} Cr
-        </span>
-      </button>
+        </label>
+        <button
+          onClick={onToggle}
+          className="flex-1 flex items-center justify-between px-3"
+        >
+          <div className="flex items-center gap-2">
+            {open ? (
+              <ChevronDown className="w-3 h-3 text-[#89919d]" />
+            ) : (
+              <ChevronRight className="w-3 h-3 text-[#89919d]" />
+            )}
+            <span
+              className={`font-mono text-[10px] uppercase tracking-widest ${
+                included ? "text-[#e5e2e1]" : "text-[#404752]"
+              }`}
+            >
+              {title}
+            </span>
+          </div>
+          <span className="font-mono text-[10px] text-[#89919d]">
+            Rs {cost} Cr
+          </span>
+        </button>
+      </div>
       {open && <div className="px-3 pb-3 space-y-3">{children}</div>}
     </div>
   );
@@ -170,15 +188,20 @@ export function DecisionsPanel() {
     useDecisionsStore();
 
   // Lever state
-  const [pricing, setPricing] = useState<PricingDecision>({ ...DEFAULT_PRICING });
   const [marketing, setMarketing] = useState<MarketingDecision>({ ...DEFAULT_MARKETING });
   const [supplyChain, setSupplyChain] = useState<SupplyChainDecision>({ ...DEFAULT_SUPPLY_CHAIN });
   const [newProduct, setNewProduct] = useState<NewProductDecision>({ ...DEFAULT_NEW_PRODUCT });
 
+  // Per-lever opt-in to submission (all optional per user request)
+  const [included, setIncluded] = useState<Record<LeverCategory, boolean>>({
+    MARKETING: false,
+    SUPPLY_CHAIN: false,
+    NEW_PRODUCT: false,
+  });
+
   // Section open state
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    PRICING: true,
-    MARKETING: false,
+    MARKETING: true,
     SUPPLY_CHAIN: false,
     NEW_PRODUCT: false,
     TRADING: false,
@@ -197,70 +220,82 @@ export function DecisionsPanel() {
       if (decisions.length > 0) {
         setSubmitted(true);
         setLastSubmitted(decisions[0].submitted_at);
-        // Hydrate form from existing decisions
+        // Hydrate form from existing decisions; mark those levers as included
+        const nextIncluded: Record<LeverCategory, boolean> = {
+          MARKETING: false,
+          SUPPLY_CHAIN: false,
+          NEW_PRODUCT: false,
+        };
         for (const d of decisions) {
           try {
             const json = typeof d.decisions_json === "string" ? JSON.parse(d.decisions_json) : d.decisions_json;
             switch (d.lever_category) {
-              case "PRICING":
-                setPricing(json as PricingDecision);
-                break;
               case "MARKETING":
                 setMarketing(json as MarketingDecision);
+                nextIncluded.MARKETING = true;
                 break;
               case "SUPPLY_CHAIN":
                 setSupplyChain(json as SupplyChainDecision);
+                nextIncluded.SUPPLY_CHAIN = true;
                 break;
               case "NEW_PRODUCT":
                 setNewProduct(json as NewProductDecision);
+                nextIncluded.NEW_PRODUCT = true;
                 break;
             }
           } catch {
             // Skip malformed
           }
         }
+        setIncluded(nextIncluded);
       }
     }).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Budget calculations
+  // Budget calculations -- only count included levers
   const totalBudget = budget ? parseFloat(budget.total_budget) : 0;
 
   const marketingCost = useMemo(() => {
-    // Marketing spend is 30% of total budget (matching server calculation)
-    return totalBudget > 0 ? totalBudget * 0.3 : 0;
-  }, [totalBudget]);
+    return included.MARKETING && totalBudget > 0 ? totalBudget * 0.3 : 0;
+  }, [totalBudget, included.MARKETING]);
 
   const supplyChainCost = useMemo(() => {
+    if (!included.SUPPLY_CHAIN) return 0;
     return supplyChain.distribution_expansion.reduce(
       (sum, tier) => sum + (SUPPLY_CHAIN_COST[tier] || 0),
       0
     );
-  }, [supplyChain.distribution_expansion]);
+  }, [supplyChain.distribution_expansion, included.SUPPLY_CHAIN]);
 
-  const newProductCost = newProduct.launch_sku ? NEW_PRODUCT_RD_COST : 0;
+  const newProductCost = included.NEW_PRODUCT && newProduct.launch_sku ? NEW_PRODUCT_RD_COST : 0;
 
   const totalAllocated = marketingCost + supplyChainCost + newProductCost;
   const remaining = totalBudget - totalAllocated;
   const budgetExceeded = remaining < 0;
 
-  // Marketing sum validation
+  // Marketing sum validation -- only matters if Marketing is included
   const marketingSum =
     marketing.atl_pct + marketing.digital_pct + marketing.influencer_pct + marketing.btl_pct;
-  const marketingValid = marketingSum === 100;
+  const marketingValid = !included.MARKETING || marketingSum === 100;
 
-  const canSubmit = !budgetExceeded && marketingValid && !isSubmitting;
+  const atLeastOneIncluded = included.MARKETING || included.SUPPLY_CHAIN || included.NEW_PRODUCT;
+
+  const canSubmit = !budgetExceeded && marketingValid && !isSubmitting && atLeastOneIncluded;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
     setSubmitting(true);
 
-    const decisions: DecisionSubmitItem[] = [
-      { lever_category: "PRICING", decisions_json: pricing, budget_spent: 0 },
-      { lever_category: "MARKETING", decisions_json: marketing, budget_spent: marketingCost },
-      { lever_category: "SUPPLY_CHAIN", decisions_json: supplyChain, budget_spent: supplyChainCost },
-      { lever_category: "NEW_PRODUCT", decisions_json: newProduct, budget_spent: newProductCost },
-    ];
+    const decisions: DecisionSubmitItem[] = [];
+    if (included.MARKETING) {
+      decisions.push({ lever_category: "MARKETING", decisions_json: marketing, budget_spent: marketingCost });
+    }
+    if (included.SUPPLY_CHAIN) {
+      decisions.push({ lever_category: "SUPPLY_CHAIN", decisions_json: supplyChain, budget_spent: supplyChainCost });
+    }
+    if (included.NEW_PRODUCT) {
+      decisions.push({ lever_category: "NEW_PRODUCT", decisions_json: newProduct, budget_spent: newProductCost });
+    }
 
     try {
       const result = await api.submitDecisions({ decisions });
@@ -269,13 +304,13 @@ export function DecisionsPanel() {
       setSubmitted(true);
       // Refresh budget after submit
       api.getBudget().then(setBudget).catch(() => {});
-      toast.success("Decisions submitted");
+      toast.success(`Submitted ${decisions.length} decision${decisions.length === 1 ? "" : "s"}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Submission failed");
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, pricing, marketing, supplyChain, newProduct, marketingCost, supplyChainCost, newProductCost, setBudget, setSubmitting, setLastSubmitted, setCurrentDecisions]);
+  }, [canSubmit, included, marketing, supplyChain, newProduct, marketingCost, supplyChainCost, newProductCost, setBudget, setSubmitting, setLastSubmitted, setCurrentDecisions]);
 
   // Trader view
   if (role === "trader") {
@@ -314,49 +349,50 @@ export function DecisionsPanel() {
 
         {/* Submitted summary */}
         <div className="space-y-2">
-          <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
-            <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
-              PRICING
+          {included.MARKETING && (
+            <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
+              <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
+                MARKETING
+              </div>
+              <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
+                <div>ATL: {marketing.atl_pct}% / Digital: {marketing.digital_pct}% / Influencer: {marketing.influencer_pct}% / BTL: {marketing.btl_pct}%</div>
+                <div>Theme: {marketing.campaign_theme}</div>
+              </div>
             </div>
-            <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
-              <div>List Price: {pricing.list_price_change > 0 ? "+" : ""}{pricing.list_price_change}%</div>
-              <div>Promo Depth: {pricing.promo_depth}%</div>
-              <div>Channel: {pricing.channel_pricing}</div>
-            </div>
-          </div>
+          )}
 
-          <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
-            <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
-              MARKETING
+          {included.SUPPLY_CHAIN && (
+            <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
+              <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
+                SUPPLY_CHAIN
+              </div>
+              <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
+                <div>Policy: {supplyChain.inventory_policy}</div>
+                <div>Expansion: {supplyChain.distribution_expansion.length > 0 ? supplyChain.distribution_expansion.join(", ") : "None"}</div>
+                <div>Utilization: {supplyChain.capacity_utilization}%</div>
+              </div>
             </div>
-            <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
-              <div>ATL: {marketing.atl_pct}% / Digital: {marketing.digital_pct}% / Influencer: {marketing.influencer_pct}% / BTL: {marketing.btl_pct}%</div>
-              <div>Theme: {marketing.campaign_theme}</div>
-            </div>
-          </div>
+          )}
 
-          <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
-            <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
-              SUPPLY_CHAIN
+          {included.NEW_PRODUCT && (
+            <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
+              <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
+                NEW_PRODUCT
+              </div>
+              <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
+                <div>Launch SKU: {newProduct.launch_sku ? "YES" : "NO"}</div>
+                {newProduct.launch_sku && newProduct.sku_description && (
+                  <div>SKU: {newProduct.sku_description}</div>
+                )}
+              </div>
             </div>
-            <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
-              <div>Policy: {supplyChain.inventory_policy}</div>
-              <div>Expansion: {supplyChain.distribution_expansion.length > 0 ? supplyChain.distribution_expansion.join(", ") : "None"}</div>
-              <div>Utilization: {supplyChain.capacity_utilization}%</div>
-            </div>
-          </div>
+          )}
 
-          <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 space-y-2">
-            <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
-              NEW_PRODUCT
+          {!included.MARKETING && !included.SUPPLY_CHAIN && !included.NEW_PRODUCT && (
+            <div className="bg-[#0e0e0e] border border-[#2a2a2a] p-3 text-[10px] text-[#89919d] font-mono">
+              No decisions submitted this round.
             </div>
-            <div className="font-mono text-[10px] text-[#e5e2e1] space-y-0.5">
-              <div>Launch SKU: {newProduct.launch_sku ? "YES" : "NO"}</div>
-              {newProduct.launch_sku && newProduct.sku_description && (
-                <div>SKU: {newProduct.sku_description}</div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Resubmit option */}
@@ -375,6 +411,13 @@ export function DecisionsPanel() {
       {/* Header */}
       <div className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
         DECISIONS
+      </div>
+
+      {/* Hint */}
+      <div className="bg-[#1c1b1b] p-2 border-l-2 border-[#2196f3] font-mono text-[9px] text-[#89919d] leading-relaxed">
+        ALL_LEVERS_OPTIONAL -- check INCLUDE on any lever you want to submit.
+        Decisions are passed to the LLM as strategic context for the next
+        quarter's fundamental evaluation.
       </div>
 
       {/* Budget bar */}
@@ -402,63 +445,27 @@ export function DecisionsPanel() {
 
       {/* Lever sections */}
       <div className="space-y-1">
-        {/* PRICING */}
-        <LeverSection
-          title="PRICING"
-          cost={0}
-          open={openSections.PRICING}
-          onToggle={() => toggleSection("PRICING")}
-        >
-          <LeverSlider
-            label="List Price Change"
-            value={pricing.list_price_change}
-            min={-15}
-            max={15}
-            step={0.5}
-            format={(v) => `${v > 0 ? "+" : ""}${v}%`}
-            onChange={(v) => setPricing((p) => ({ ...p, list_price_change: v }))}
-          />
-          <LeverSlider
-            label="Promo Depth"
-            value={pricing.promo_depth}
-            min={0}
-            max={40}
-            step={1}
-            format={(v) => `${v}%`}
-            onChange={(v) => setPricing((p) => ({ ...p, promo_depth: v }))}
-          />
-          <LeverSelect
-            label="Channel Pricing"
-            value={pricing.channel_pricing}
-            options={[
-              { value: "GT", label: "GT (General Trade)" },
-              { value: "MT", label: "MT (Modern Trade)" },
-              { value: "QCOM", label: "QCom (Quick Commerce)" },
-              { value: "D2C", label: "D2C (Direct to Consumer)" },
-            ]}
-            onChange={(v) => setPricing((p) => ({ ...p, channel_pricing: v as PricingDecision["channel_pricing"] }))}
-          />
-        </LeverSection>
-
         {/* MARKETING */}
         <LeverSection
           title="MARKETING"
           cost={marketingCost}
           open={openSections.MARKETING}
           onToggle={() => toggleSection("MARKETING")}
+          included={included.MARKETING}
+          onIncludeChange={(v) => setIncluded((prev) => ({ ...prev, MARKETING: v }))}
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <InputLabel label="Budget Allocation (must total 100%)" />
               <span
                 className={`font-mono text-[10px] ${
-                  marketingValid ? "text-[#4caf50]" : "text-[#f59e0b]"
+                  marketingSum === 100 ? "text-[#4caf50]" : "text-[#f59e0b]"
                 }`}
               >
                 {marketingSum}%
               </span>
             </div>
-            {!marketingValid && (
+            {included.MARKETING && marketingSum !== 100 && (
               <div className="text-[9px] text-[#f59e0b] font-mono">
                 Must total 100%
               </div>
@@ -513,6 +520,8 @@ export function DecisionsPanel() {
           cost={supplyChainCost}
           open={openSections.SUPPLY_CHAIN}
           onToggle={() => toggleSection("SUPPLY_CHAIN")}
+          included={included.SUPPLY_CHAIN}
+          onIncludeChange={(v) => setIncluded((prev) => ({ ...prev, SUPPLY_CHAIN: v }))}
         >
           <div>
             <InputLabel label="Inventory Policy" />
@@ -583,6 +592,8 @@ export function DecisionsPanel() {
           cost={newProductCost}
           open={openSections.NEW_PRODUCT}
           onToggle={() => toggleSection("NEW_PRODUCT")}
+          included={included.NEW_PRODUCT}
+          onIncludeChange={(v) => setIncluded((prev) => ({ ...prev, NEW_PRODUCT: v }))}
         >
           <div>
             <InputLabel label="Launch New SKU" />
@@ -630,19 +641,34 @@ export function DecisionsPanel() {
           )}
         </LeverSection>
 
-        {/* TRADING info card */}
-        <LeverSection
-          title="TRADING"
-          cost={0}
-          open={openSections.TRADING}
-          onToggle={() => toggleSection("TRADING")}
-        >
-          <div className="bg-[#1c1b1b] p-2 border-l-2 border-[#2196f3]">
-            <div className="font-mono text-[10px] text-[#89919d]">
-              Trading decisions are made in the TRADING panel
+        {/* TRADING info card (not submittable -- handled in Trading panel) */}
+        <div className="border border-[#2a2a2a] bg-[#0e0e0e]">
+          <button
+            onClick={() => toggleSection("TRADING")}
+            className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#1c1b1b] transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {openSections.TRADING ? (
+                <ChevronDown className="w-3 h-3 text-[#89919d]" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#89919d]" />
+              )}
+              <span className="font-mono text-[10px] uppercase tracking-widest text-[#e5e2e1]">
+                TRADING
+              </span>
             </div>
-          </div>
-        </LeverSection>
+            <span className="font-mono text-[10px] text-[#89919d]">info</span>
+          </button>
+          {openSections.TRADING && (
+            <div className="px-3 pb-3">
+              <div className="bg-[#1c1b1b] p-2 border-l-2 border-[#2196f3]">
+                <div className="font-mono text-[10px] text-[#89919d]">
+                  Trading decisions are made in the TRADING panel
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Submit button */}
@@ -651,7 +677,11 @@ export function DecisionsPanel() {
         disabled={!canSubmit}
         className="w-full py-2.5 text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-[#2196f3] text-white hover:bg-[#1976d2]"
       >
-        {isSubmitting ? "SUBMITTING..." : "SUBMIT_DECISIONS"}
+        {isSubmitting
+          ? "SUBMITTING..."
+          : !atLeastOneIncluded
+          ? "SELECT_AT_LEAST_ONE_LEVER"
+          : `SUBMIT_${[included.MARKETING && "MKT", included.SUPPLY_CHAIN && "SC", included.NEW_PRODUCT && "NP"].filter(Boolean).join("_")}`}
       </button>
     </div>
   );

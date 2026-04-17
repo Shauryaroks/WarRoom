@@ -340,13 +340,7 @@ export interface BenchmarkBands {
 
 export type GamePhase = "war_room" | "live_floor" | null;
 
-export type LeverCategory = "PRICING" | "MARKETING" | "SUPPLY_CHAIN" | "NEW_PRODUCT";
-
-export interface PricingDecision {
-  list_price_change: number;  // -15 to 15
-  promo_depth: number;        // 0 to 40
-  channel_pricing: "GT" | "MT" | "QCOM" | "D2C";
-}
+export type LeverCategory = "MARKETING" | "SUPPLY_CHAIN" | "NEW_PRODUCT";
 
 export interface MarketingDecision {
   atl_pct: number;
@@ -368,7 +362,7 @@ export interface NewProductDecision {
   target_category?: string;
 }
 
-export type DecisionPayload = PricingDecision | MarketingDecision | SupplyChainDecision | NewProductDecision;
+export type DecisionPayload = MarketingDecision | SupplyChainDecision | NewProductDecision;
 
 export interface DecisionSubmitItem {
   lever_category: LeverCategory;

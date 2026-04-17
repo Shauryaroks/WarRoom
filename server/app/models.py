@@ -81,7 +81,6 @@ class PortfolioType(str, enum.Enum):
 
 
 class LeverCategory(str, enum.Enum):
-    PRICING = "PRICING"
     MARKETING = "MARKETING"
     SUPPLY_CHAIN = "SUPPLY_CHAIN"
     NEW_PRODUCT = "NEW_PRODUCT"

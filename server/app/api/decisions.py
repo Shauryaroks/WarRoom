@@ -61,28 +61,9 @@ NEW_PRODUCT_RD_COST = Decimal("10")  # Cr
 # Per-lever validation (D-06, T-08-04)
 # ---------------------------------------------------------------------------
 
-VALID_CHANNELS = {"GT", "MT", "QCOM", "D2C"}
 VALID_THEMES = {"VALUE", "PREMIUM", "HEALTH", "PATRIOTISM", "NOSTALGIA"}
 VALID_INVENTORY_POLICIES = {"LEAN", "BALANCED", "STOCKED"}
 VALID_DISTRIBUTION_TIERS = {"TIER1", "TIER2", "RURAL"}
-
-
-def _validate_pricing(d: dict) -> None:
-    lpc = d.get("list_price_change")
-    if lpc is None or not isinstance(lpc, (int, float)):
-        raise ValueError("list_price_change must be a number")
-    if not (-15 <= lpc <= 15):
-        raise ValueError("list_price_change must be between -15 and 15")
-
-    pd_val = d.get("promo_depth")
-    if pd_val is None or not isinstance(pd_val, (int, float)):
-        raise ValueError("promo_depth must be a number")
-    if not (0 <= pd_val <= 40):
-        raise ValueError("promo_depth must be between 0 and 40")
-
-    cp = d.get("channel_pricing")
-    if cp not in VALID_CHANNELS:
-        raise ValueError(f"channel_pricing must be one of {VALID_CHANNELS}")
 
 
 def _validate_marketing(d: dict) -> None:
@@ -135,7 +116,6 @@ def _validate_new_product(d: dict) -> None:
 
 
 LEVER_VALIDATORS = {
-    LeverCategory.PRICING: _validate_pricing,
     LeverCategory.MARKETING: _validate_marketing,
     LeverCategory.SUPPLY_CHAIN: _validate_supply_chain,
     LeverCategory.NEW_PRODUCT: _validate_new_product,
@@ -151,9 +131,6 @@ def _calculate_budget_spent(
     lever: LeverCategory, decisions_json: dict, total_budget: Decimal
 ) -> Decimal:
     """Calculate actual budget spent for a lever decision server-side."""
-    if lever == LeverCategory.PRICING:
-        return Decimal("0")  # Pricing changes don't cost budget (D-11)
-
     if lever == LeverCategory.MARKETING:
         # Marketing spend = sum of allocation percentages as fraction of budget
         # The allocations represent how the marketing budget is split, not direct cost

@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field
 class LeverCategory(str, Enum):
     """Mirror of the SQLAlchemy LeverCategory enum for Pydantic validation."""
 
-    PRICING = "PRICING"
     MARKETING = "MARKETING"
     SUPPLY_CHAIN = "SUPPLY_CHAIN"
     NEW_PRODUCT = "NEW_PRODUCT"

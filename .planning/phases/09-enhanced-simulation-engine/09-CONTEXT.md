@@ -101,6 +101,11 @@ This phase is backend-heavy. Minimal frontend surface: Strategist's Caseline pan
 - Whether to cache archetype.benchmark_bands in Redis or read per-tick (40-row read is cheap but adds latency under lock contention).
 - Z-score clamp values (±2 in D-07) — adjust if unit tests show overflow.
 
+### Phase 8 Polish (applied 2026-04-17, post-discuss, pre-Phase 9 execution)
+- **D-33:** PRICING lever removed from the system. Enum, validator, budget calculation, types, and UI all dropped. DB-level enum still contains PRICING for backward compatibility but no code path creates new rows. Post-Phase 9 migration 005 may optionally drop it; not required for correctness.
+- **D-34:** Each remaining lever (MARKETING, SUPPLY_CHAIN, NEW_PRODUCT) is independently optional per submission. DecisionsPanel renders an `INCLUDE` checkbox per section; only checked sections are sent in the payload. Backend endpoint already accepts 1-N decision items — no schema change. Team may submit 0-3 lever decisions per quarter.
+- **D-35:** Phase 9 Plan 03 `build_fundamental_prompt` must handle partial/empty decision sets gracefully. If no Decision rows exist for a team in a given round, the "DECISION LEVERS THIS ROUND" section of the prompt reads "(no decisions submitted this round)" and the LLM infers fundamentals from operating plan + archetype + prior narrative alone. If only some levers are present, list them without filler for the absent ones.
+
 </decisions>
 
 <canonical_refs>
