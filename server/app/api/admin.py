@@ -459,27 +459,10 @@ async def set_team_score(
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Set a quality score for a team to drive price movement.
-
-    Per D-05: Admin sets quality score (0.0-1.0) for Phase 4 testing.
-    Phase 5 replaces this with LLM evaluation scores.
-    T-04-01: require_admin enforces admin-only access.
-    T-04-02: Pydantic Field(ge=0.0, le=1.0) validates score range.
-    """
-    from app.services.simulation_service import set_team_score as _set_score
-
-    try:
-        result = await _set_score(db, team_id, request.quality_score)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    await db.commit()
-
-    return SetScoreResponse(
-        message="Score set",
-        team_id=result["team_id"],
-        target_price=result["target_price"],
-        ticks_remaining=result["ticks_remaining"],
+    """DEPRECATED (Phase 9 D-28). v1 quality_score pipeline replaced by fundamental_evaluations."""
+    raise HTTPException(
+        status_code=410,
+        detail="v1 quality_score pipeline replaced by fundamental_evaluations (Phase 9)",
     )
 
 
@@ -828,8 +811,13 @@ async def restart_game(
         team.shares_outstanding = 1000000
         team.public_float = 100000
         team.treasury_shares = 900000
-        team.target_price = None
-        team.ticks_to_target = None
+        team.fundamental_market_share = None
+        team.fundamental_margin = None
+        team.fundamental_growth = None
+        team.fundamental_ops_efficiency = None
+        team.drift_target_pct = None
+        team.drift_floor_pct = None
+        team.ramp_started_at = None
         team.cooldown_until = None
         team.bankrupt_since = None
         team.bankrupt_resolved = False
@@ -1302,8 +1290,9 @@ async def eliminate_team(
 
     # D-07: Shares become worthless
     team.stock_price = Decimal("0")
-    team.target_price = None
-    team.ticks_to_target = None
+    team.drift_target_pct = None
+    team.drift_floor_pct = None
+    team.ramp_started_at = None
     team.status = TeamStatus.ELIMINATED
     team.eliminated_at = datetime.now(timezone.utc)
     team.rank_at_elimination = rank

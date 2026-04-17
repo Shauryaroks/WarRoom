@@ -247,16 +247,14 @@ async def approve_evaluation(
     )
     team = team_result.scalar_one()
 
-    # Per D-11: Convert price_timeline to target_price
+    # Phase 9 D-28: Approve no longer writes target_price; price is driven by
+    # fundamental_evaluations pipeline. Solution quality narrative/news only.
+    # Keep the timeline parsing for reporting but DO NOT mutate team price fields.
     timeline = json.loads(evaluation.price_timeline)
     final_change_pct = sum(entry["price_change_pct"] for entry in timeline)
     target_price = round(
         team.stock_price * Decimal(str(1 + final_change_pct / 100)), 2
     )
-
-    # Write to team
-    team.target_price = target_price
-    team.ticks_to_target = 20  # One quarter at 1 tick/min (per D-09)
 
     # Create MarketNews from LLM output
     news = MarketNews(
