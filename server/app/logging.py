@@ -8,48 +8,6 @@ def setup_logging():
     logging.getLogger("uvicorn.access").disabled = True
     logging.getLogger("uvicorn.error").disabled = True
 
-    # Configure structlog globally
-    structlog.configure(
-        processors=[
-            structlog.contextvars.merge_contextvars,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(),
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=True,
-    )
-
-    # Configure standard logging to use structlog
-    formatter = structlog.stdlib.ProcessorFormatter(
-        foreign_pre_chain=[
-            structlog.contextvars.merge_contextvars,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.StackInfoRenderer(),
-        ],
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.processors.JSONRenderer(),
-        ],
-    )
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-    root_logger.setLevel(logging.INFO)
-
-    # Ensure our base keys are null if not provided
-    # structlog doesn't natively default missing keys in JSONRenderer,
-    # so we can use a custom processor for the constraints.
-
     def ensure_keys_processor(logger, log_method, event_dict):
         keys = [
             "timestamp",
@@ -92,29 +50,30 @@ def setup_logging():
 
         return new_dict
 
-    # Reconfigure structlog with the custom processor before JSONRenderer
+    # Configure structlog globally
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.TimeStamper(fmt="iso", key="timestamp"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
-            ensure_keys_processor,
-            structlog.processors.JSONRenderer(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         wrapper_class=structlog.stdlib.BoundLogger,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
-    # Update formatter
+    # Configure standard logging to use structlog
     formatter = structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=[
             structlog.contextvars.merge_contextvars,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.TimeStamper(fmt="iso", key="timestamp"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
@@ -122,13 +81,18 @@ def setup_logging():
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             ensure_keys_processor,
-            structlog.processors.JSONRenderer(),
+            structlog.processors.JSONRenderer(indent=2),
         ],
     )
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+
+    root_logger = logging.getLogger()
 
     # Remove existing handlers to avoid duplicates
     for h in list(root_logger.handlers):
         root_logger.removeHandler(h)
 
-    handler.setFormatter(formatter)
     root_logger.addHandler(handler)
+    root_logger.setLevel(logging.INFO)
