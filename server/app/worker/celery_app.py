@@ -31,5 +31,10 @@ celery_app.conf.beat_schedule = {
     },
 }
 
-# Auto-discover tasks in app.worker.tasks package
-celery_app.autodiscover_tasks(["app.worker.tasks"])
+# Explicit imports — avoids autodiscover walking a package __init__.py that risks
+# circular imports. Each submodule registers its @task decorators on import.
+celery_app.conf.imports = (
+    "app.worker.tasks.game_tick",
+    "app.worker.tasks.evaluate_solution",
+    "app.worker.tasks.generate_news",
+)

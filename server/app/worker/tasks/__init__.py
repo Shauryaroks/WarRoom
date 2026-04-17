@@ -1,5 +1,2 @@
-"""Celery task modules. Imported here so autodiscover picks them up on worker boot."""
-
-from app.worker.tasks import evaluate_solution, game_tick, generate_news
-
-__all__ = ["evaluate_solution", "game_tick", "generate_news"]
+"""Celery task modules. Explicit imports listed in celery_app.conf.imports to avoid
+circular imports that happen when submodules re-import `app.worker.tasks`."""
