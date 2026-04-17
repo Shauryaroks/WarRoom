@@ -1648,6 +1648,21 @@ async def assign_archetype(
     team.swot_opportunities = archetype.swot_opportunities
     team.swot_threats = archetype.swot_threats
 
+    # Phase 9 D-03/D-04: Populate fundamentals at archetype benchmark band midpoints.
+    _bands = json.loads(archetype.benchmark_bands)
+    team.fundamental_market_share = Decimal(
+        str((_bands["market_share"][0] + _bands["market_share"][1]) / 2)
+    )
+    team.fundamental_margin = Decimal(
+        str((_bands["margin"][0] + _bands["margin"][1]) / 2)
+    )
+    team.fundamental_growth = Decimal(
+        str((_bands["growth"][0] + _bands["growth"][1]) / 2)
+    )
+    team.fundamental_ops_efficiency = Decimal(
+        str((_bands["ops_efficiency"][0] + _bands["ops_efficiency"][1]) / 2)
+    )
+
     db.add(ActivityEvent(
         event_type="ARCHETYPE_ASSIGNED",
         actor="admin",

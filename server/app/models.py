@@ -86,6 +86,30 @@ class LeverCategory(str, enum.Enum):
     NEW_PRODUCT = "NEW_PRODUCT"
 
 
+class FundamentalEvalStatus(str, enum.Enum):
+    PROCESSING = "PROCESSING"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"
+
+
+class ShockSource(str, enum.Enum):
+    CRISIS = "CRISIS"
+    LLM_EVENT = "LLM_EVENT"
+
+
+class ShockSeverity(str, enum.Enum):
+    MINOR = "MINOR"
+    MAJOR = "MAJOR"
+    CATASTROPHIC = "CATASTROPHIC"
+
+
+class ShockDirection(str, enum.Enum):
+    POSITIVE = "POSITIVE"
+    NEGATIVE = "NEGATIVE"
+
+
 class Archetype(Base):
     __tablename__ = "archetypes"
 
@@ -166,11 +190,28 @@ class Team(Base):
     public_float: Mapped[int] = mapped_column(Integer, default=100000)
     treasury_shares: Mapped[int] = mapped_column(Integer, default=900000)
 
-    # Simulation: price trajectory (per D-05, Phase 4 mock score input)
-    target_price: Mapped[Optional[Decimal]] = mapped_column(
-        Numeric(10, 2), nullable=True
+    # Simulation: 4-fundamental pricing inputs (Phase 9 D-30, D-31; replaces v1 target_price/ticks_to_target)
+    fundamental_market_share: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
     )
-    ticks_to_target: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    fundamental_margin: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    fundamental_growth: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    fundamental_ops_efficiency: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    drift_target_pct: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(8, 6), nullable=True
+    )
+    drift_floor_pct: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(8, 6), nullable=True
+    )
+    ramp_started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Cooldown
     cooldown_until: Mapped[Optional[datetime]] = mapped_column(
@@ -407,6 +448,82 @@ class Evaluation(Base):
     solution: Mapped["Solution"] = relationship(
         "Solution", back_populates="evaluation"
     )
+    team: Mapped["Team"] = relationship("Team")
+
+
+class FundamentalEvaluation(Base):
+    """LLM-proposed + admin-approved quarterly fundamental deltas (Phase 9 D-01, D-02, D-32)."""
+
+    __tablename__ = "fundamental_evaluations"
+    __table_args__ = (
+        UniqueConstraint("team_id", "round_number", name="uq_fundeval_team_round"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    proposed_deltas: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
+    admin_edits: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string, null until edited
+    narrative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[FundamentalEvalStatus] = mapped_column(
+        Enum(FundamentalEvalStatus, name="fundamentalevalstatus"),
+        default=FundamentalEvalStatus.PROCESSING,
+        nullable=False,
+    )
+    llm_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    llm_latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    admin_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    approved_by_admin_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("admins.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejected_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    team: Mapped["Team"] = relationship("Team")
+
+
+class PendingShock(Base):
+    """Queued per-team price shock to be consumed on next tick (Phase 9 D-19, D-32)."""
+
+    __tablename__ = "pending_shocks"
+    __table_args__ = (
+        Index("ix_pending_shocks_team_unapplied", "team_id", "applied_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    magnitude_pct: Mapped[Decimal] = mapped_column(
+        Numeric(6, 3), nullable=False
+    )  # signed, e.g. -15.000 for -15%
+    source: Mapped[ShockSource] = mapped_column(
+        Enum(ShockSource, name="shocksource"), nullable=False
+    )
+    source_ref_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )  # crisis_event.id or market_news.id
+    enqueued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+    applied_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     team: Mapped["Team"] = relationship("Team")
 
 
