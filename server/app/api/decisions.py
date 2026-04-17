@@ -229,7 +229,10 @@ async def submit_decisions(
     current_round = game_state.current_round
 
     # Get budget for validation
-    budget_info = await get_operating_budget(db, team_id)
+    try:
+        budget_info = await get_operating_budget(db, team_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     total_budget = Decimal(budget_info["total_budget"])
 
     # Validate each lever and calculate server-side budget
