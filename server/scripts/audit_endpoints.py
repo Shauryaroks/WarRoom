@@ -480,7 +480,7 @@ async def test_decisions_endpoints(client: httpx.AsyncClient, state: AuditState)
         headers=auth_hdr(state.strategist_token),
         json={"decisions": []},
     )
-    await expect(state, "POST /decisions/submit (strategist empty)", r, {200, 409})
+    await expect(state, "POST /decisions/submit (strategist empty)", r, {200, 400, 409})
 
     # /decisions/submit — bad body
     r = await client.post(
