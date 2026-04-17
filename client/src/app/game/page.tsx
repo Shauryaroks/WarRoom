@@ -9,7 +9,7 @@ import { useMarketStore } from "@/stores/market-store";
 import { useTradingStore } from "@/stores/trading-store";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
-import type { GameStatePayload, PriceTickData, NewsItem, GamePhaseChangedPayload } from "@/lib/types";
+import type { GameStatePayload, PriceTickData, NewsItem, GamePhaseChangedPayload, CrisisPayload } from "@/lib/types";
 
 import { GameHeader } from "@/components/game/GameHeader";
 import { GameSidebar, type SidebarTab } from "@/components/game/GameSidebar";
@@ -141,8 +141,10 @@ export default function GamePage() {
         }
         break;
       }
+      case "crisis_started":
       case "crisis_injected": {
-        const crisis = data.payload as { id: string; scenario: string; warning_seconds: number };
+        // Backend emits `crisis_started`; keep `crisis_injected` as back-compat for older workers.
+        const crisis = data.payload as CrisisPayload;
         if (crisis) {
           useGameStore.getState().setCrisis(crisis);
         }
@@ -171,6 +173,7 @@ export default function GamePage() {
 
   const activeCrisis = useGameStore((s) => s.activeCrisis);
   const gamePhase = useGameStore((s) => s.gamePhase);
+  const teamStatus = useGameStore((s) => s.teamStatus);
   const companies = useMarketStore((s) => s.companies);
   const teamId = useAuthStore((s) => s.teamId);
 
@@ -185,8 +188,8 @@ export default function GamePage() {
 
   // Computed values (safe after hooks, before render)
   const chartData = selectedCompanyId ? (candles[selectedCompanyId] || []) : [];
-  const isEliminated = role !== "admin" &&
-    companies.find(c => c.team_id === teamId)?.status === "ELIMINATED";
+  // CompanyInfo from /market/companies doesn't carry status; rely on teamStatus from WS.
+  const isEliminated = role !== "admin" && teamStatus === "ELIMINATED";
 
   function renderSidebarContent() {
     // War Room overrides normal tab content

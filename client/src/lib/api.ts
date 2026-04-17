@@ -219,7 +219,8 @@ class ApiClient {
   }
 
   async getNewsHistory(): Promise<NewsItem[]> {
-    return this.request<NewsItem[]>("/api/v1/admin/news/history");
+    // Team-facing news feed; admin overlay can also use this since admins authenticate as both.
+    return this.request<NewsItem[]>("/api/v1/market/news");
   }
 
   // Broadcast
