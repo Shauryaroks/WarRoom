@@ -519,18 +519,20 @@ async def test_decisions_endpoints(client: httpx.AsyncClient, state: AuditState)
     await expect(state, "GET /decisions/operating-plan (team)", r, {200, 404})
 
     # /decisions/submit with one real decision body — must not 500 even if game phase
-    # forbids it. Valid pricing lever body.
+    # forbids it. Uses MARKETING lever (Phase 8 polish removed PRICING).
     r = await client.post(
         f"{BASE}/api/v1/decisions/submit",
         headers=auth_hdr(state.strategist_token),
         json={
             "decisions": [
                 {
-                    "lever_category": "PRICING",
+                    "lever_category": "MARKETING",
                     "decisions_json": {
-                        "list_price_change": 5,
-                        "promo_depth": 10,
-                        "channel_pricing": "MT",
+                        "atl_pct": 25,
+                        "digital_pct": 25,
+                        "influencer_pct": 25,
+                        "btl_pct": 25,
+                        "campaign_theme": "VALUE",
                     },
                     "budget_spent": 0,
                 }
@@ -538,7 +540,7 @@ async def test_decisions_endpoints(client: httpx.AsyncClient, state: AuditState)
         },
     )
     # Must never 500; 200 if game is ACTIVE + live_floor + archetype; else 400/409.
-    await expect(state, "POST /decisions/submit (real pricing lever)", r, {200, 400, 409})
+    await expect(state, "POST /decisions/submit (real marketing lever)", r, {200, 400, 409})
 
 
 async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> None:
@@ -585,21 +587,22 @@ async def test_admin_endpoints(client: httpx.AsyncClient, state: AuditState) -> 
     r = await client.post(f"{BASE}/api/v1/admin/teams/{bogus_uuid}/reject", headers=ah)
     await expect(state, "POST /admin/teams/{bogus}/reject", r, 404)
 
-    # /admin/teams/{id}/set-score
+    # /admin/teams/{id}/set-score — DEPRECATED (Phase 9 D-28). Always 410 Gone.
     r = await client.post(
         f"{BASE}/api/v1/admin/teams/{state.team_id}/set-score",
         headers=ah,
         json={"quality_score": 0.5},
     )
-    # may 404 if team lookup fails or 200
-    await expect(state, "POST /admin/teams/{id}/set-score", r, {200, 404, 409})
+    await expect(state, "POST /admin/teams/{id}/set-score (deprecated)", r, 410)
 
+    # Bad score payload — still 410, since endpoint early-returns before Pydantic validation
+    # (FastAPI validates body first, so 422 would be returned only if the endpoint was live).
     r = await client.post(
         f"{BASE}/api/v1/admin/teams/{state.team_id}/set-score",
         headers=ah,
         json={"quality_score": 2.0},
     )
-    await expect(state, "POST /admin/teams/{id}/set-score (bad score)", r, 422)
+    await expect(state, "POST /admin/teams/{id}/set-score (bad score, still 410)", r, {410, 422})
 
     # /admin/news/inject
     r = await client.post(
