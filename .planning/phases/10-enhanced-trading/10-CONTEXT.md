@@ -1,7 +1,18 @@
 # Phase 10: Enhanced Trading - Context
 
 **Gathered:** 2026-04-17
-**Status:** Ready for planning
+**Status:** SCOPE REDUCED TO ZERO — user decision 2026-04-17
+**Last updated:** 2026-04-17
+
+## SCOPE REDUCTION NOTICE
+
+Per user decision on 2026-04-17: Phase 10 is skipped entirely. v1 trading (buy/sell at market price, 30% external-ownership cap) is sufficient. No short selling, no margin, no circuit breakers, no 15% position cap, no separate trading P&L. All D-01 through D-26 below are DEFERRED to potential future phases.
+
+The requirements TRAD-06 / TRAD-07 / TRAD-08 / TRAD-09 are de-scoped from v2.0. Update REQUIREMENTS.md accordingly when archiving.
+
+The CONTEXT below is preserved as reference for a future Phase 10 revival if the competition model ever needs these mechanics.
+
+---
 
 <domain>
 ## Phase Boundary

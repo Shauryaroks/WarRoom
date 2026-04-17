@@ -151,8 +151,8 @@ Plans:
 
 - [x] **Phase 7: Archetypes & Sample Portfolios** - Admin assigns archetypes with benchmark bands; 4 pre-built dossiers seed the competition (completed 2026-04-16)
 - [x] **Phase 8: Decision Levers & Round Structure** - Teams submit 5-category decisions every 20 min; admin controls War Room / Live Floor phases (completed 2026-04-16)
-- [ ] **Phase 9: Enhanced Simulation Engine** - New price formula with 4 weighted fundamentals, archetype-relative scoring, event shocks, sentiment flow, smoothing
-- [ ] **Phase 10: Enhanced Trading** - Short selling with margin, position limits, circuit breakers, separate trading P&L tracking
+- [x] **Phase 9: Enhanced Simulation Engine** — New price formula with 4 weighted fundamentals + per-tick engine + admin Fundamentals Queue (completed 2026-04-17, simplified scope; Plan 07 stress tests deferred)
+- [~] **Phase 10: Enhanced Trading** — DESCOPED (2026-04-17). v1 buy/sell + 30% cap retained. Shorts/margin/circuit breakers/15% cap deferred.
 - [ ] **Phase 11: Press Releases & Enhanced Dashboard** - Team press releases feed into news; live operational and market-wide dashboard tiles
 - [ ] **Phase 12: Final Scoring & Endgame** - Final score computation, strategy memo submission, distress triggers for underperformers
 
@@ -245,7 +245,7 @@ Plans:
 
 ### Phase 12: Final Scoring & Endgame
 **Goal**: The competition reaches a definitive conclusion -- final scores computed from stock performance, trading P&L, and strategy memo, with distress triggers forcing consequences on underperformers
-**Depends on**: Phase 10, Phase 11
+**Depends on**: Phase 11 (Phase 10 descoped 2026-04-17)
 **Requirements**: SCORE-01, SCORE-02, SCORE-03
 **Success Criteria** (what must be TRUE):
   1. Final score is computed as 50% stock price performance + 25% trading portfolio P&L + 25% strategy memo score, displayed on a final leaderboard
