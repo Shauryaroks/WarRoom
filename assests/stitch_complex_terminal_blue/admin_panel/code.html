@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KINETIC_LEDGER_TERMINAL // ADMIN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-surface": "#e5e2e1",
+            "on-tertiary-container": "#5d0011",
+            "on-tertiary-fixed-variant": "#920021",
+            "primary-fixed-dim": "#9ecaff",
+            "secondary-fixed-dim": "#3ce36a",
+            "tertiary": "#ffb3b3",
+            "secondary-fixed": "#69ff87",
+            "surface-bright": "#3a3939",
+            "on-error": "#690005",
+            "on-background": "#e5e2e1",
+            "on-tertiary-fixed": "#400009",
+            "surface-variant": "#353534",
+            "surface-container-low": "#1c1b1b",
+            "surface-tint": "#9ecaff",
+            "on-error-container": "#ffdad6",
+            "background": "#131313",
+            "on-secondary": "#003912",
+            "surface-container-highest": "#353534",
+            "error": "#ffb4ab",
+            "inverse-primary": "#0061a4",
+            "tertiary-fixed": "#ffdad9",
+            "surface-container-lowest": "#0e0e0e",
+            "on-primary": "#003258",
+            "on-primary-fixed": "#001d36",
+            "on-primary-fixed-variant": "#00497d",
+            "primary": "#9ecaff",
+            "outline": "#89919d",
+            "surface-container-high": "#2a2a2a",
+            "on-secondary-container": "#004d1b",
+            "on-primary-container": "#002c4f",
+            "tertiary-container": "#ff5561",
+            "error-container": "#93000a",
+            "surface-dim": "#131313",
+            "on-surface-variant": "#bfc7d4",
+            "surface-container": "#201f1f",
+            "on-surface": "#e5e2e1",
+            "outline-variant": "#404752",
+            "on-tertiary": "#680014",
+            "secondary": "#40e56c",
+            "tertiary-fixed-dim": "#ffb3b3",
+            "on-secondary-fixed": "#002108",
+            "primary-container": "#2196f3",
+            "on-secondary-fixed-variant": "#00531e",
+            "primary-fixed": "#d1e4ff",
+            "surface": "#131313",
+            "inverse-on-surface": "#313030",
+            "secondary-container": "#02c953"
+          },
+          "borderRadius": {
+            "DEFAULT": "0px",
+            "lg": "0px",
+            "xl": "0px",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["JetBrains Mono"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary selection:text-on-primary-container">
+<!-- Shared Component: TopAppBar -->
+<header class="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50 border-b-0">
+<div class="flex items-center gap-6">
+<span class="text-xl font-black tracking-tighter text-blue-500">KINETIC_LEDGER_TERMINAL</span>
+<nav class="hidden md:flex gap-8 items-center h-full">
+<a class="text-blue-500 border-b-2 border-blue-500 pb-1 font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold" href="#">DASHBOARD</a>
+<a class="text-gray-500 hover:text-gray-300 font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold transition-colors duration-150" href="#">MARKETS</a>
+<a class="text-gray-500 hover:text-gray-300 font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold transition-colors duration-150" href="#">PORTFOLIO</a>
+<a class="text-gray-500 hover:text-gray-300 font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold transition-colors duration-150" href="#">REPORTS</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-[#2a2a2a] px-3 py-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-gray-400">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-[10px] mono uppercase placeholder:text-gray-600 w-32" placeholder="COMMAND_SEARCH" type="text"/>
+</div>
+<button class="material-symbols-outlined text-gray-500 hover:bg-[#2a2a2a] p-1 transition-colors">notifications</button>
+<button class="material-symbols-outlined text-gray-500 hover:bg-[#2a2a2a] p-1 transition-colors">settings</button>
+<img alt="Team Avatar" class="w-8 h-8 bg-surface-container-high" data-alt="High-contrast stylized digital avatar of a futuristic terminal user with glowing blue accents on a dark background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqcBNL0c0yEzoX1IV1kL98R6jWGZpfmUKNMzwWEo6C1-GB3uuXh3OmR3_1YZATzWi9BshbArZEdBQKJfqj0BuQroi7Ea9hpKUw5QAahf35IdAcEOVeafR4myg-ijzjCcsck2G14d72lub6OEUPsZs_WJABmOSvxxobJ08-KbId-TGG5iCORynwcY3VnrS9shXWEUBWpQIC5Y8GKq9FrgRpw748lEsnHImpppCoTkTkvl-UQeVCaVSQ9vYfABGVG4XHQyveJnUxUOse"/>
+</div>
+</header>
+<!-- Shared Component: SideNavBar -->
+<aside class="fixed left-0 top-12 bottom-0 flex flex-col items-center py-4 z-40 bg-[#0e0e0e] w-20 border-r-0">
+<div class="flex flex-col items-center mb-8 gap-1">
+<span class="mono text-[8px] text-gray-600 uppercase tracking-tighter">LIVE_SESSION</span>
+<span class="mono text-[10px] text-primary font-bold">CC-9921</span>
+</div>
+<nav class="flex flex-col w-full gap-4">
+<button class="w-full py-4 flex flex-col items-center gap-1 bg-blue-600/10 text-blue-500 border-l-2 border-blue-500 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="mono text-[8px] uppercase">TERMINAL</span>
+</button>
+<button class="w-full py-4 flex flex-col items-center gap-1 text-gray-600 hover:bg-[#2a2a2a] active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+<span class="mono text-[8px] uppercase">ANALYTICS</span>
+</button>
+<button class="w-full py-4 flex flex-col items-center gap-1 text-gray-600 hover:bg-[#2a2a2a] active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="code">code</span>
+<span class="mono text-[8px] uppercase">STRATEGY</span>
+</button>
+<button class="w-full py-4 flex flex-col items-center gap-1 text-gray-600 hover:bg-[#2a2a2a] active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="mono text-[8px] uppercase">HISTORY</span>
+</button>
+<button class="w-full py-4 flex flex-col items-center gap-1 text-gray-600 hover:bg-[#2a2a2a] active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="mono text-[8px] uppercase">SUPPORT</span>
+</button>
+</nav>
+<div class="mt-auto flex flex-col items-center gap-4 w-full px-2">
+<button class="w-full bg-primary-container text-on-primary py-2 mono text-[9px] font-black uppercase hover:brightness-110 active:scale-95">
+        EXECUTE
+      </button>
+<button class="text-gray-600 hover:text-white transition-colors">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pl-20 pt-12 pb-6 min-h-screen">
+<div class="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
+<!-- Top Section: Game Control Center -->
+<section class="col-span-12 lg:col-span-4 bg-surface-container-low p-6 flex flex-col gap-6">
+<header class="flex justify-between items-center">
+<h2 class="text-sm font-black mono tracking-widest text-primary uppercase">GAME_CONTROL_STATION</h2>
+<span class="flex items-center gap-2 mono text-[10px] text-secondary">
+<span class="w-2 h-2 bg-secondary rounded-full animate-pulse"></span> SYSTEM_LIVE
+          </span>
+</header>
+<div class="grid grid-cols-3 gap-2">
+<button class="bg-secondary-container text-on-secondary-container py-4 flex flex-col items-center justify-center gap-1 hover:brightness-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span class="mono text-[10px] font-bold">START</span>
+</button>
+<button class="bg-surface-container-high text-on-surface py-4 flex flex-col items-center justify-center gap-1 hover:brightness-125 active:scale-95 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pause</span>
+<span class="mono text-[10px] font-bold">PAUSE</span>
+</button>
+<button class="bg-surface-container-high text-on-surface py-4 flex flex-col items-center justify-center gap-1 hover:brightness-125 active:scale-95 transition-all">
+<span class="material-symbols-outlined">refresh</span>
+<span class="mono text-[10px] font-bold">RESUME</span>
+</button>
+</div>
+<div class="flex flex-col gap-2">
+<label class="mono text-[10px] text-gray-500 uppercase tracking-tighter">GLOBAL_BROADCAST_CHANNEL</label>
+<div class="relative">
+<textarea class="w-full bg-surface-container-lowest border-l-2 border-primary focus:ring-0 focus:border-primary text-sm mono p-4 text-primary h-24 placeholder:text-gray-800" placeholder="ENTER MESSAGE TO ALL TEAMS..."></textarea>
+<button class="absolute bottom-4 right-4 bg-primary text-on-primary-container px-4 py-1 mono text-[10px] font-bold uppercase hover:bg-white transition-colors">
+              PUSH_TO_FEED
+            </button>
+</div>
+</div>
+</section>
+<!-- Dashboard: Teams Real-Time Table -->
+<section class="col-span-12 lg:col-span-8 bg-surface-container-low p-6">
+<header class="flex justify-between items-center mb-6">
+<h2 class="text-sm font-black mono tracking-widest text-primary uppercase">TEAM_PERFORMANCE_LEDGER</h2>
+<div class="flex gap-4">
+<button class="mono text-[10px] text-gray-500 underline hover:text-white">EXPORT_CSV</button>
+<button class="mono text-[10px] text-gray-500 underline hover:text-white">FULL_GRID</button>
+</div>
+</header>
+<div class="overflow-x-auto">
+<table class="w-full text-left mono">
+<thead>
+<tr class="text-[10px] text-gray-600 uppercase border-b border-surface-container-high">
+<th class="pb-3 font-medium">TEAM_ID</th>
+<th class="pb-3 font-medium">TICKER</th>
+<th class="pb-3 font-medium text-right">VALUATION</th>
+<th class="pb-3 font-medium text-right">DELTA</th>
+<th class="pb-3 font-medium text-center">SUBMISSIONS</th>
+<th class="pb-3 font-medium px-4">TREND</th>
+</tr>
+</thead>
+<tbody class="text-xs">
+<tr class="hover:bg-surface-container-high group transition-colors">
+<td class="py-4 font-bold text-on-surface">ALPHA_SYSTEMS</td>
+<td class="py-4 text-gray-500">ALPH</td>
+<td class="py-4 text-right font-bold">$1,240,500</td>
+<td class="py-4 text-right text-secondary">+12.4%</td>
+<td class="py-4 text-center">14</td>
+<td class="py-4 px-4 w-32">
+<div class="h-6 w-full flex items-end gap-0.5">
+<div class="w-1 bg-secondary h-[40%]"></div>
+<div class="w-1 bg-secondary h-[60%]"></div>
+<div class="w-1 bg-secondary h-[50%]"></div>
+<div class="w-1 bg-secondary h-[80%]"></div>
+<div class="w-1 bg-secondary h-[70%]"></div>
+<div class="w-1 bg-secondary h-[100%]"></div>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-high group transition-colors">
+<td class="py-4 font-bold text-on-surface">OMEGA_REDACTED</td>
+<td class="py-4 text-gray-500">OMGA</td>
+<td class="py-4 text-right font-bold">$980,200</td>
+<td class="py-4 text-right text-tertiary-container">-4.2%</td>
+<td class="py-4 text-center">08</td>
+<td class="py-4 px-4 w-32">
+<div class="h-6 w-full flex items-end gap-0.5">
+<div class="w-1 bg-tertiary-container h-[80%]"></div>
+<div class="w-1 bg-tertiary-container h-[70%]"></div>
+<div class="w-1 bg-tertiary-container h-[90%]"></div>
+<div class="w-1 bg-tertiary-container h-[50%]"></div>
+<div class="w-1 bg-tertiary-container h-[40%]"></div>
+<div class="w-1 bg-tertiary-container h-[30%]"></div>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-high group transition-colors">
+<td class="py-4 font-bold text-on-surface">ZEPHYR_LLC</td>
+<td class="py-4 text-gray-500">ZEPH</td>
+<td class="py-4 text-right font-bold">$1,012,000</td>
+<td class="py-4 text-right text-secondary">+2.1%</td>
+<td class="py-4 text-center">22</td>
+<td class="py-4 px-4 w-32">
+<div class="h-6 w-full flex items-end gap-0.5">
+<div class="w-1 bg-gray-600 h-[30%]"></div>
+<div class="w-1 bg-gray-600 h-[40%]"></div>
+<div class="w-1 bg-secondary h-[60%]"></div>
+<div class="w-1 bg-secondary h-[50%]"></div>
+<div class="w-1 bg-secondary h-[70%]"></div>
+<div class="w-1 bg-secondary h-[80%]"></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Evaluation Queue -->
+<section class="col-span-12 bg-surface-container-low p-6">
+<header class="flex items-center gap-4 mb-6">
+<h2 class="text-sm font-black mono tracking-widest text-primary uppercase">EVALUATIONS_QUEUE</h2>
+<span class="bg-primary-container/20 text-primary px-2 py-0.5 text-[10px] mono font-bold">5 PENDING</span>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Eval Card 1 -->
+<div class="bg-surface-container-lowest p-5 border-l-4 border-primary flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex flex-col">
+<span class="mono text-[10px] text-gray-500">FROM_TEAM</span>
+<span class="mono text-sm font-bold text-on-surface uppercase">ALPHA_SYSTEMS</span>
+</div>
+<div class="bg-secondary/10 border border-secondary px-3 py-1">
+<span class="mono text-xs text-secondary font-bold">LLM_SCORE: 0.92</span>
+</div>
+</div>
+<div class="bg-[#131313] p-3 text-[11px] mono text-gray-400 leading-relaxed italic">
+              "System architecture implementation leverages high-density clustering to mitigate latency in the Kinetic Ledger pipeline..."
+            </div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 bg-secondary-container text-on-secondary-container py-2 mono text-[10px] font-bold hover:brightness-110">APPROVE</button>
+<button class="flex-1 bg-surface-container-high text-on-surface py-2 mono text-[10px] font-bold hover:brightness-125">EDIT</button>
+<button class="flex-1 bg-error-container text-on-error-container py-2 mono text-[10px] font-bold hover:brightness-110">REJECT</button>
+</div>
+</div>
+<!-- Eval Card 2 -->
+<div class="bg-surface-container-lowest p-5 border-l-4 border-gray-600 flex flex-col gap-4 opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
+<div class="flex justify-between items-start">
+<div class="flex flex-col">
+<span class="mono text-[10px] text-gray-500">FROM_TEAM</span>
+<span class="mono text-sm font-bold text-on-surface uppercase">OMEGA_REDACTED</span>
+</div>
+<div class="bg-tertiary-container/10 border border-tertiary-container px-3 py-1">
+<span class="mono text-xs text-tertiary-container font-bold">LLM_SCORE: 0.34</span>
+</div>
+</div>
+<div class="bg-[#131313] p-3 text-[11px] mono text-gray-400 leading-relaxed italic">
+              "We decided to ignore the secondary node protocols and instead focus on brute-forcing the ledger via unauthorized..."
+            </div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 bg-secondary-container text-on-secondary-container py-2 mono text-[10px] font-bold hover:brightness-110">APPROVE</button>
+<button class="flex-1 bg-surface-container-high text-on-surface py-2 mono text-[10px] font-bold hover:brightness-125">EDIT</button>
+<button class="flex-1 bg-error-container text-on-error-container py-2 mono text-[10px] font-bold hover:brightness-110">REJECT</button>
+</div>
+</div>
+<!-- Eval Card 3 -->
+<div class="bg-surface-container-lowest p-5 border-l-4 border-primary flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex flex-col">
+<span class="mono text-[10px] text-gray-500">FROM_TEAM</span>
+<span class="mono text-sm font-bold text-on-surface uppercase">ZEPHYR_LLC</span>
+</div>
+<div class="bg-primary/10 border border-primary px-3 py-1">
+<span class="mono text-xs text-primary font-bold">LLM_SCORE: 0.78</span>
+</div>
+</div>
+<div class="bg-[#131313] p-3 text-[11px] mono text-gray-400 leading-relaxed italic">
+              "Proposal for dynamic load balancing across multiple regions to ensure zero downtime during high-volatility trading sessions..."
+            </div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 bg-secondary-container text-on-secondary-container py-2 mono text-[10px] font-bold hover:brightness-110">APPROVE</button>
+<button class="flex-1 bg-surface-container-high text-on-surface py-2 mono text-[10px] font-bold hover:brightness-125">EDIT</button>
+<button class="flex-1 bg-error-container text-on-error-container py-2 mono text-[10px] font-bold hover:brightness-110">REJECT</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Shared Component: Footer -->
+<footer class="fixed bottom-0 left-0 w-full h-6 flex justify-between items-center px-6 z-50 bg-[#0e0e0e] border-t border-[#2a2a2a]">
+<div class="flex items-center gap-4">
+<span class="mono text-[9px] font-medium text-green-500 uppercase tracking-widest">SYSTEM_STABLE // LATENCY: 14MS</span>
+<div class="flex gap-4">
+<a class="mono text-[9px] text-gray-600 hover:text-white transition-colors" href="#">API_DOCS</a>
+<a class="mono text-[9px] text-gray-600 hover:text-white transition-colors" href="#">RULES</a>
+<a class="mono text-[9px] text-gray-600 hover:text-white transition-colors" href="#">HELP_DESK</a>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="mono text-[9px] text-gray-600">TIME: 14:22:09 UTC</span>
+<span class="w-1.5 h-1.5 bg-green-500"></span>
+</div>
+</footer>
+</body></html>

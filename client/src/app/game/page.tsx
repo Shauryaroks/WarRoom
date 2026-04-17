@@ -1,111 +1,277 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
-import { GameProvider, useGameContext } from "@/contexts/GameContext";
-import { WebSocketProvider, useWebSocket } from "@/contexts/WebSocketContext";
-import {
-  HeaderBar,
-  LeftSidebar,
-  DirectiveEditor,
-  RightSidebar,
-  Footer,
-} from "@/components/game";
-import { GameGuard } from "@/components/game/GameGuard";
-import { TradeModal, BoardFeedbackModal } from "@/components/game/Modals";
+import { useEffect, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 
-/**
- * The inner layout component for the main game dashboard.
- * Connects to the Auth, Game, and WebSocket contexts to retrieve the user,
- * game state, and modal statuses, and renders the terminal UI grid consisting
- * of the header, sidebars, directive editor, and footer ticker.
- *
- * @returns The rendered terminal layout.
- */
-function GameLayout() {
-  const { user } = useAuth();
-  const ticker = user?.ticker || "$BRBE";
-  const { isTradeModalOpen, isFeedbackModalOpen } = useGameContext();
-  const { gameState, isMarketConnected, isTeamConnected, globalAnnouncement } =
-    useWebSocket();
+import { useAuthStore } from "@/stores/auth-store";
+import { useGameStore } from "@/stores/game-store";
+import { useMarketStore } from "@/stores/market-store";
+import { useTradingStore } from "@/stores/trading-store";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { api } from "@/lib/api";
+import type { GameStatePayload, PriceTickData, NewsItem, GamePhaseChangedPayload } from "@/lib/types";
 
-  const formatSeconds = (secs?: number) => {
-    if (!secs) return "00:00:00";
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
+import { GameHeader } from "@/components/game/GameHeader";
+import { GameSidebar, type SidebarTab } from "@/components/game/GameSidebar";
+import { CandlestickChart } from "@/components/game/CandlestickChart";
+import { CompanyTabs } from "@/components/game/CompanyTabs";
+import { PriceOverlay } from "@/components/game/PriceOverlay";
+import { TradingPanel } from "@/components/game/TradingPanel";
+import { PortfolioTable } from "@/components/game/PortfolioTable";
+import { CaselinePanel } from "@/components/game/CaselinePanel";
+import { SolutionsPanel } from "@/components/game/SolutionsPanel";
+import { DecisionsPanel } from "@/components/game/DecisionsPanel";
+import { WarRoomPanel } from "@/components/game/WarRoomPanel";
+import { NewsOverlay } from "@/components/game/NewsOverlay";
+import { CrisisOverlay } from "@/components/game/CrisisOverlay";
+import { EliminatedBanner } from "@/components/game/EliminatedBanner";
+import { LeaderboardWidget } from "@/components/game/LeaderboardWidget";
+
+export default function GamePage() {
+  const router = useRouter();
+  const { isAuthenticated, role } = useAuthStore();
+  const status = useGameStore((s) => s.status);
+  const selectedCompanyId = useMarketStore((s) => s.selectedCompanyId);
+  const candles = useMarketStore((s) => s.candles);
+
+  // Default tab based on role
+  const [activeTab, setActiveTab] = useState<SidebarTab>(
+    role === "trader" ? "TRADING" : "CASELINE"
+  );
+  const [newsOpen, setNewsOpen] = useState(false);
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+    }
+  }, [isAuthenticated, router]);
+
+  // Load initial game state and redirect to lobby if game hasn't started
+  const [gameStateLoaded, setGameStateLoaded] = useState(false);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.getGameState()
+      .then((state) => {
+        useGameStore.getState().setGameState({
+          status: state.status as GameStatePayload["status"],
+          elapsed_seconds: state.elapsed_seconds,
+          current_round: state.current_round,
+        });
+        setGameStateLoaded(true);
+        if (state.status === "SETUP") {
+          router.push("/lobby");
+        }
+      })
+      .catch(() => setGameStateLoaded(true));
+  }, [isAuthenticated, router]);
+
+  // Load initial data on mount
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Fetch companies
+    api.getCompanies()
+      .then((companies) => {
+        useMarketStore.getState().setCompanies(companies);
+        // Auto-select first company if none selected
+        if (!useMarketStore.getState().selectedCompanyId && companies.length > 0) {
+          useMarketStore.getState().selectCompany(companies[0].team_id);
+        }
+      })
+      .catch(() => { /* Market data unavailable */ });
+
+    // Fetch portfolio
+    api.getPortfolio()
+      .then((data) => {
+        useTradingStore.getState().setPortfolio(data);
+      })
+      .catch(() => { /* Portfolio unavailable */ });
+  }, [isAuthenticated]);
+
+  // Fetch price history when selected company changes
+  useEffect(() => {
+    if (!selectedCompanyId || !isAuthenticated) return;
+
+    api.getPriceHistory(selectedCompanyId)
+      .then((history) => {
+        useMarketStore.getState().loadPriceHistory(selectedCompanyId, history);
+      })
+      .catch(() => { /* Price history unavailable */ });
+  }, [selectedCompanyId, isAuthenticated]);
+
+  // Handle WebSocket messages
+  const handleMessage = useCallback((data: Record<string, unknown>) => {
+    const type = data.type as string;
+
+    switch (type) {
+      case "price_update": {
+        const payload = data.payload as { prices: PriceTickData[] };
+        if (payload?.prices) {
+          useMarketStore.getState().handlePriceUpdate(payload.prices);
+        }
+        break;
+      }
+      case "trade_executed": {
+        // Refresh portfolio on any trade execution
+        api.getPortfolio()
+          .then((portfolio) => {
+            useTradingStore.getState().setPortfolio(portfolio);
+          })
+          .catch(() => { /* Portfolio refresh failed */ });
+        break;
+      }
+      case "game_state_changed":
+      case "game_started": {
+        const payload = data.payload as GameStatePayload;
+        if (payload) {
+          useGameStore.getState().setGameState(payload);
+        }
+        break;
+      }
+      case "news_injected":
+      case "broadcast_message": {
+        const newsPayload = data.payload as NewsItem;
+        if (newsPayload && typeof window !== "undefined") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const addItem = (window as any).__newsOverlayAddItem;
+          if (typeof addItem === "function") {
+            addItem(newsPayload);
+          }
+        }
+        break;
+      }
+      case "crisis_injected": {
+        const crisis = data.payload as { id: string; scenario: string; warning_seconds: number };
+        if (crisis) {
+          useGameStore.getState().setCrisis(crisis);
+        }
+        break;
+      }
+      case "crisis_resolved": {
+        useGameStore.getState().clearCrisis();
+        break;
+      }
+      case "team_eliminated": {
+        // Refresh companies to get updated status
+        api.getCompanies()
+          .then((companies) => useMarketStore.getState().setCompanies(companies))
+          .catch(() => {});
+        break;
+      }
+      case "game_phase_changed": {
+        const phasePayload = data.payload as GamePhaseChangedPayload;
+        if (phasePayload) {
+          useGameStore.getState().setGamePhase(phasePayload.game_phase, phasePayload.macro_brief);
+        }
+        break;
+      }
+    }
+  }, []);
+
+  const activeCrisis = useGameStore((s) => s.activeCrisis);
+  const gamePhase = useGameStore((s) => s.gamePhase);
+  const companies = useMarketStore((s) => s.companies);
+  const teamId = useAuthStore((s) => s.teamId);
+
+  useWebSocket({
+    onMessage: handleMessage,
+    enabled: isAuthenticated,
+  });
+
+  if (!isAuthenticated || status === "SETUP") {
+    return null;
+  }
+
+  // Computed values (safe after hooks, before render)
+  const chartData = selectedCompanyId ? (candles[selectedCompanyId] || []) : [];
+  const isEliminated = role !== "admin" &&
+    companies.find(c => c.team_id === teamId)?.status === "ELIMINATED";
+
+  function renderSidebarContent() {
+    // War Room overrides normal tab content
+    if (gamePhase === "war_room") {
+      return <WarRoomPanel />;
+    }
+
+    switch (activeTab) {
+      case "CASELINE":
+        return <CaselinePanel />;
+      case "TRADING":
+        return (
+          <div className="flex flex-col h-full overflow-y-auto">
+            <TradingPanel />
+            <div className="border-t border-[#404752]/20">
+              <PortfolioTable />
+            </div>
+          </div>
+        );
+      case "SOLUTIONS":
+        return <SolutionsPanel />;
+      case "DECISIONS":
+        return <DecisionsPanel />;
+      default:
+        return null;
+    }
+  }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[var(--color-bg-darkest)] text-[var(--color-text-primary)] font-mono text-[13px] leading-tight overflow-hidden select-none">
-      {/* HEADER BAR */}
-      <div className="h-16 border-b border-[var(--color-outline)] bg-[var(--color-bg-darkest)] shrink-0">
-        <HeaderBar
-          sessionElapsed={formatSeconds(gameState?.elapsed_seconds)}
-          timerSeq={`ROUND: [${gameState?.current_round || 0}/4]`}
-          ticker={ticker}
-          isMarketConnected={isMarketConnected}
-          isTeamConnected={isTeamConnected}
-        />
-      </div>
+    <div className="bg-[#131313] min-h-screen flex flex-col">
+      {/* Crisis overlay (takes priority over pause) */}
+      {activeCrisis && <CrisisOverlay crisis={activeCrisis} />}
 
-      {/* MIDDLE SECTION */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEDGER */}
-        <div className="w-1/4 h-full border-r border-[var(--color-outline)] bg-[var(--color-bg-darkest)] overflow-hidden">
-          <LeftSidebar />
-        </div>
-
-        {/* COMMAND LINE */}
-        <div className="w-2/4 h-full bg-[var(--color-bg-dark)] overflow-hidden">
-          <DirectiveEditor maxChars={2000} />
-        </div>
-
-        {/* THE WIRE */}
-        <div className="w-1/4 h-full border-l border-[var(--color-outline)] bg-[var(--color-bg-darkest)] overflow-hidden">
-          <RightSidebar />
-        </div>
-      </div>
-
-      {/* FOOTER TICKER */}
-      <div className="h-14 border-t border-[var(--color-outline)] bg-[var(--color-bg-darkest)] shrink-0">
-        <Footer />
-      </div>
-
-      {isTradeModalOpen && <TradeModal />}
-      {isFeedbackModalOpen && <BoardFeedbackModal />}
-      {globalAnnouncement && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center justify-center border-2 border-red-500 bg-black p-8 shadow-[0_0_30px_rgba(239,68,68,0.5)]">
-            <h1 className="text-4xl font-bold tracking-[0.2em] text-red-500 animate-pulse mb-4">
-              {globalAnnouncement.type === "PURGE"
-                ? "SYSTEM PURGE ALERT"
-                : "BANKRUPTCY ALERT"}
-            </h1>
-            <p className="text-xl text-red-400 font-mono text-center max-w-2xl">
-              {globalAnnouncement.message}
-            </p>
+      {/* Pause overlay (only if no crisis) */}
+      {status === "PAUSED" && !activeCrisis && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+          <div className="border border-[#9ecaff]/30 bg-[#131313] px-8 py-6 text-center">
+            <div className="font-mono text-2xl font-bold text-[#9ecaff]">GAME PAUSED</div>
+            <p className="mt-2 text-sm text-[#89919d]">Waiting for admin to resume...</p>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-/**
- * The main entry point for the player game dashboard.
- * Wraps the `GameLayout` in the required context providers (GameProvider and WebSocketProvider).
- *
- * @returns The wrapped game page layout.
- */
-export default function GamePage() {
-  return (
-    <GameProvider>
-      <WebSocketProvider>
-        <GameGuard>
-          <GameLayout />
-        </GameGuard>
-      </WebSocketProvider>
-    </GameProvider>
+      {/* Eliminated banner */}
+      {isEliminated && <EliminatedBanner />}
+
+      {/* Header */}
+      <GameHeader />
+
+      {/* Main content area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar -- 80px icon tabs */}
+        <GameSidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onToggleNews={() => setNewsOpen((prev) => !prev)}
+          newsOpen={newsOpen}
+          role={role}
+        />
+
+        {/* Sidebar content panel -- 256px on md, 320px on lg+ */}
+        <div className="w-96 lg:w-[480px] bg-[#1c1b1b] border-r border-[#2a2a2a] overflow-y-auto shrink-0">
+          {renderSidebarContent()}
+        </div>
+
+        {/* Chart area -- flex-1 */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Company tabs */}
+          <CompanyTabs />
+
+          {/* Chart with price overlay */}
+          <div className="flex-1 relative">
+            <PriceOverlay />
+            <CandlestickChart data={chartData} />
+          </div>
+
+          {/* Leaderboard widget below chart */}
+          <div className="shrink-0 border-t border-[#404752]/20 p-2">
+            <LeaderboardWidget />
+          </div>
+        </div>
+      </div>
+
+      {/* Floating news overlay */}
+      <NewsOverlay isOpen={newsOpen} onClose={() => setNewsOpen(false)} />
+    </div>
   );
 }

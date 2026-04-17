@@ -8,46 +8,62 @@ services:
       POSTGRES_DB: complex
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   redis:
     image: redis:7
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   api:
     build: ./server
     restart: unless-stopped
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - ./server/.env
-    ports:
-      - "8080:80"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost/health')",
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+      # python3 is already on PATH via /opt/venv (Dockerfile ENV PATH). No `uv run` overhead.
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:80/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
   worker:
     build: ./server
     restart: unless-stopped
-    command: uv run celery -A app.worker worker --beat --loglevel=info
+    command: uv run celery -A app.worker.celery_app worker --beat --loglevel=info
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - ./server/.env
+    healthcheck:
+      # Beat writes to cwd; celery inspect on the worker is a lighter check than re-running `uv run` fresh.
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping --timeout 5 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
   caddy:
     image: caddy:2
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
-      - "80:80"
+      - "8080:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:Z

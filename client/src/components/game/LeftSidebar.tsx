@@ -209,7 +209,7 @@ export function LeftSidebar() {
                 <div className="h-40 border border-[var(--color-outline)] bg-[var(--color-bg-dark)] p-2 rounded-sm">
                   <div className="w-full h-full relative">
                     {teamTicker !== "TICKER" ? (
-                      <CandlestickChart ticker={teamTicker} />
+                      <CandlestickChart data={[]} />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] italic text-xs">
                         Awaiting Market Data
@@ -284,7 +284,7 @@ export function LeftSidebar() {
                     {isExpanded && (
                       <div className="bg-[var(--color-bg-dark)] border border-t-0 border-[var(--color-accent-blue)] p-3 rounded-b-sm">
                         <div className="h-36 mb-3">
-                          <CandlestickChart ticker={t.ticker} />
+                          <CandlestickChart data={[]} />
                         </div>
                         <div className="flex gap-2">
                           <button

@@ -1,7 +1,20 @@
+# Production Caddyfile — handles both local dev (:80) and production domain.
+# Caddy auto-provisions TLS via Let's Encrypt on first request to api-complex.helixtiet.in.
+# For that to work: DNS A record api-complex.helixtiet.in → this VM's public IP,
+# and ports 80 + 443 both open on the VM firewall.
+
 api-complex.helixtiet.in {
-    reverse_proxy api:80
+    reverse_proxy api:80 {
+        # WebSocket + SSE support: disable buffering so events flush immediately.
+        flush_interval -1
+    }
 }
 
-localhost {
-    reverse_proxy api:80
-} 
+# Local-dev fallback: `curl http://localhost:8080/...` still works because docker-compose.yml
+# publishes port 8080 → container 80. This block lets direct IP access still hit the API
+# (useful for smoke tests before DNS propagates).
+:80 {
+    reverse_proxy api:80 {
+        flush_interval -1
+    }
+}

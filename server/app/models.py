@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import (
     Boolean,
@@ -13,15 +14,16 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 
 def utc_now():
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 class TeamStatus(str, enum.Enum):
@@ -48,8 +50,23 @@ class TransactionType(str, enum.Enum):
     BANKRUPTCY_LIQUIDATION = "BANKRUPTCY_LIQUIDATION"
 
 
+class SolutionType(str, enum.Enum):
+    INITIAL = "INITIAL"              # Full strategic roadmap (per D-02)
+    MICROTWEAK = "MICROTWEAK"        # Additive tweak (per D-03)
+    CRISIS_RESPONSE = "CRISIS_RESPONSE"  # Crisis event response (per D-04)
+
+
+class EvaluationStatus(str, enum.Enum):
+    PROCESSING = "PROCESSING"          # LLM call in progress
+    PENDING_APPROVAL = "PENDING_APPROVAL"  # Awaiting admin review (per EVAL-03)
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"                  # LLM call failed
+
+
 class DirectiveStatus(str, enum.Enum):
     PENDING = "PENDING"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
@@ -63,6 +80,68 @@ class PortfolioType(str, enum.Enum):
     RETAIL = "RETAIL"
 
 
+class LeverCategory(str, enum.Enum):
+    MARKETING = "MARKETING"
+    SUPPLY_CHAIN = "SUPPLY_CHAIN"
+    NEW_PRODUCT = "NEW_PRODUCT"
+
+
+class FundamentalEvalStatus(str, enum.Enum):
+    PROCESSING = "PROCESSING"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"
+
+
+class ShockSource(str, enum.Enum):
+    CRISIS = "CRISIS"
+    LLM_EVENT = "LLM_EVENT"
+
+
+class ShockSeverity(str, enum.Enum):
+    MINOR = "MINOR"
+    MAJOR = "MAJOR"
+    CATASTROPHIC = "CATASTROPHIC"
+
+
+class ShockDirection(str, enum.Enum):
+    POSITIVE = "POSITIVE"
+    NEGATIVE = "NEGATIVE"
+
+
+class Archetype(Base):
+    __tablename__ = "archetypes"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sector: Mapped[str] = mapped_column(String(20), nullable=False, default="FOODS")
+    dossier_content: Mapped[str] = mapped_column(Text, nullable=False)
+    benchmark_bands: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
+    starting_cash: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    starting_stock_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    starting_shares: Mapped[int] = mapped_column(Integer, nullable=False, default=1000000)
+    swot_strengths: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_weaknesses: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_opportunities: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_threats: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    real_world_inspiration: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    is_preset: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    # Relationships
+    teams: Mapped[list["Team"]] = relationship("Team", back_populates="archetype")
+
+
 class Team(Base):
     __tablename__ = "teams"
 
@@ -71,55 +150,117 @@ class Team(Base):
     )
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     ticker: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    api_key: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), unique=True, default=uuid.uuid4
+
+    # Dual credentials per D-01: Strategist + Trader sub-accounts
+    strategist_email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False
     )
+    strategist_password_hash: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )
+    trader_email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False
+    )
+    trader_password_hash: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )
+
     status: Mapped[TeamStatus] = mapped_column(
         Enum(TeamStatus), default=TeamStatus.PENDING
     )
-    portfolio_type: Mapped[str] = mapped_column(String(50), nullable=True)
+    portfolio_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    # Admin approval tracking
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # SWOT Profile
-    swot_strengths: Mapped[str] = mapped_column(Text, nullable=True)
-    swot_weaknesses: Mapped[str] = mapped_column(Text, nullable=True)
-    swot_opportunities: Mapped[str] = mapped_column(Text, nullable=True)
-    swot_threats: Mapped[str] = mapped_column(Text, nullable=True)
+    swot_strengths: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_weaknesses: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_opportunities: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    swot_threats: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Financial State
     cash: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("1000000"))
-    stock_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("100"))
+    stock_price: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=Decimal("100")
+    )
     shares_outstanding: Mapped[int] = mapped_column(Integer, default=1000000)
     public_float: Mapped[int] = mapped_column(Integer, default=100000)
     treasury_shares: Mapped[int] = mapped_column(Integer, default=900000)
 
+    # Simulation: 4-fundamental pricing inputs (Phase 9 D-30, D-31; replaces v1 target_price/ticks_to_target)
+    fundamental_market_share: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    fundamental_margin: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    fundamental_growth: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    fundamental_ops_efficiency: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4), nullable=True
+    )
+    drift_target_pct: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(8, 6), nullable=True
+    )
+    drift_floor_pct: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(8, 6), nullable=True
+    )
+    ramp_started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Cooldown
-    cooldown_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    cooldown_until: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Bankruptcy tracking
-    bankrupt_since: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    bankrupt_since: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     bankrupt_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Dilution cap (percentage of treasury shares that can be sold)
     dilution_cap_percent: Mapped[int] = mapped_column(Integer, default=10)
 
     # Elimination tracking
-    eliminated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    elimination_reason: Mapped[str] = mapped_column(String(20), nullable=True)
-    rank_at_elimination: Mapped[int] = mapped_column(Integer, nullable=True)
+    eliminated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    elimination_reason: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
+    )
+    rank_at_elimination: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     # Admin rejection reason
-    rejection_reason: Mapped[str] = mapped_column(Text, nullable=True)
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    # Archetype reference
+    archetype_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("archetypes.id"), nullable=True
+    )
+
+    # Caseline document (per D-12, D-14)
+    caseline_document: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_display_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
     )
 
     # Relationships
+    archetype: Mapped[Optional["Archetype"]] = relationship(
+        "Archetype", back_populates="teams"
+    )
     directives: Mapped[list["Directive"]] = relationship(
         "Directive", back_populates="team", order_by="desc(Directive.created_at)"
     )
@@ -152,6 +293,19 @@ class Team(Base):
     )
 
 
+class Admin(Base):
+    __tablename__ = "admins"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
 class Directive(Base):
     __tablename__ = "directives"
 
@@ -162,39 +316,215 @@ class Directive(Base):
         UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    confidence_rating: Mapped[float] = mapped_column(nullable=True)
+    confidence_rating: Mapped[Optional[float]] = mapped_column(nullable=True)
 
     status: Mapped[DirectiveStatus] = mapped_column(
         Enum(DirectiveStatus), default=DirectiveStatus.PENDING
     )
 
     # LLM Evaluation
-    extraction_confidence: Mapped[float] = mapped_column(nullable=True)
-    consistency_score: Mapped[float] = mapped_column(nullable=True)
-    macro_sensitivity_score: Mapped[float] = mapped_column(nullable=True)
-    aggression_score: Mapped[float] = mapped_column(nullable=True)
-    innovation_score: Mapped[float] = mapped_column(nullable=True)
-    vibe_multiplier: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=True)
+    extraction_confidence: Mapped[Optional[float]] = mapped_column(nullable=True)
+    consistency_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+    macro_sensitivity_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+    aggression_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+    innovation_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+    vibe_multiplier: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(5, 2), nullable=True
+    )
 
     # Financial Impact (JSON stored as text)
-    financial_impact: Mapped[str] = mapped_column(Text, nullable=True)  # JSON
+    financial_impact: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON
 
     # Board Feedback
-    board_feedback: Mapped[str] = mapped_column(Text, nullable=True)
-    news_headline: Mapped[str] = mapped_column(Text, nullable=True)
+    board_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    news_headline: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Execution penalty
     execution_penalty: Mapped[float] = mapped_column(default=1.0)
 
     # LLM call tracking
-    latency_ms: Mapped[int] = mapped_column(Integer, nullable=True)
-    estimated_cost: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=True)
+    latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    estimated_cost: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 6), nullable=True
+    )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
-    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     team: Mapped["Team"] = relationship("Team", back_populates="directives")
+
+
+class Solution(Base):
+    __tablename__ = "solutions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    solution_type: Mapped[SolutionType] = mapped_column(
+        Enum(SolutionType), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+    # Relationships
+    team: Mapped["Team"] = relationship("Team")
+    evaluation: Mapped[Optional["Evaluation"]] = relationship(
+        "Evaluation", back_populates="solution", uselist=False
+    )
+
+
+class Evaluation(Base):
+    __tablename__ = "evaluations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    solution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("solutions.id"), unique=True, nullable=False
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+
+    status: Mapped[EvaluationStatus] = mapped_column(
+        Enum(EvaluationStatus), default=EvaluationStatus.PROCESSING
+    )
+
+    # LLM output: scoring metrics (per D-06 -- placeholder fields)
+    scoring_metrics: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON
+    overall_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+
+    # LLM output: price timeline (per D-06)
+    price_timeline: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON array
+
+    # LLM output: news article (per D-06)
+    news_headline: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    news_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    news_sentiment: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(3, 2), nullable=True
+    )
+
+    # LLM call tracking
+    llm_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    llm_latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    llm_cost: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 6), nullable=True
+    )
+    raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Approval tracking
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejected_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    admin_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    # Relationships
+    solution: Mapped["Solution"] = relationship(
+        "Solution", back_populates="evaluation"
+    )
+    team: Mapped["Team"] = relationship("Team")
+
+
+class FundamentalEvaluation(Base):
+    """LLM-proposed + admin-approved quarterly fundamental deltas (Phase 9 D-01, D-02, D-32)."""
+
+    __tablename__ = "fundamental_evaluations"
+    __table_args__ = (
+        UniqueConstraint("team_id", "round_number", name="uq_fundeval_team_round"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    proposed_deltas: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
+    admin_edits: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string, null until edited
+    narrative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[FundamentalEvalStatus] = mapped_column(
+        Enum(FundamentalEvalStatus, name="fundamentalevalstatus"),
+        default=FundamentalEvalStatus.PROCESSING,
+        nullable=False,
+    )
+    llm_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    llm_latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    admin_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    approved_by_admin_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("admins.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejected_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    team: Mapped["Team"] = relationship("Team")
+
+
+class PendingShock(Base):
+    """Queued per-team price shock to be consumed on next tick (Phase 9 D-19, D-32)."""
+
+    __tablename__ = "pending_shocks"
+    __table_args__ = (
+        Index("ix_pending_shocks_team_unapplied", "team_id", "applied_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    magnitude_pct: Mapped[Decimal] = mapped_column(
+        Numeric(6, 3), nullable=False
+    )  # signed, e.g. -15.000 for -15%
+    source: Mapped[ShockSource] = mapped_column(
+        Enum(ShockSource, name="shocksource"), nullable=False
+    )
+    source_ref_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )  # crisis_event.id or market_news.id
+    enqueued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+    applied_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    team: Mapped["Team"] = relationship("Team")
 
 
 class StockHolding(Base):
@@ -214,9 +544,11 @@ class StockHolding(Base):
         Numeric(15, 2), default=Decimal("0")
     )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
     )
@@ -238,10 +570,10 @@ class Transaction(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    buyer_team_id: Mapped[uuid.UUID] = mapped_column(
+    buyer_team_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True
     )
-    seller_team_id: Mapped[uuid.UUID] = mapped_column(
+    seller_team_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True
     )
     target_team_id: Mapped[uuid.UUID] = mapped_column(
@@ -255,13 +587,15 @@ class Transaction(Base):
         Enum(TransactionType), nullable=False
     )
 
-    executed_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    executed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
 
     # Relationships
-    buyer: Mapped["Team"] = relationship(
+    buyer: Mapped[Optional["Team"]] = relationship(
         "Team", foreign_keys=[buyer_team_id], back_populates="transactions_as_buyer"
     )
-    seller: Mapped["Team"] = relationship(
+    seller: Mapped[Optional["Team"]] = relationship(
         "Team", foreign_keys=[seller_team_id], back_populates="transactions_as_seller"
     )
     target_team: Mapped["Team"] = relationship(
@@ -281,11 +615,15 @@ class CashLedger(Base):
     entry_type: Mapped[str] = mapped_column(String(50), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     balance_after: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
-    reference_type: Mapped[str] = mapped_column(String(50), nullable=True)
-    reference_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
+    reference_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    reference_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
 
     # Relationships
     team: Mapped["Team"] = relationship(
@@ -304,14 +642,24 @@ class PriceHistory(Base):
     )
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     market_cap: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
-    vibe_multiplier: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=True)
-    sentiment_multiplier: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=True)
-    consistency_score: Mapped[float] = mapped_column(nullable=True)
-    macro_sensitivity_score: Mapped[float] = mapped_column(nullable=True)
-    profit_component: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=True)
-    cash_component: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=True)
+    vibe_multiplier: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(5, 2), nullable=True
+    )
+    sentiment_multiplier: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(5, 2), nullable=True
+    )
+    consistency_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+    macro_sensitivity_score: Mapped[Optional[float]] = mapped_column(nullable=True)
+    profit_component: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    cash_component: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
 
-    calculated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    calculated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     # Relationships
     team: Mapped["Team"] = relationship(
@@ -326,27 +674,137 @@ class MarketNews(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     headline: Mapped[str] = mapped_column(String(120), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=True)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_type: Mapped[str] = mapped_column(
         String(20), default="SYSTEM"
     )  # GLOBAL, TEAM_ACTION, SYSTEM, ADMIN_INJECTED
-    source_team_id: Mapped[uuid.UUID] = mapped_column(
+    source_team_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True
     )
-    sentiment_score: Mapped[Decimal] = mapped_column(
+    sentiment_score: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(3, 2), nullable=True
     )  # -1.0 to +1.0
-    affected_sectors: Mapped[str] = mapped_column(
+    affected_sectors: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
     )  # JSON array stored as text
-    affected_tickers: Mapped[str] = mapped_column(
+    affected_tickers: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
     )  # JSON array stored as text
     relevance_decay: Mapped[Decimal] = mapped_column(
         Numeric(3, 2), default=Decimal("1.00")
     )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
+class ActivityEvent(Base):
+    __tablename__ = "activity_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    event_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # TEAM_APPROVED, TEAM_REJECTED, TEAM_REMOVED, NEWS_INJECTED, BROADCAST_SENT, ROUND_ADVANCED, GAME_STARTED, GAME_PAUSED, GAME_RESUMED
+    actor: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # "admin" or team name
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    metadata_json: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # JSON for extra context
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
+class Decision(Base):
+    __tablename__ = "decisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    lever_category: Mapped[LeverCategory] = mapped_column(
+        Enum(LeverCategory), nullable=False
+    )
+    decisions_json: Mapped[str] = mapped_column(Text, nullable=False)
+    budget_spent: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), default=Decimal("0")
+    )
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    window_start: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    window_end: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+    # Relationships
+    team: Mapped["Team"] = relationship("Team")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "team_id", "round_number", "lever_category",
+            name="uq_decision_team_round_lever",
+        ),
+        Index(
+            "ix_decisions_team_round_lever",
+            "team_id", "round_number", "lever_category",
+        ),
+    )
+
+
+class OperatingPlan(Base):
+    __tablename__ = "operating_plans"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
+    )
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+    # Relationships
+    team: Mapped["Team"] = relationship("Team")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "team_id", "round_number",
+            name="uq_operating_plan_team_round",
+        ),
+    )
+
+
+class CrisisEvent(Base):
+    __tablename__ = "crisis_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    scenario: Mapped[str] = mapped_column(Text, nullable=False)
+    timer_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), default="ACTIVE"
+    )  # ACTIVE, RESOLVED
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class GameState(Base):
@@ -358,16 +816,31 @@ class GameState(Base):
     )
 
     # Timing
-    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    paused_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    resumed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    finished_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    paused_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resumed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    finished_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Pause offset (total seconds of paused time)
+    pause_offset: Mapped[int] = mapped_column(Integer, default=0)
 
     # Purge tracking
     current_round: Mapped[int] = mapped_column(Integer, default=0)
-    last_purge_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    next_purge_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    teams_remaining: Mapped[int] = mapped_column(Integer, nullable=True)
+    last_purge_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    next_purge_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    teams_remaining: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     purge_min_teams: Mapped[int] = mapped_column(Integer, default=6)
 
     # LLM tracking
@@ -397,15 +870,24 @@ class GameState(Base):
     llm_temperature: Mapped[float] = mapped_column(default=0.7)
 
     # News sentiment mapping (JSON: {"macro_bullish": 0.6, ...})
-    sentiment_map: Mapped[str] = mapped_column(
+    sentiment_map: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
     )  # JSON, if null use defaults
 
     # Market cap tracking for admin metrics
-    aggregate_market_cap_at_purge: Mapped[Decimal] = mapped_column(
+    aggregate_market_cap_at_purge: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(15, 2), nullable=True
     )
 
+    # Phase 8: Decision levers round structure (per D-01, D-15)
+    game_phase: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
+    )  # "war_room", "live_floor", or null
+    macro_brief: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    current_quarter_start: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )

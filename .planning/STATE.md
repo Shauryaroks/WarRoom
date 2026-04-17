@@ -1,0 +1,95 @@
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: Final Integration
+status: executing
+stopped_at: Phase 10 context gathered
+last_updated: "2026-04-17T09:02:24.941Z"
+last_activity: 2026-04-17 -- Phase 9 planning complete
+progress:
+  total_phases: 6
+  completed_phases: 3
+  total_plans: 13
+  completed_plans: 13
+  percent: 100
+---
+
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-04-16)
+
+**Core value:** The simulation engine -- teams submit solutions, the LLM evaluates them with admin oversight, and the market reacts in real-time.
+**Current focus:** Phase 8 — Decision Levers & Round Structure
+
+## Current Position
+
+Phase: 9
+Plan: Not started
+Status: Ready to execute
+Last activity: 2026-04-17 -- Phase 9 planning complete
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+**Velocity:**
+
+- Total plans completed: 32 (all v1.0)
+- Average duration: -
+- Total execution time: -
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 1-6 (v1.0) | 26 | - | - |
+| 7-12 (v2.0) | 0 | - | - |
+| 7 | 2 | - | - |
+| 8 | 4 | - | - |
+
+**Recent Trend:**
+
+- Last 5 plans: -
+- Trend: -
+
+*Updated after each plan completion*
+| Phase 09 P01 | 25min | 3 tasks | 4 files |
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [v2.0 Roadmap]: Archetype system is Phase 7 foundation -- all scoring and simulation depends on benchmark bands
+- [v2.0 Roadmap]: Decision levers and round structure grouped together -- they define the new gameplay loop
+- [v2.0 Roadmap]: Enhanced sim engine (Phase 9) depends on both archetypes (Phase 7) and levers (Phase 8) being in place
+- [v2.0 Roadmap]: Phase 12 (Final Scoring) depends on both enhanced trading and dashboard -- last phase ties everything together
+- [Phase 09]: Phase 9 Plan 01: PG_ENUM(create_type=False) + DO-block DDL required for idempotent Postgres enum creation under asyncpg
+- [Phase 09]: Phase 9 Plan 01: live dev DB needs alembic stamp 004_decision_levers before upgrade to 005 because schema was bootstrapped by init_db.py create_all
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- [v1.0 carry-forward]: Existing price formula uses random walk + LLM quality. Phase 9 replaces this entirely with 4-fundamental weighted formula. Migration path needed.
+- [v2.0]: Short selling (Phase 10) requires margin accounting -- need to decide if margin comes from team cash or is a separate pool.
+
+## Deferred Items
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| Future | M&A mechanics (acquire distressed rivals) | Deferred to v3 | v2.0 planning |
+| Future | Influence Points system (creator economy) | Deferred to v3 | v2.0 planning |
+| Future | Spectator mode for audience viewing | Deferred to v3 | v2.0 planning |
+
+## Session Continuity
+
+Last session: 2026-04-17T09:02:24.934Z
+Stopped at: Phase 10 context gathered
+Resume file: .planning/phases/10-enhanced-trading/10-CONTEXT.md
