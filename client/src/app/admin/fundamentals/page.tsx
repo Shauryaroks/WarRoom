@@ -43,11 +43,17 @@ export default function FundamentalsPage() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [showRejectFor, setShowRejectFor] = useState<string | null>(null);
 
+  // Guard: only redirect AFTER Zustand has hydrated to avoid kicking a valid admin
+  // out during the brief pre-hydration render where role is transiently null.
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (!isAuthenticated || role !== "admin") {
-      router.replace("/auth/admin");
+    setHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (hydrated && (!isAuthenticated || role !== "admin")) {
+      router.push("/admin/login");
     }
-  }, [isAuthenticated, role, router]);
+  }, [hydrated, isAuthenticated, role, router]);
 
   const load = useCallback(async () => {
     setLoading(true);

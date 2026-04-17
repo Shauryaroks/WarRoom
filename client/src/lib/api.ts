@@ -78,6 +78,25 @@ class ApiClient {
       const error = await res
         .json()
         .catch(() => ({ detail: "Something went wrong. Try again." }));
+
+      // 401/403 on authenticated admin endpoints = stale/wrong token. Nuke local auth
+      // and bounce to the appropriate login so the user can re-authenticate instead
+      // of seeing a useless "admin access required" toast on every click.
+      if (
+        typeof window !== "undefined" &&
+        (res.status === 401 || res.status === 403) &&
+        path.startsWith("/api/v1/admin/") &&
+        path !== "/api/v1/admin/login" &&
+        path !== "/api/v1/admin/seed"
+      ) {
+        try {
+          localStorage.removeItem("complex-auth");
+        } catch {}
+        if (!window.location.pathname.startsWith("/admin/login")) {
+          window.location.href = "/admin/login";
+        }
+      }
+
       throw new Error(
         error.detail || `Request failed with status ${res.status}`
       );

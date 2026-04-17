@@ -132,7 +132,7 @@ async def compute_sentiment(
         select(Transaction).where(
             and_(
                 Transaction.target_team_id == team_id,
-                Transaction.tx_type.in_([TransactionType.BUY, TransactionType.SELL]),
+                Transaction.transaction_type.in_([TransactionType.BUY, TransactionType.SELL]),
                 Transaction.executed_at >= cutoff,
             )
         )
@@ -140,7 +140,7 @@ async def compute_sentiment(
     net_inr = Decimal("0")
     for tx in result.scalars().all():
         amt = Decimal(tx.shares) * tx.price_per_share
-        if tx.tx_type == TransactionType.BUY:
+        if tx.transaction_type == TransactionType.BUY:
             net_inr += amt
         else:
             net_inr -= amt
