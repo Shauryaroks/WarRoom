@@ -3,3 +3,6 @@ services:
     command: ["sh", "-c", "uv run python init_db.py && uv run uvicorn app.main:app --host 0.0.0.0 --port 80"]
     volumes:
       - ./server:/app:Z
+  worker:
+    volumes:
+      - ./server:/app:Z
