@@ -16,17 +16,17 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 
 ### Simulation Engine (Enhanced)
 
-- [ ] **SIM-05**: Price formula uses 4 weighted fundamentals (Market Share 35%, Profitability 30%, Ops Efficiency 20%, Brand Health 15%)
-- [ ] **SIM-06**: Each fundamental scored relative to team's archetype benchmark band (not absolute)
-- [ ] **SIM-07**: Event shocks produce +/-3% to +/-15% discrete price jumps
+- [x] **SIM-05**: Price formula uses 4 weighted fundamentals (Market Share 35%, Profitability 30%, Ops Efficiency 20%, Brand Health 15%)
+- [x] **SIM-06**: Each fundamental scored relative to team's archetype benchmark band (not absolute)
+- [x] **SIM-07**: Event shocks produce +/-3% to +/-15% discrete price jumps
 - [ ] **SIM-08**: Sentiment flow from net trading pressure (heavily shorted stock falls, longed rises)
-- [ ] **SIM-09**: Decision impact phases in over 3-5 minutes (smoothing prevents instant snaps)
+- [x] **SIM-09**: Decision impact phases in over 3-5 minutes (smoothing prevents instant snaps)
 
 ### Archetype System
 
 - [ ] **ARCH-01**: Admin assigns archetype to each team with benchmark bands for all 4 fundamentals
 - [ ] **ARCH-02**: 4 pre-built archetype dossiers with balance sheets, SWOT, cost structures, and benchmark bands
-- [ ] **ARCH-03**: Archetype-relative scoring: team's z-score against its archetype's fair expectations band
+- [x] **ARCH-03**: Archetype-relative scoring: team's z-score against its archetype's fair expectations band
 
 ### Round Structure
 
@@ -89,12 +89,12 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 | ROUND-01 | Phase 8 | Pending |
 | ROUND-02 | Phase 8 | Pending |
 | ROUND-03 | Phase 8 | Pending |
-| SIM-05 | Phase 9 | Pending |
-| SIM-06 | Phase 9 | Pending |
-| SIM-07 | Phase 9 | Pending |
+| SIM-05 | Phase 9 | Complete |
+| SIM-06 | Phase 9 | Complete |
+| SIM-07 | Phase 9 | Complete |
 | SIM-08 | Phase 9 | Pending |
-| SIM-09 | Phase 9 | Pending |
-| ARCH-03 | Phase 9 | Pending |
+| SIM-09 | Phase 9 | Complete |
+| ARCH-03 | Phase 9 | Complete |
 | TRAD-06 | Phase 10 | Pending |
 | TRAD-07 | Phase 10 | Pending |
 | TRAD-08 | Phase 10 | Pending |

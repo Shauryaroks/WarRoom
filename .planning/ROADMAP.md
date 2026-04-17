@@ -208,7 +208,7 @@ Plans:
 **Plans**: 7 plans
 
 Plans:
-- [ ] 09-01-PLAN.md -- Migration 005 + models (FundamentalEvaluation, PendingShock, Team columns) + archetype-assign backfill + test fixtures
+- [x] 09-01-PLAN.md -- Migration 005 + models (FundamentalEvaluation, PendingShock, Team columns) + archetype-assign backfill + test fixtures
 - [ ] 09-02-PLAN.md -- Simulation service rewrite: z_score, compute_drift_target, compute_price, new calculate_all_prices (tuple return with shocks), game_tick broadcast update
 - [ ] 09-03-PLAN.md -- Fundamental service + compute_fundamentals Celery task + game_service War Room fan-out + evaluation_service target_price surgery
 - [ ] 09-04-PLAN.md -- Shock enqueue paths: generate_news schema extension + admin crisis shock + set_team_score 410 Gone
