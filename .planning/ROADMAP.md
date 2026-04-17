@@ -205,7 +205,17 @@ Plans:
   3. Event shocks from admin-injected crises or news produce discrete price jumps of +/-3% to +/-15%
   4. Net trading pressure (heavy shorting or longing) feeds into the sentiment component, causing prices to drift in the direction of consensus
   5. Decision impacts phase in over 3-5 minutes with smoothing -- submitting a lever change does not cause an instant price snap
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 09-01-PLAN.md -- Migration 005 + models (FundamentalEvaluation, PendingShock, Team columns) + archetype-assign backfill + test fixtures
+- [ ] 09-02-PLAN.md -- Simulation service rewrite: z_score, compute_drift_target, compute_price, new calculate_all_prices (tuple return with shocks), game_tick broadcast update
+- [ ] 09-03-PLAN.md -- Fundamental service + compute_fundamentals Celery task + game_service War Room fan-out + evaluation_service target_price surgery
+- [ ] 09-04-PLAN.md -- Shock enqueue paths: generate_news schema extension + admin crisis shock + set_team_score 410 Gone
+- [ ] 09-05-PLAN.md -- Admin fundamentals API (6 endpoints) + schemas/fundamentals.py + team-scoped /me/fundamentals read
+- [ ] 09-06-PLAN.md -- Frontend: admin Fundamentals page, sidebar FUND nav, CaselinePanel fundamentals tile strip, TS types + API client
+
+**UI hint**: yes
 
 ### Phase 10: Enhanced Trading
 **Goal**: Teams can short sell stocks with margin requirements, face position limits and circuit breakers, and their trading P&L is tracked separately for final scoring
