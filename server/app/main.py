@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -46,10 +47,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware (T-03-05: accept risk for competition app)
+# CORS — origins come from CORS_ALLOW_ORIGINS env var (comma-separated).
+# Browsers REJECT allow_credentials=True combined with wildcard origins, so the
+# default now is "localhost + loopback only" and production must set the env explicitly.
+_default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+_origins_raw = os.getenv("CORS_ALLOW_ORIGINS", _default_origins)
+_allowed_origins = [o.strip() for o in _origins_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Vercel frontend -- restrict in production
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
