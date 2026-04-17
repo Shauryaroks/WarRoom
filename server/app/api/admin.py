@@ -1961,3 +1961,170 @@ async def seed_archetypes(
         "created": created,
         "skipped": skipped,
     }
+
+
+# ---------------------------------------------------------------------------
+# Phase 9: Fundamentals Queue endpoints
+# ---------------------------------------------------------------------------
+
+
+class FundamentalEvalListItem(BaseModel):
+    id: str
+    team_id: str
+    ticker: str
+    team_name: str
+    round_number: int
+    status: str
+    proposed_deltas: dict
+    admin_edits: Optional[dict] = None
+    narrative: Optional[str] = None
+    created_at: Optional[str] = None
+    approved_at: Optional[str] = None
+    rejected_at: Optional[str] = None
+
+
+class FundamentalApproveResponse(BaseModel):
+    evaluation_id: str
+    team_id: str
+    ticker: str
+    drift_target_pct: str
+    drift_floor_pct: str
+    narrative: Optional[str]
+
+
+class FundamentalRejectRequest(BaseModel):
+    admin_notes: str = ""
+
+
+class FundamentalComputeRequest(BaseModel):
+    round_number: int
+
+
+@router.get("/fundamentals-queue", response_model=list[FundamentalEvalListItem])
+async def list_fundamentals_queue(
+    _admin: dict = Depends(require_admin),
+    status_filter: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """List all fundamental evaluations. Default: PENDING_APPROVAL."""
+    from app.models import FundamentalEvaluation, FundamentalEvalStatus
+
+    query = select(FundamentalEvaluation, Team).join(
+        Team, FundamentalEvaluation.team_id == Team.id
+    )
+
+    if status_filter:
+        try:
+            query = query.where(FundamentalEvaluation.status == FundamentalEvalStatus(status_filter))
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid status: {status_filter}")
+    else:
+        query = query.where(FundamentalEvaluation.status == FundamentalEvalStatus.PENDING_APPROVAL)
+
+    query = query.order_by(FundamentalEvaluation.created_at.desc())
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    items = []
+    for ev, team in rows:
+        items.append(FundamentalEvalListItem(
+            id=str(ev.id),
+            team_id=str(ev.team_id),
+            ticker=team.ticker,
+            team_name=team.name,
+            round_number=ev.round_number,
+            status=ev.status.value,
+            proposed_deltas=json.loads(ev.proposed_deltas) if ev.proposed_deltas else {},
+            admin_edits=json.loads(ev.admin_edits) if ev.admin_edits else None,
+            narrative=ev.narrative,
+            created_at=ev.created_at.isoformat() if ev.created_at else None,
+            approved_at=ev.approved_at.isoformat() if ev.approved_at else None,
+            rejected_at=ev.rejected_at.isoformat() if ev.rejected_at else None,
+        ))
+    return items
+
+
+@router.post("/fundamentals-queue/{evaluation_id}/approve", response_model=FundamentalApproveResponse)
+async def approve_fundamental_eval(
+    evaluation_id: uuid.UUID,
+    admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.fundamental_service import apply_fundamental_deltas
+
+    try:
+        result = await apply_fundamental_deltas(
+            db, evaluation_id, uuid.UUID(admin["sub"])
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    db.add(ActivityEvent(
+        event_type="FUNDAMENTAL_APPROVED",
+        actor="admin",
+        description=f"Fundamentals approved for {result['ticker']} (drift target: {result['drift_target_pct']})",
+        metadata_json=json.dumps(result),
+    ))
+    await db.commit()
+
+    await publish_broadcast({
+        "type": "fundamentals_updated",
+        "payload": {
+            "evaluation_id": result["evaluation_id"],
+            "team_id": result["team_id"],
+            "ticker": result["ticker"],
+            "drift_target_pct": result["drift_target_pct"],
+        },
+    })
+
+    return FundamentalApproveResponse(
+        evaluation_id=result["evaluation_id"],
+        team_id=result["team_id"],
+        ticker=result["ticker"],
+        drift_target_pct=result["drift_target_pct"],
+        drift_floor_pct=result["drift_floor_pct"],
+        narrative=result.get("narrative"),
+    )
+
+
+@router.post("/fundamentals-queue/{evaluation_id}/reject")
+async def reject_fundamental_eval(
+    evaluation_id: uuid.UUID,
+    request: FundamentalRejectRequest,
+    admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.fundamental_service import reject_fundamental_evaluation
+
+    try:
+        result = await reject_fundamental_evaluation(
+            db, evaluation_id, uuid.UUID(admin["sub"]), request.admin_notes
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    await db.commit()
+    return result
+
+
+@router.post("/fundamentals-queue/compute")
+async def compute_fundamentals_endpoint(
+    request: FundamentalComputeRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger LLM fundamental eval fan-out for all ACTIVE teams at the given round."""
+    from app.services.fundamental_service import trigger_compute_for_round
+
+    summary = await trigger_compute_for_round(db, request.round_number)
+
+    db.add(ActivityEvent(
+        event_type="FUNDAMENTALS_COMPUTED",
+        actor="admin",
+        description=f"Round {request.round_number}: {len(summary['created'])} created, {len(summary['skipped'])} skipped, {len(summary['failed'])} failed",
+        metadata_json=json.dumps(summary),
+    ))
+    await db.commit()
+
+    return summary
