@@ -10,6 +10,12 @@ const CANDLE_INTERVAL = 60; // 1 minute bucket. Pairs with the 15s server tick
 // (4 ticks per bucket) so each candle has a real OHLC body instead of rendering
 // as a flat doji bar.
 
+// Keep only the most recent N ticks per team so the in-memory buffer doesn't
+// grow unbounded over long sessions (30 teams × hours of 15s ticks gets huge).
+// 600 ticks at 15s cadence = 2.5h of history = ~150 one-minute candles, which
+// is more than enough for the chart view.
+const MAX_TICKS_PER_TEAM = 600;
+
 interface PriceTick {
   price: number;
   timestamp: number; // Unix seconds
@@ -97,9 +103,13 @@ export const useMarketStore = create<MarketState>()((set) => ({
           timestamp: Math.floor(new Date(priceData.timestamp).getTime() / 1000),
         };
 
-        // Append tick
+        // Append tick, keeping only the most recent MAX_TICKS_PER_TEAM.
         const existing = newPriceTicks[teamId] || [];
-        newPriceTicks[teamId] = [...existing, tick];
+        const appended = [...existing, tick];
+        newPriceTicks[teamId] =
+          appended.length > MAX_TICKS_PER_TEAM
+            ? appended.slice(appended.length - MAX_TICKS_PER_TEAM)
+            : appended;
 
         // Re-aggregate candles for this team
         newCandles[teamId] = aggregateToCandles(newPriceTicks[teamId]);
@@ -121,13 +131,18 @@ export const useMarketStore = create<MarketState>()((set) => ({
 
   loadPriceHistory: (teamId, history) =>
     set((state) => {
-      // Convert REST history to ticks (oldest first)
-      const ticks: PriceTick[] = history
+      // Convert REST history to ticks (oldest first), capped to the same
+      // rolling window used by live ticks.
+      const sorted: PriceTick[] = history
         .map((point) => ({
           price: parseFloat(point.price),
           timestamp: Math.floor(new Date(point.calculated_at).getTime() / 1000),
         }))
         .sort((a, b) => a.timestamp - b.timestamp);
+      const ticks =
+        sorted.length > MAX_TICKS_PER_TEAM
+          ? sorted.slice(sorted.length - MAX_TICKS_PER_TEAM)
+          : sorted;
 
       const newPriceTicks = { ...state.priceTicks, [teamId]: ticks };
       const newCandles = {
