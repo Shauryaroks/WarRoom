@@ -32,15 +32,16 @@ Admin controls for War Room and Live Floor phase transitions with macro brief mo
 
 ## Completed Tasks
 
-| Task | Name | Commit | Files |
-|------|------|--------|-------|
-| 1 | Admin War Room/Live Floor buttons + game page wiring + WebSocket handler | d27b94c | client/src/app/admin/page.tsx, client/src/lib/api.ts |
+| Task | Name                                                                     | Commit  | Files                                                |
+| ---- | ------------------------------------------------------------------------ | ------- | ---------------------------------------------------- |
+| 1    | Admin War Room/Live Floor buttons + game page wiring + WebSocket handler | d27b94c | client/src/app/admin/page.tsx, client/src/lib/api.ts |
 
 ## Task Details
 
 ### Task 1: Admin War Room/Live Floor buttons + game page wiring + WebSocket handler
 
 Added to admin dashboard (client/src/app/admin/page.tsx):
+
 - "ENTER WAR ROOM" button (amber border, monospace) that opens a modal for macro brief text entry before POSTing to /api/v1/admin/game/war-room
 - "OPEN LIVE FLOOR" button (green border, monospace) that POSTs to /api/v1/admin/game/live-floor
 - Phase badge (WAR ROOM in amber, LIVE FLOOR in green) shown next to game status and in phase control section
@@ -50,6 +51,7 @@ Added to admin dashboard (client/src/app/admin/page.tsx):
 - Game phase fetched on admin mount via api.getGamePhase()
 
 Added to API client (client/src/lib/api.ts):
+
 - enterWarRoom(macroBrief: string) method
 - openLiveFloor() method
 
@@ -64,12 +66,14 @@ This is a checkpoint:human-verify task requiring manual end-to-end testing of th
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Worktree based on ancient commit**
+
 - **Found during:** Pre-execution analysis
 - **Issue:** Worktree base commit 4d3098ba lacked all Phase 3-8 infrastructure (Zustand stores, game components)
 - **Fix:** Merged code-revamp-lowkey branch into worktree to get current codebase
 - **Files modified:** (merge commit)
 
 **2. [Rule 3 - Blocking] Missing API client methods**
+
 - **Found during:** Task 1
 - **Issue:** enterWarRoom() and openLiveFloor() not in API client despite backend endpoints existing
 - **Fix:** Added both methods to ApiClient class

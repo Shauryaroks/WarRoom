@@ -5,7 +5,13 @@ subsystem: archetype-data-model
 tags: [backend, models, api, seed-data, archetypes]
 dependency_graph:
   requires: []
-  provides: [archetype-model, archetype-crud-api, archetype-seed-endpoint, caseline-archetype-integration]
+  provides:
+    [
+      archetype-model,
+      archetype-crud-api,
+      archetype-seed-endpoint,
+      caseline-archetype-integration,
+    ]
   affects: [admin-api, caseline-api, team-model]
 tech_stack:
   added: []
@@ -35,11 +41,13 @@ Archetype table with benchmark bands, 4 pre-built Bharat Bites dossiers, full CR
 ## What Was Built
 
 ### Task 1: Archetype Model, Team FK, and Migration
+
 - Added `Archetype` model to `server/app/models.py` with all D-01 fields: name, slug, description, sector, dossier_content, benchmark_bands (JSON), starting financials, SWOT fields, real_world_inspiration, is_preset flag
 - Added `archetype_id` FK (nullable UUID) to `Team` model with bidirectional relationship
 - Created Alembic migration `003_add_archetype` creating archetypes table and adding teams.archetype_id
 
 ### Task 2: Admin Archetype API Endpoints and Seed Data
+
 - **7 new admin endpoints:**
   - `GET /api/v1/admin/archetypes` -- List all archetypes
   - `POST /api/v1/admin/archetypes` -- Create custom archetype with benchmark_bands validation
@@ -58,14 +66,14 @@ Archetype table with benchmark bands, 4 pre-built Bharat Bites dossiers, full CR
 
 ## Security Mitigations
 
-| Threat ID | Mitigation |
-|-----------|------------|
-| T-07-01 | All archetype endpoints use `require_admin` dependency |
-| T-07-02 | SETUP-only guard via `get_game_state_readonly` check on assign endpoint |
-| T-07-03 | Caseline endpoint uses `require_team` -- teams only see own archetype data |
-| T-07-04 | `_validate_benchmark_bands()` validates JSON structure with exactly 4 keys, each a 2-element numeric array |
-| T-07-05 | Seed endpoint is idempotent -- checks slug existence before creating |
-| T-07-06 | Delete endpoint rejects `is_preset=True` archetypes and archetypes with assigned teams |
+| Threat ID | Mitigation                                                                                                 |
+| --------- | ---------------------------------------------------------------------------------------------------------- |
+| T-07-01   | All archetype endpoints use `require_admin` dependency                                                     |
+| T-07-02   | SETUP-only guard via `get_game_state_readonly` check on assign endpoint                                    |
+| T-07-03   | Caseline endpoint uses `require_team` -- teams only see own archetype data                                 |
+| T-07-04   | `_validate_benchmark_bands()` validates JSON structure with exactly 4 keys, each a 2-element numeric array |
+| T-07-05   | Seed endpoint is idempotent -- checks slug existence before creating                                       |
+| T-07-06   | Delete endpoint rejects `is_preset=True` archetypes and archetypes with assigned teams                     |
 
 ## Deviations from Plan
 
@@ -73,9 +81,9 @@ None -- plan executed exactly as written.
 
 ## Commits
 
-| Task | Commit | Description |
-|------|--------|-------------|
-| 1 | ed001da | Archetype model, Team FK, and Alembic migration |
-| 2 | 9af0009 | Archetype CRUD endpoints, seed data, and caseline integration |
+| Task | Commit  | Description                                                   |
+| ---- | ------- | ------------------------------------------------------------- |
+| 1    | ed001da | Archetype model, Team FK, and Alembic migration               |
+| 2    | 9af0009 | Archetype CRUD endpoints, seed data, and caseline integration |
 
 ## Self-Check: PASSED

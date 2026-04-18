@@ -1,4 +1,5 @@
 <!-- generated-by: gsd-doc-writer -->
+
 ## Getting Started
 
 ### Prerequisites
@@ -12,20 +13,24 @@
 ### Installation Steps
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd complex
    ```
 
 2. **Configure Backend Environment Variables:**
+
    ```bash
    cd server
    cp .env.example .env
    ```
+
    Open `server/.env` and configure your credentials. Crucially, you must provide a valid `OPENROUTER_API_KEY` for the LLM evaluation features, and set a secure `JWT_SECRET`.
 
 3. **Configure Frontend Environment Variables:**
    Create a `.env` file in the `client/` directory with the following configuration for local development:
+
    ```bash
    cd ../client
    echo 'NEXT_PUBLIC_API_URL="http://localhost:8080/api/v1"' > .env
@@ -45,12 +50,14 @@
 
 1. **Start the Backend Services:**
    The application uses Docker Compose to run PostgreSQL, Redis, FastAPI, Celery, and Caddy.
+
    ```bash
    docker compose up --build -d
    ```
 
 2. **Run Database Migrations:**
    Once the containers are healthy, apply the Alembic migrations to set up the database schema:
+
    ```bash
    docker compose exec api uv run alembic upgrade head
    ```

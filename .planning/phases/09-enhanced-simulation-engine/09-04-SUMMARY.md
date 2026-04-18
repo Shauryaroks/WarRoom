@@ -5,7 +5,13 @@ subsystem: admin-fundamentals-api
 tags: [admin-api, fundamentals-queue, phase-9]
 dependency_graph:
   requires: [09-03]
-  provides: [list_fundamentals_queue, approve_fundamental_eval, reject_fundamental_eval, compute_fundamentals_endpoint]
+  provides:
+    [
+      list_fundamentals_queue,
+      approve_fundamental_eval,
+      reject_fundamental_eval,
+      compute_fundamentals_endpoint,
+    ]
   affects: [admin.py]
 simplifications_vs_plan:
   - 4 endpoints instead of the planned 6; dropped patch/edit-deltas endpoint and dedicated team /me/fundamentals endpoint
@@ -27,5 +33,6 @@ metrics:
 **Commit:** `5389a8d3 feat(09-03,04): fundamental_service + admin queue endpoints`
 
 **Deferred:**
+
 - LLM news `is_event`/`severity`/`direction` schema extension (Plan 04 original scope — shocks currently admin-only)
 - Automatic compute_fundamentals fan-out on War Room transition (replaced with admin-triggered POST button)

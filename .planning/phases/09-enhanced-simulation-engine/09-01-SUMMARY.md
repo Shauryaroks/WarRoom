@@ -63,18 +63,22 @@ Phase 9 foundation: migration 005 (7 new Team cols, 2 dropped v1 cols, 2 new tab
 ### Schema changes
 
 **New columns on `teams`:**
+
 - `fundamental_market_share`, `fundamental_margin`, `fundamental_growth`, `fundamental_ops_efficiency` — `Numeric(10, 4)` nullable
 - `drift_target_pct`, `drift_floor_pct` — `Numeric(8, 6)` nullable
 - `ramp_started_at` — `DateTime(timezone=True)` nullable
 
 **Dropped columns from `teams`:**
+
 - `target_price`, `ticks_to_target` (per D-31)
 
 **New tables:**
+
 - `fundamental_evaluations` — 16 columns, `UniqueConstraint("team_id","round_number", name="uq_fundeval_team_round")`, `Index("ix_fundeval_status", status)`
 - `pending_shocks` — 7 columns, `Index("ix_pending_shocks_team_unapplied", team_id, applied_at)`
 
 **New Postgres enums:**
+
 - `fundamentalevalstatus` (`PROCESSING`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `FAILED`)
 - `shocksource` (`CRISIS`, `LLM_EVENT`)
 
@@ -96,12 +100,12 @@ Phase 9 foundation: migration 005 (7 new Team cols, 2 dropped v1 cols, 2 new tab
 
 Four new `@pytest_asyncio.fixture`s appended after the existing `mock_evaluation` fixture:
 
-| Fixture | Returns | Notes |
-|---------|---------|-------|
-| `mock_archetype_with_bands` | `Archetype` with bands `{market_share:[10,20], margin:[5,15], growth:[2,8], ops_efficiency:[60,80]}` | Midpoints: 15 / 10 / 5 / 70 |
-| `mock_team_with_fundamentals` | `Team(status=ACTIVE)` with fundamentals at the midpoints, archetype linked, `ticker="TEST"` | Uses `strategist_email="strat-phase9@test.com"` to avoid collision |
-| `mock_fundamental_evaluation` | `FundamentalEvaluation(status=PENDING_APPROVAL)` with proposed_deltas `{market_share_delta:1.0, margin_delta:0.5, growth_delta:0.3, ops_efficiency_delta:2.0}`, narrative set | For 09-03 / 09-05 consumption |
-| `mock_pending_shock` | `PendingShock(magnitude_pct=8.000, source=LLM_EVENT, applied_at=None)` | For 09-02 / 09-04 shock-consume tests |
+| Fixture                       | Returns                                                                                                                                                                       | Notes                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `mock_archetype_with_bands`   | `Archetype` with bands `{market_share:[10,20], margin:[5,15], growth:[2,8], ops_efficiency:[60,80]}`                                                                          | Midpoints: 15 / 10 / 5 / 70                                        |
+| `mock_team_with_fundamentals` | `Team(status=ACTIVE)` with fundamentals at the midpoints, archetype linked, `ticker="TEST"`                                                                                   | Uses `strategist_email="strat-phase9@test.com"` to avoid collision |
+| `mock_fundamental_evaluation` | `FundamentalEvaluation(status=PENDING_APPROVAL)` with proposed_deltas `{market_share_delta:1.0, margin_delta:0.5, growth_delta:0.3, ops_efficiency_delta:2.0}`, narrative set | For 09-03 / 09-05 consumption                                      |
+| `mock_pending_shock`          | `PendingShock(magnitude_pct=8.000, source=LLM_EVENT, applied_at=None)`                                                                                                        | For 09-02 / 09-04 shock-consume tests                              |
 
 All fixtures write via `mock_db.add(...)` + `await mock_db.flush()` — works with the existing `AsyncMock`-backed `mock_db` fixture (add/flush become no-op mock calls, but tests that need real ORM persistence can override at their own level).
 
@@ -132,30 +136,31 @@ None encountered.
 
 ## Verification Results
 
-| Check | Result |
-|-------|--------|
-| `alembic upgrade head` from 004 | PASS — `005_fundamentals` applied |
-| `alembic downgrade 004_decision_levers` | PASS — Team re-gains `target_price`/`ticks_to_target`, new tables/enums dropped |
-| Round-trip re-apply `alembic upgrade head` | PASS |
-| `from app.models import FundamentalEvaluation, PendingShock, FundamentalEvalStatus, ShockSource, ShockSeverity, ShockDirection, Team` | PASS — all importable |
-| `Team.fundamental_market_share` attribute | Present |
-| `Team.target_price` attribute | Absent (as expected) |
-| `from tests import conftest` import | PASS |
-| `pytest tests/ --collect-only -q` | 58 tests collected, zero errors |
-| Backfill of existing teams (all had `archetype_id IS NULL` on this DB) | PASS — UPDATE WHERE clause filtered correctly, no rows modified |
-| Grep checks for acceptance strings | All pass (see self-check section) |
+| Check                                                                                                                                 | Result                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `alembic upgrade head` from 004                                                                                                       | PASS — `005_fundamentals` applied                                               |
+| `alembic downgrade 004_decision_levers`                                                                                               | PASS — Team re-gains `target_price`/`ticks_to_target`, new tables/enums dropped |
+| Round-trip re-apply `alembic upgrade head`                                                                                            | PASS                                                                            |
+| `from app.models import FundamentalEvaluation, PendingShock, FundamentalEvalStatus, ShockSource, ShockSeverity, ShockDirection, Team` | PASS — all importable                                                           |
+| `Team.fundamental_market_share` attribute                                                                                             | Present                                                                         |
+| `Team.target_price` attribute                                                                                                         | Absent (as expected)                                                            |
+| `from tests import conftest` import                                                                                                   | PASS                                                                            |
+| `pytest tests/ --collect-only -q`                                                                                                     | 58 tests collected, zero errors                                                 |
+| Backfill of existing teams (all had `archetype_id IS NULL` on this DB)                                                                | PASS — UPDATE WHERE clause filtered correctly, no rows modified                 |
+| Grep checks for acceptance strings                                                                                                    | All pass (see self-check section)                                               |
 
 ## Commits
 
-| Task | Commit | Description |
-|------|--------|-------------|
-| 1 | `664ae68d` | `feat(09-01): add migration 005 for fundamentals and shocks` |
-| 2 | `28be25d8` | `feat(09-01): mirror migration 005 in SQLAlchemy models + backfill on assign` |
-| 3 | `c1c26283` | `test(09-01): add Phase 9 pytest fixtures to conftest` |
+| Task | Commit     | Description                                                                   |
+| ---- | ---------- | ----------------------------------------------------------------------------- |
+| 1    | `664ae68d` | `feat(09-01): add migration 005 for fundamentals and shocks`                  |
+| 2    | `28be25d8` | `feat(09-01): mirror migration 005 in SQLAlchemy models + backfill on assign` |
+| 3    | `c1c26283` | `test(09-01): add Phase 9 pytest fixtures to conftest`                        |
 
 ## Runbook for dev / staging / prod
 
 **Fresh DB (from init_db.py create_all):**
+
 ```bash
 # Mark current schema as 004 so alembic recognizes the starting point.
 docker compose exec api uv run alembic stamp 004_decision_levers
@@ -166,11 +171,13 @@ docker compose exec db psql -U postgres -d complex -c "\d teams"  # should show 
 ```
 
 **Alembic-managed DB already at 004:**
+
 ```bash
 docker compose exec api uv run alembic upgrade head
 ```
 
 **Rollback:**
+
 ```bash
 docker compose exec api uv run alembic downgrade 004_decision_levers
 ```

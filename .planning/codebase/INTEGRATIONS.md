@@ -10,7 +10,7 @@
 - **Purpose:** Solution evaluation via LLM with structured JSON output
 - **Location:** `server/app/services/llm_service.py`
 - **SDK/Client:** `httpx` (async HTTP client)
-- **Env Vars:** 
+- **Env Vars:**
   - `OPENROUTER_API_KEY` - API key for authentication
   - `OPENROUTER_BASE_URL` - Defaults to `https://openrouter.ai/api/v1`
 - **Model:** `nvidia/nemotron-3-super-120b-a12b:free` (configurable)
@@ -94,16 +94,19 @@
 ### Redis Pub/Sub (`server/app/redis_pubsub.py`)
 
 **Channels:**
+
 - `ws:broadcast` - Global broadcasts
 - `ws:team:{team_id}` - Team-specific messages
 
 **Publisher API (for Celery workers):**
+
 ```python
 publish_broadcast_sync(message: dict)      # Synchronous for Celery
 publish_to_team_sync(team_id, message: dict)  # Synchronous for Celery
 ```
 
 **Subscriber (FastAPI lifespan):**
+
 ```python
 async def start_redis_relay()  # Runs as background task
 ```
@@ -177,13 +180,13 @@ async def websocket_endpoint(ws: WebSocket):
 
 ### Required Env Vars (`server/.env`)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | Postgres connection | `postgresql+asyncpg://...` |
-| `REDIS_URL` | Redis connection | `redis://redis:6379/0` |
-| `OPENROUTER_API_KEY` | LLM API key | `sk-or-...` |
-| `OPENROUTER_BASE_URL` | LLM base URL | `https://openrouter.ai/api/v1` |
-| `JWT_SECRET` | JWT signing secret | (random string) |
+| Variable              | Description         | Example                        |
+| --------------------- | ------------------- | ------------------------------ |
+| `DATABASE_URL`        | Postgres connection | `postgresql+asyncpg://...`     |
+| `REDIS_URL`           | Redis connection    | `redis://redis:6379/0`         |
+| `OPENROUTER_API_KEY`  | LLM API key         | `sk-or-...`                    |
+| `OPENROUTER_BASE_URL` | LLM base URL        | `https://openrouter.ai/api/v1` |
+| `JWT_SECRET`          | JWT signing secret  | (random string)                |
 
 ### Settings Class
 
@@ -216,6 +219,7 @@ class Settings(BaseSettings):
 ```
 
 ### Features:
+
 - WebSocket proxying (native Caddy support)
 - Auto-TLS on port 443
 - Port mapping: 8080:80, 443:443
@@ -226,12 +230,12 @@ class Settings(BaseSettings):
 
 ### Health Checks
 
-| Service | Check | Interval |
-|---------|-------|----------|
-| db | `pg_isready` | 10s |
-| redis | `redis-cli ping` | 10s |
-| api | `GET /health` | 30s |
-| worker | `celery inspect ping` | 30s |
+| Service | Check                 | Interval |
+| ------- | --------------------- | -------- |
+| db      | `pg_isready`          | 10s      |
+| redis   | `redis-cli ping`      | 10s      |
+| api     | `GET /health`         | 30s      |
+| worker  | `celery inspect ping` | 30s      |
 
 ---
 
@@ -245,4 +249,4 @@ class Settings(BaseSettings):
 
 ---
 
-*Integration audit: 2026-04-17*
+_Integration audit: 2026-04-17_

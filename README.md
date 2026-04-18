@@ -45,11 +45,13 @@ Login at `http://localhost:3000/auth/admin` using `admin@complex.com` to view th
 
 **Access Backend API Documentation:**
 FastAPI automatically serves OpenAPI documentation at:
+
 ```bash
 http://localhost:8080/docs
 ```
 
 **Check Public Game State:**
+
 ```bash
 curl http://localhost:8080/api/v1/teams/game-state
 ```

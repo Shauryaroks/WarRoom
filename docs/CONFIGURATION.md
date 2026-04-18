@@ -1,23 +1,24 @@
 <!-- generated-by: gsd-doc-writer -->
+
 # Configuration
 
 This document outlines the environment variables and configuration settings required to run the Complex platform.
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | Optional | `postgresql+asyncpg://postgres:postgres@localhost:5432/complex` | Database connection string. Production use requires setting to actual DB. |
-| `REDIS_URL` | Optional | `redis://localhost:6379/0` | Redis connection string used for caching, pub/sub, and Celery backend. |
-| `OPENROUTER_API_KEY` | Required* | `""` | API key for OpenRouter LLM integrations. Operations that call LLMs will fail if this is empty. |
-| `OPENROUTER_BASE_URL` | Optional | `https://openrouter.ai/api/v1` | Base URL for LLM API calls. |
-| `JWT_SECRET` | Required* | `""` | Secret key used to sign JWT authentication tokens. Application will likely throw validation errors if missing in production. |
-| `JWT_ALGORITHM` | Optional | `HS256` | Algorithm used for JWT signing. |
-| `JWT_EXPIRY_HOURS` | Optional | `24` | Token expiration time in hours. |
-| `NEXT_PUBLIC_API_URL` | Optional | `http://localhost:8080` | Client-side setting for the backend API base URL. |
-| `NEXT_PUBLIC_WS_URL` | Optional | `ws://localhost:8080` | Client-side setting for the WebSocket connection URL. |
+| Variable              | Required   | Default                                                         | Description                                                                                                                  |
+| --------------------- | ---------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`        | Optional   | `postgresql+asyncpg://postgres:postgres@localhost:5432/complex` | Database connection string. Production use requires setting to actual DB.                                                    |
+| `REDIS_URL`           | Optional   | `redis://localhost:6379/0`                                      | Redis connection string used for caching, pub/sub, and Celery backend.                                                       |
+| `OPENROUTER_API_KEY`  | Required\* | `""`                                                            | API key for OpenRouter LLM integrations. Operations that call LLMs will fail if this is empty.                               |
+| `OPENROUTER_BASE_URL` | Optional   | `https://openrouter.ai/api/v1`                                  | Base URL for LLM API calls.                                                                                                  |
+| `JWT_SECRET`          | Required\* | `""`                                                            | Secret key used to sign JWT authentication tokens. Application will likely throw validation errors if missing in production. |
+| `JWT_ALGORITHM`       | Optional   | `HS256`                                                         | Algorithm used for JWT signing.                                                                                              |
+| `JWT_EXPIRY_HOURS`    | Optional   | `24`                                                            | Token expiration time in hours.                                                                                              |
+| `NEXT_PUBLIC_API_URL` | Optional   | `http://localhost:8080`                                         | Client-side setting for the backend API base URL.                                                                            |
+| `NEXT_PUBLIC_WS_URL`  | Optional   | `ws://localhost:8080`                                           | Client-side setting for the WebSocket connection URL.                                                                        |
 
-*\* Note: Technically defined with an empty string default in Pydantic, but required for functioning application logic.*
+_\* Note: Technically defined with an empty string default in Pydantic, but required for functioning application logic._
 
 <!-- VERIFY: external service URLs or dashboard links for OpenRouter or deployment environments -->
 <!-- VERIFY: Database cluster names, cloud region identifiers, and CDN configuration -->
@@ -47,6 +48,7 @@ The frontend relies on standard Next.js `.env` loading conventions, exposing var
 ## Required vs Optional Settings
 
 While `pydantic-settings` supplies default empty strings for `OPENROUTER_API_KEY` and `JWT_SECRET`, these must be populated for normal application functionality:
+
 - `JWT_SECRET`: Used to generate and validate authentication tokens.
 - `OPENROUTER_API_KEY`: Required for evaluating case solutions via the OpenRouter API.
 

@@ -52,16 +52,16 @@
 
 **Files:**
 
-| File | Purpose |
-|------|---------|
-| `auth.py` | Team registration, login, current user info |
-| `admin.py` | Admin-only: game control, team management, evaluations, archetypes |
-| `teams.py` | Team listing (admin), team details (team) |
-| `trading.py` | Execute trades, portfolio queries |
-| `market.py` | Market news, price history |
-| `solutions.py` | Submit solutions for LLM evaluation |
-| `decisions.py` | Decision lever submissions in WAR_ROOM |
-| `game.py` | Team-facing game phase, budget |
+| File           | Purpose                                                            |
+| -------------- | ------------------------------------------------------------------ |
+| `auth.py`      | Team registration, login, current user info                        |
+| `admin.py`     | Admin-only: game control, team management, evaluations, archetypes |
+| `teams.py`     | Team listing (admin), team details (team)                          |
+| `trading.py`   | Execute trades, portfolio queries                                  |
+| `market.py`    | Market news, price history                                         |
+| `solutions.py` | Submit solutions for LLM evaluation                                |
+| `decisions.py` | Decision lever submissions in WAR_ROOM                             |
+| `game.py`      | Team-facing game phase, budget                                     |
 
 **Pattern:** `APIRouter(prefix="/api/v1/...")` per file, included in `main.py`
 
@@ -71,13 +71,13 @@
 
 **Files:**
 
-| File | Purpose |
-|------|---------|
-| `game_service.py` | Game state machine (SETUP→ACTIVE→PAUSED→FINISHED), Redis cache |
-| `trading_service.py` | Execute trades with 30% cap enforcement |
-| `simulation_service.py` | Stock price calculation, fundamentals engine |
-| `evaluation_service.py` | Approve/reject evaluations |
-| `llm_service.py` | OpenRouter API client |
+| File                    | Purpose                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `game_service.py`       | Game state machine (SETUP→ACTIVE→PAUSED→FINISHED), Redis cache |
+| `trading_service.py`    | Execute trades with 30% cap enforcement                        |
+| `simulation_service.py` | Stock price calculation, fundamentals engine                   |
+| `evaluation_service.py` | Approve/reject evaluations                                     |
+| `llm_service.py`        | OpenRouter API client                                          |
 
 **Pattern:** Async functions receiving `AsyncSession`, return domain objects/dicts
 
@@ -87,38 +87,38 @@
 
 **Files:**
 
-| File | Purpose |
-|------|---------|
-| `celery_app.py` | Celery app configuration |
-| `tasks/game_tick.py` | 60-second price tick scheduler |
-| `tasks/evaluate_solution.py` | Async LLM evaluation |
-| `tasks/generate_news.py` | Post-approval news generation |
+| File                         | Purpose                        |
+| ---------------------------- | ------------------------------ |
+| `celery_app.py`              | Celery app configuration       |
+| `tasks/game_tick.py`         | 60-second price tick scheduler |
+| `tasks/evaluate_solution.py` | Async LLM evaluation           |
+| `tasks/generate_news.py`     | Post-approval news generation  |
 
 ### `server/app/`
 
 **Purpose:** Core application modules
 
-| File | Purpose |
-|------|---------|
-| `main.py` | FastAPI app, router registration, lifespan |
-| `models.py` | SQLAlchemy ORM models (26 tables) |
-| `database.py` | Async engine, sessionmaker, settings |
-| `auth_utils.py` | JWT create/decode, dependencies (get_current_user, require_admin, require_team) |
-| `websocket.py` | ConnectionManager for real-time |
-| `redis_pubsub.py` | Redis pub/sub publish functions |
-| `schemas/decisions.py` | Pydantic models for API responses |
+| File                   | Purpose                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `main.py`              | FastAPI app, router registration, lifespan                                      |
+| `models.py`            | SQLAlchemy ORM models (26 tables)                                               |
+| `database.py`          | Async engine, sessionmaker, settings                                            |
+| `auth_utils.py`        | JWT create/decode, dependencies (get_current_user, require_admin, require_team) |
+| `websocket.py`         | ConnectionManager for real-time                                                 |
+| `redis_pubsub.py`      | Redis pub/sub publish functions                                                 |
+| `schemas/decisions.py` | Pydantic models for API responses                                               |
 
 ### `server/alembic/versions/`
 
 **Purpose:** Database migrations (chronological)
 
-| Migration | Purpose |
-|-----------|---------|
-| `001_initial_schema.py` | Core tables: teams, admins, transactions, price_history |
-| `002_add_crisis_event.py` | CrisisEvent table |
-| `003_add_archetype.py` | Archetype table |
-| `004_decision_levers_round_structure.py` | Decision, OperatingPlan tables, game_phase field |
-| `005_fundamentals_and_shocks.py` | FundamentalEvaluation, PendingShock tables, fundamentals on Team |
+| Migration                                | Purpose                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| `001_initial_schema.py`                  | Core tables: teams, admins, transactions, price_history          |
+| `002_add_crisis_event.py`                | CrisisEvent table                                                |
+| `003_add_archetype.py`                   | Archetype table                                                  |
+| `004_decision_levers_round_structure.py` | Decision, OperatingPlan tables, game_phase field                 |
+| `005_fundamentals_and_shocks.py`         | FundamentalEvaluation, PendingShock tables, fundamentals on Team |
 
 ### `client/src/app/`
 
@@ -126,28 +126,29 @@
 
 **Files:**
 
-| Path | Purpose |
-|------|---------|
-| `page.tsx` | Landing page |
-| `auth/login/page.tsx` | Team login |
-| `auth/register/page.tsx` | Team registration |
-| `lobby/page.tsx` | Pre-game lobby |
-| `game/page.tsx` | Main game dashboard |
-| `leaderboard/page.tsx` | Rankings |
-| `admin/layout.tsx` | Admin panel layout |
-| `admin/page.tsx` | Admin dashboard |
-| `admin/teams/page.tsx` | Team management |
-| `admin/evaluations/page.tsx` | Evaluation review |
-| `admin/news/page.tsx` | News injection |
-| `admin/activity/page.tsx` | Activity log |
-| `admin/markets/page.tsx` | Market overview |
-| `admin/settings/page.tsx` | Game settings |
+| Path                         | Purpose             |
+| ---------------------------- | ------------------- |
+| `page.tsx`                   | Landing page        |
+| `auth/login/page.tsx`        | Team login          |
+| `auth/register/page.tsx`     | Team registration   |
+| `lobby/page.tsx`             | Pre-game lobby      |
+| `game/page.tsx`              | Main game dashboard |
+| `leaderboard/page.tsx`       | Rankings            |
+| `admin/layout.tsx`           | Admin panel layout  |
+| `admin/page.tsx`             | Admin dashboard     |
+| `admin/teams/page.tsx`       | Team management     |
+| `admin/evaluations/page.tsx` | Evaluation review   |
+| `admin/news/page.tsx`        | News injection      |
+| `admin/activity/page.tsx`    | Activity log        |
+| `admin/markets/page.tsx`     | Market overview     |
+| `admin/settings/page.tsx`    | Game settings       |
 
 ### `client/src/components/`
 
 **Purpose:** React components organized by feature
 
 **Subdirectories:**
+
 - `game/` - TradingPanel, DecisionsPanel, PortfolioTable, CandlestickChart, etc.
 - `admin/` - team-table, activity-feed, news-form, admin-sidebar, etc.
 - `lobby/` - team-list, connection-indicator
@@ -157,99 +158,99 @@
 
 **Purpose:** Zustand state management
 
-| Store | Purpose |
-|------|---------|
-| `auth-store.ts` | JWT token, user info, login/logout |
-| `game-store.ts` | Game status, phase, round |
-| `market-store.ts` | Stock prices, market news |
-| `trading-store.ts` | Trade form state, execution |
-| `decisions-store.ts` | Decision lever form state |
-| `solutions-store.ts` | Solution submissions |
-| `admin-store.ts` | Admin panel state |
+| Store                | Purpose                            |
+| -------------------- | ---------------------------------- |
+| `auth-store.ts`      | JWT token, user info, login/logout |
+| `game-store.ts`      | Game status, phase, round          |
+| `market-store.ts`    | Stock prices, market news          |
+| `trading-store.ts`   | Trade form state, execution        |
+| `decisions-store.ts` | Decision lever form state          |
+| `solutions-store.ts` | Solution submissions               |
+| `admin-store.ts`     | Admin panel state                  |
 
 ### `client/src/lib/`
 
 **Purpose:** Utilities and schemas
 
-| File | Purpose |
-|------|---------|
-| `api.ts` | fetch wrappers for API calls |
-| `schemas.ts` | Zod validation schemas |
-| `types.ts` | TypeScript type definitions |
-| `utils.ts` | Helper functions |
+| File         | Purpose                      |
+| ------------ | ---------------------------- |
+| `api.ts`     | fetch wrappers for API calls |
+| `schemas.ts` | Zod validation schemas       |
+| `types.ts`   | TypeScript type definitions  |
+| `utils.ts`   | Helper functions             |
 
 ### `server/tests/`
 
 **Purpose:** pytest test suite
 
-| File | Scope |
-|------|-------|
-| `test_trading.py` | Trade execution, 30% cap |
-| `test_simulation.py` | Price calculation |
-| `test_game_tick.py` | Tick scheduling |
-| `test_game_service.py` | Game state transitions |
-| `test_evaluation.py` | Evaluation workflow |
-| `test_solutions.py` | Solution submission |
-| `test_admin.py` | Admin endpoints |
+| File                   | Scope                    |
+| ---------------------- | ------------------------ |
+| `test_trading.py`      | Trade execution, 30% cap |
+| `test_simulation.py`   | Price calculation        |
+| `test_game_tick.py`    | Tick scheduling          |
+| `test_game_service.py` | Game state transitions   |
+| `test_evaluation.py`   | Evaluation workflow      |
+| `test_solutions.py`    | Solution submission      |
+| `test_admin.py`        | Admin endpoints          |
 
 ## Key File Locations
 
 ### Entry Points
 
-| Component | Location |
-|-----------|----------|
-| FastAPI app | `server/app/main.py` |
-| Next.js app | `client/src/app/layout.tsx` |
+| Component     | Location                          |
+| ------------- | --------------------------------- |
+| FastAPI app   | `server/app/main.py`              |
+| Next.js app   | `client/src/app/layout.tsx`       |
 | Celery worker | `server/app/worker/celery_app.py` |
 
 ### Configuration
 
-| File | Purpose |
-|------|---------|
-| `server/.env` | Database URL, Redis URL, JWT secret, OpenRouter API key |
-| `server/pyproject.toml` | Python dependencies |
-| `client/package.json` | Node dependencies |
-| `docker-compose.yml` | Backend services (PostgreSQL, Redis, Caddy) |
-| `Caddyfile` | Reverse proxy config |
+| File                    | Purpose                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `server/.env`           | Database URL, Redis URL, JWT secret, OpenRouter API key |
+| `server/pyproject.toml` | Python dependencies                                     |
+| `client/package.json`   | Node dependencies                                       |
+| `docker-compose.yml`    | Backend services (PostgreSQL, Redis, Caddy)             |
+| `Caddyfile`             | Reverse proxy config                                    |
 
 ### Database
 
-| File | Purpose |
-|------|---------|
-| `server/app/models.py` | All 26 SQLAlchemy models |
-| `server/alembic/versions/*.py` | Migrations |
-| `server/app/database.py` | AsyncSessionLocal, settings |
+| File                           | Purpose                     |
+| ------------------------------ | --------------------------- |
+| `server/app/models.py`         | All 26 SQLAlchemy models    |
+| `server/alembic/versions/*.py` | Migrations                  |
+| `server/app/database.py`       | AsyncSessionLocal, settings |
 
 ### Real-time
 
-| File | Purpose |
-|------|---------|
-| `server/app/websocket.py` | ConnectionManager (in-process broadcast) |
-| `server/app/redis_pubsub.py` | Redis pub/sub publish/subscribe |
-| `client/src/hooks/use-websocket.ts` | WebSocket connection hook |
+| File                                | Purpose                                  |
+| ----------------------------------- | ---------------------------------------- |
+| `server/app/websocket.py`           | ConnectionManager (in-process broadcast) |
+| `server/app/redis_pubsub.py`        | Redis pub/sub publish/subscribe          |
+| `client/src/hooks/use-websocket.ts` | WebSocket connection hook                |
 
 ## Naming Conventions
 
 ### Backend (Python)
 
-| Pattern | Example |
-|---------|---------|
-| API routes | `server/app/api/*.py` |
-| Services | `server/app/services/*_service.py` |
-| Celery tasks | `server/app/worker/tasks/*.py` |
-| Router prefix | `/api/v1/{domain}` |
-| Models | `PascalCase` (Team, GameState) |
+| Pattern          | Example                            |
+| ---------------- | ---------------------------------- |
+| API routes       | `server/app/api/*.py`              |
+| Services         | `server/app/services/*_service.py` |
+| Celery tasks     | `server/app/worker/tasks/*.py`     |
+| Router prefix    | `/api/v1/{domain}`                 |
+| Models           | `PascalCase` (Team, GameState)     |
 | Database columns | `snake_case` (created_at, team_id) |
 
 ### Frontend (TypeScript/React)
 
-| Pattern | Example |
-|---------|---------|
-| Pages | `client/src/app/{route}/page.tsx` |
+| Pattern    | Example                                      |
+| ---------- | -------------------------------------------- |
+| Pages      | `client/src/app/{route}/page.tsx`            |
 | Components | `client/src/components/{feature}/{Name}.tsx` |
-| Stores | `client/src/stores/{name}-store.ts` |
-| Hooks | `client/src/hooks/{name}.ts` |
-| API client | `client/src/lib/api.ts` |
+| Stores     | `client/src/stores/{name}-store.ts`          |
+| Hooks      | `client/src/hooks/{name}.ts`                 |
+| API client | `client/src/lib/api.ts`                      |
 
 ## Where to Add New Code
 
@@ -279,13 +280,13 @@
 
 ## Special Directories
 
-| Directory | Purpose | Generated | Committed |
-|-----------|---------|-----------|-----------|
-| `client/.next/` | Next.js build output | Yes | No |
-| `server/.venv/` | Python virtualenv | Yes | No |
-| `server/__pycache__/` | Python bytecode | Yes | No |
-| `server/tests/__pycache__/` | Test bytecode | Yes | No |
+| Directory                   | Purpose              | Generated | Committed |
+| --------------------------- | -------------------- | --------- | --------- |
+| `client/.next/`             | Next.js build output | Yes       | No        |
+| `server/.venv/`             | Python virtualenv    | Yes       | No        |
+| `server/__pycache__/`       | Python bytecode      | Yes       | No        |
+| `server/tests/__pycache__/` | Test bytecode        | Yes       | No        |
 
 ---
 
-*Structure analysis: 2026-04-17*
+_Structure analysis: 2026-04-17_

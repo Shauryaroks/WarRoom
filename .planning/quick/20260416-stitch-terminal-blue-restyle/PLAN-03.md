@@ -45,14 +45,21 @@ New layout (matching Stitch admin_panel/code.html -- simplified for current func
 1. **Outer**: `bg-[#131313] min-h-screen flex flex-col pt-12 pb-6`
 
 2. **Top header** (fixed):
+
    ```tsx
    <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50">
      <div className="flex items-center gap-6">
-       <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
-       <span className="font-sans uppercase tracking-widest text-[0.75rem] font-bold text-[#2196f3] border-b-2 border-[#2196f3] pb-1">ADMIN</span>
+       <span className="text-xl font-black tracking-tighter text-[#2196f3]">
+         COMPLEX
+       </span>
+       <span className="font-sans uppercase tracking-widest text-[0.75rem] font-bold text-[#2196f3] border-b-2 border-[#2196f3] pb-1">
+         ADMIN
+       </span>
      </div>
      <div className="flex items-center gap-2">
-       <span className="font-mono text-[9px] text-gray-600">TIME: {new Date().toLocaleTimeString('en-US', { hour12: false })} UTC</span>
+       <span className="font-mono text-[9px] text-gray-600">
+         TIME: {new Date().toLocaleTimeString("en-US", { hour12: false })} UTC
+       </span>
        <span className="w-1.5 h-1.5 bg-[#40e56c]" />
      </div>
    </header>
@@ -64,13 +71,16 @@ New layout (matching Stitch admin_panel/code.html -- simplified for current func
    - Header row:
      ```tsx
      <div className="flex justify-between items-center">
-       <h2 className="text-sm font-black font-mono tracking-widest text-[#9ecaff] uppercase">GAME_CONTROL_STATION</h2>
+       <h2 className="text-sm font-black font-mono tracking-widest text-[#9ecaff] uppercase">
+         GAME_CONTROL_STATION
+       </h2>
        <span className="flex items-center gap-2 font-mono text-[10px] text-[#40e56c]">
          <span className="w-2 h-2 bg-[#40e56c] animate-pulse" /> SYSTEM_LIVE
        </span>
      </div>
      ```
    - **Control buttons** (grid grid-cols-3 gap-2):
+
      ```tsx
      <button
        onClick={handleStart}
@@ -101,14 +111,18 @@ New layout (matching Stitch admin_panel/code.html -- simplified for current func
    - **Broadcast input** (below controls):
      ```tsx
      <div className="flex flex-col gap-2">
-       <label className="font-mono text-[10px] text-gray-500 uppercase tracking-tighter">GLOBAL_BROADCAST_CHANNEL</label>
+       <label className="font-mono text-[10px] text-gray-500 uppercase tracking-tighter">
+         GLOBAL_BROADCAST_CHANNEL
+       </label>
        <div className="relative">
          <textarea
            className="w-full bg-[#0e0e0e] border-l-2 border-[#2196f3] text-sm font-mono p-4 text-[#2196f3] h-24 placeholder:text-gray-800 focus:outline-none focus:ring-0"
            placeholder="ENTER MESSAGE TO ALL TEAMS..."
            disabled
          />
-         <span className="absolute bottom-4 right-4 font-mono text-[9px] text-gray-600 uppercase">COMING_SOON</span>
+         <span className="absolute bottom-4 right-4 font-mono text-[9px] text-gray-600 uppercase">
+           COMING_SOON
+         </span>
        </div>
      </div>
      ```
@@ -116,15 +130,20 @@ New layout (matching Stitch admin_panel/code.html -- simplified for current func
 5. **Status + Timer panel** (col-span-12 lg:col-span-7, bg-[#1c1b1b] p-6):
    - Header: `<h2 className="text-sm font-black font-mono tracking-widest text-[#9ecaff] uppercase mb-6">GAME_STATE_MONITOR</h2>`
    - Status badge row:
+
      ```tsx
      <div className="flex items-center justify-between mb-6">
-       <span className="font-mono text-[10px] text-gray-500 uppercase tracking-widest">STATUS</span>
+       <span className="font-mono text-[10px] text-gray-500 uppercase tracking-widest">
+         STATUS
+       </span>
        <div className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}>
          {status}
        </div>
      </div>
      ```
+
      Where statusStyles uses the Stitch palette:
+
      ```tsx
      const statusStyles =
        status === "ACTIVE"
@@ -137,34 +156,45 @@ New layout (matching Stitch admin_panel/code.html -- simplified for current func
      ```
 
    - Timer display (large):
+
      ```tsx
      <div className="text-center py-8">
-       <div className="font-mono text-[10px] text-gray-500 uppercase tracking-widest mb-2">ELAPSED_TIME</div>
-       <div className="font-mono text-6xl font-black text-[#e5e2e1] tabular-nums">{formatElapsed(elapsedSeconds)}</div>
+       <div className="font-mono text-[10px] text-gray-500 uppercase tracking-widest mb-2">
+         ELAPSED_TIME
+       </div>
+       <div className="font-mono text-6xl font-black text-[#e5e2e1] tabular-nums">
+         {formatElapsed(elapsedSeconds)}
+       </div>
      </div>
      ```
 
    - Quarter display:
      ```tsx
      <div className="flex items-center justify-between border-t border-[#404752] pt-4">
-       <span className="font-mono text-[10px] text-gray-500 uppercase tracking-widest">CURRENT_QUARTER</span>
-       <span className="font-mono text-2xl font-bold text-[#e5e2e1]">Q{currentRound}</span>
+       <span className="font-mono text-[10px] text-gray-500 uppercase tracking-widest">
+         CURRENT_QUARTER
+       </span>
+       <span className="font-mono text-2xl font-bold text-[#e5e2e1]">
+         Q{currentRound}
+       </span>
      </div>
      ```
 
 6. **Error display** (below grid, full width):
    ```tsx
-   {error && (
-     <div className="col-span-12 border border-[#FF1744]/30 bg-[#FF1744]/10 px-4 py-3">
-       <p className="font-mono text-xs text-[#FF1744]">{error}</p>
-     </div>
-   )}
+   {
+     error && (
+       <div className="col-span-12 border border-[#FF1744]/30 bg-[#FF1744]/10 px-4 py-3">
+         <p className="font-mono text-xs text-[#FF1744]">{error}</p>
+       </div>
+     );
+   }
    ```
 
 Keep all existing function definitions, state, useEffect hooks, WebSocket integration, and auth guards. Only the return JSX changes.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5`. Grep for "handleStart\|handlePause\|handleResume\|useWebSocket" in admin/page.tsx to confirm all control logic preserved.</verify>
-  <done>Admin page has Stitch GAME_CONTROL_STATION layout: START/PAUSE/RESUME buttons in grid, broadcast input placeholder, large timer display, quarter indicator, status badge. All game control API calls, WebSocket, auth guards preserved.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5`. Grep for "handleStart\|handlePause\|handleResume\|useWebSocket" in admin/page.tsx to confirm all control logic preserved.</verify>
+<done>Admin page has Stitch GAME_CONTROL_STATION layout: START/PAUSE/RESUME buttons in grid, broadcast input placeholder, large timer display, quarter indicator, status badge. All game control API calls, WebSocket, auth guards preserved.</done>
 </task>
 
 <task type="auto">
@@ -183,15 +213,27 @@ New layout:
 1. **Outer**: `bg-[#131313] min-h-screen flex flex-col`
 
 2. **Top header** (fixed):
+
    ```tsx
    <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50">
      <div className="flex items-center gap-6">
-       <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
+       <span className="text-xl font-black tracking-tighter text-[#2196f3]">
+         COMPLEX
+       </span>
      </div>
      <div className="flex items-center gap-4">
-       <span className="font-mono text-[10px] text-[#bfc7d4] uppercase">{teamName}</span>
-       <span className="font-mono text-[10px] text-[#2196f3] font-bold">{ticker}</span>
-       <button onClick={handleLogout} className="font-mono text-[10px] text-gray-600 hover:text-white uppercase transition-colors">LOGOUT</button>
+       <span className="font-mono text-[10px] text-[#bfc7d4] uppercase">
+         {teamName}
+       </span>
+       <span className="font-mono text-[10px] text-[#2196f3] font-bold">
+         {ticker}
+       </span>
+       <button
+         onClick={handleLogout}
+         className="font-mono text-[10px] text-gray-600 hover:text-white uppercase transition-colors"
+       >
+         LOGOUT
+       </button>
      </div>
    </header>
    ```
@@ -199,22 +241,33 @@ New layout:
 3. **Main content**: `mt-12 mb-6 p-6 grid grid-cols-12 gap-6`
 
 4. **Hero section** (col-span-12 lg:col-span-8, bg-[#1c1b1b] p-8 relative overflow-hidden border-l-4 border-[#2196f3]):
+
    ```tsx
    <div className="relative z-10 flex flex-col justify-between h-full min-h-[280px]">
      <div>
        <div className="flex items-center gap-3 mb-2">
          <div className="w-3 h-3 bg-[#2196f3] animate-pulse" />
-         <span className="font-mono text-xs tracking-tighter text-[#2196f3]">SYSTEM_STATUS: LIVE_CONNECTION_ESTABLISHED</span>
+         <span className="font-mono text-xs tracking-tighter text-[#2196f3]">
+           SYSTEM_STATUS: LIVE_CONNECTION_ESTABLISHED
+         </span>
        </div>
-       <h2 className="text-4xl lg:text-7xl font-black tracking-tighter mb-4 text-white uppercase italic">COMPLEX</h2>
+       <h2 className="text-4xl lg:text-7xl font-black tracking-tighter mb-4 text-white uppercase italic">
+         COMPLEX
+       </h2>
        <div className="inline-block bg-[#2196f3] px-4 py-1 mb-8">
-         <span className="font-mono text-2xl font-bold tracking-widest text-white">TICKER: {ticker}</span>
+         <span className="font-mono text-2xl font-bold tracking-widest text-white">
+           TICKER: {ticker}
+         </span>
        </div>
      </div>
      <div className="mt-auto">
-       <p className="text-[#bfc7d4] font-medium tracking-tight mb-2">LOBBY STATUS</p>
+       <p className="text-[#bfc7d4] font-medium tracking-tight mb-2">
+         LOBBY STATUS
+       </p>
        <div className="flex items-baseline gap-4">
-         <span className="text-2xl font-bold tracking-tight text-white uppercase">Waiting for admin to start the game...</span>
+         <span className="text-2xl font-bold tracking-tight text-white uppercase">
+           Waiting for admin to start the game...
+         </span>
          <span className="font-mono text-[#2196f3] animate-pulse">_</span>
        </div>
      </div>
@@ -225,18 +278,28 @@ New layout:
    - Total Approved Teams card:
      ```tsx
      <div className="bg-[#201f1f] p-6 flex flex-col justify-center border-t border-[#404752]">
-       <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">Total Approved Teams</span>
-       <span className="font-mono text-6xl font-black text-[#2196f3]">{teams.length}</span>
+       <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">
+         Total Approved Teams
+       </span>
+       <span className="font-mono text-6xl font-black text-[#2196f3]">
+         {teams.length}
+       </span>
        <div className="mt-4 flex items-center gap-2">
-         <span className="text-[10px] font-mono text-[#40e56c] uppercase">All nodes validated</span>
+         <span className="text-[10px] font-mono text-[#40e56c] uppercase">
+           All nodes validated
+         </span>
        </div>
      </div>
      ```
    - Network Latency card:
      ```tsx
      <div className="bg-[#201f1f] p-6 flex flex-col justify-center border-t border-[#404752]">
-       <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">Network Latency</span>
-       <span className="font-mono text-6xl font-black text-[#e5e2e1]">14<span className="text-xl">MS</span></span>
+       <span className="text-xs uppercase tracking-widest text-[#bfc7d4] mb-1 font-bold">
+         Network Latency
+       </span>
+       <span className="font-mono text-6xl font-black text-[#e5e2e1]">
+         14<span className="text-xl">MS</span>
+       </span>
        <div className="mt-4 flex items-center gap-2">
          <ConnectionIndicator isConnected={isConnected} />
        </div>
@@ -247,8 +310,12 @@ New layout:
    ```tsx
    <section className="col-span-12 bg-[#0e0e0e] border border-[#404752] overflow-hidden flex flex-col">
      <div className="px-6 py-3 bg-[#2a2a2a] flex justify-between items-center border-b border-[#404752]">
-       <span className="text-xs font-bold uppercase tracking-widest text-white">Verified Competition Roster</span>
-       <span className="font-mono text-[10px] text-[#2196f3] uppercase">FILTER: ALL_TEAMS</span>
+       <span className="text-xs font-bold uppercase tracking-widest text-white">
+         Verified Competition Roster
+       </span>
+       <span className="font-mono text-[10px] text-[#2196f3] uppercase">
+         FILTER: ALL_TEAMS
+       </span>
      </div>
      <TeamList teams={teams} currentTicker={ticker} />
    </section>
@@ -259,6 +326,7 @@ New layout:
 Accept a new optional prop `currentTicker?: string | null`.
 
 Render as:
+
 ```tsx
 <div className="overflow-y-auto max-h-64">
   <table className="w-full text-left border-collapse">
@@ -276,15 +344,22 @@ Render as:
         return (
           <tr
             key={team.id}
-            className={isCurrentTeam
-              ? "bg-[#2196f3]/5 hover:bg-[#2196f3]/10 transition-colors border-l-2 border-[#2196f3]"
-              : "hover:bg-[#2a2a2a] transition-colors"
+            className={
+              isCurrentTeam
+                ? "bg-[#2196f3]/5 hover:bg-[#2196f3]/10 transition-colors border-l-2 border-[#2196f3]"
+                : "hover:bg-[#2a2a2a] transition-colors"
             }
           >
-            <td className="py-3 px-6 text-[#bfc7d4]">{String(i + 1).padStart(3, '0')}</td>
-            <td className="py-3 px-6 font-bold text-white uppercase">{team.name}</td>
+            <td className="py-3 px-6 text-[#bfc7d4]">
+              {String(i + 1).padStart(3, "0")}
+            </td>
+            <td className="py-3 px-6 font-bold text-white uppercase">
+              {team.name}
+            </td>
             <td className="py-3 px-6">
-              <span className={`px-2 py-0.5 ${isCurrentTeam ? 'bg-[#2196f3] text-white' : 'bg-[#2a2a2a] text-[#2196f3]'}`}>
+              <span
+                className={`px-2 py-0.5 ${isCurrentTeam ? "bg-[#2196f3] text-white" : "bg-[#2a2a2a] text-[#2196f3]"}`}
+              >
                 {team.ticker}
               </span>
             </td>
@@ -304,19 +379,24 @@ Keep the existing component props interface, just add the optional `currentTicke
 **connection-indicator.tsx** -- Simplify to inline Stitch style:
 
 Render as:
+
 ```tsx
 <div className="flex items-center gap-2">
-  <span className={`w-2 h-2 ${isConnected ? 'bg-[#40e56c]' : 'bg-[#FF1744]'}`} />
-  <span className={`text-[10px] font-mono uppercase ${isConnected ? 'text-[#40e56c]' : 'text-[#FF1744]'}`}>
-    {isConnected ? 'Connection stable' : 'Disconnected'}
+  <span
+    className={`w-2 h-2 ${isConnected ? "bg-[#40e56c]" : "bg-[#FF1744]"}`}
+  />
+  <span
+    className={`text-[10px] font-mono uppercase ${isConnected ? "text-[#40e56c]" : "text-[#FF1744]"}`}
+  >
+    {isConnected ? "Connection stable" : "Disconnected"}
   </span>
 </div>
 ```
 
 Keep the same props interface.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5`. Grep for "useWebSocket\|handleMessage\|api.getApprovedTeams" in lobby/page.tsx to confirm all lobby logic preserved.</verify>
-  <done>Lobby page has Stitch terminal layout: COMPLEX hero with ticker badge, team count and latency stats cards, full-width verified competition roster table with current team highlighted. WebSocket, auth guards, team loading, game_started redirect all preserved.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5`. Grep for "useWebSocket\|handleMessage\|api.getApprovedTeams" in lobby/page.tsx to confirm all lobby logic preserved.</verify>
+<done>Lobby page has Stitch terminal layout: COMPLEX hero with ticker badge, team count and latency stats cards, full-width verified competition roster table with current team highlighted. WebSocket, auth guards, team loading, game_started redirect all preserved.</done>
 </task>
 
 <task type="auto">
@@ -332,30 +412,48 @@ New layout (based on Stitch strategist_view/code.html header and structure):
 1. **Outer**: `bg-[#131313] min-h-screen flex flex-col`
 
 2. **Pause overlay** (keep existing, just restyle):
+
    ```tsx
-   {status === "PAUSED" && (
-     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-       <div className="border border-[#9ecaff]/30 bg-[#131313] px-8 py-6 text-center">
-         <div className="font-mono text-2xl font-bold text-[#9ecaff]">GAME PAUSED</div>
-         <p className="mt-2 text-sm text-[#89919d]">Waiting for admin to resume...</p>
+   {
+     status === "PAUSED" && (
+       <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+         <div className="border border-[#9ecaff]/30 bg-[#131313] px-8 py-6 text-center">
+           <div className="font-mono text-2xl font-bold text-[#9ecaff]">
+             GAME PAUSED
+           </div>
+           <p className="mt-2 text-sm text-[#89919d]">
+             Waiting for admin to resume...
+           </p>
+         </div>
        </div>
-     </div>
-   )}
+     );
+   }
    ```
 
 3. **Top header** (matching Stitch strategist header, h-12, bg-[#0e0e0e]):
+
    ```tsx
    <header className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] border-b border-[#2a2a2a] z-50">
      <div className="flex items-center gap-6">
-       <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
+       <span className="text-xl font-black tracking-tighter text-[#2196f3]">
+         COMPLEX
+       </span>
        <div className="flex items-center gap-4 border-l border-[#2a2a2a] pl-6">
          <div className="flex flex-col">
-           <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TEAM</span>
-           <span className="font-mono text-xs font-bold text-[#9ecaff]">{teamName}</span>
+           <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+             TEAM
+           </span>
+           <span className="font-mono text-xs font-bold text-[#9ecaff]">
+             {teamName}
+           </span>
          </div>
          <div className="flex flex-col">
-           <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">TICKER</span>
-           <span className="font-mono text-xs font-bold text-[#e5e2e1]">${ticker}</span>
+           <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+             TICKER
+           </span>
+           <span className="font-mono text-xs font-bold text-[#e5e2e1]">
+             ${ticker}
+           </span>
          </div>
        </div>
      </div>
@@ -365,11 +463,17 @@ New layout (based on Stitch strategist_view/code.html header and structure):
            <span className="animate-ping absolute inline-flex h-full w-full bg-[#2196f3] opacity-75" />
            <span className="relative inline-flex h-2 w-2 bg-[#2196f3]" />
          </span>
-         <span className="font-mono text-xs font-bold text-[#2196f3]">LIVE // Q{currentRound}</span>
+         <span className="font-mono text-xs font-bold text-[#2196f3]">
+           LIVE // Q{currentRound}
+         </span>
        </div>
        <div className="flex flex-col items-end">
-         <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">ELAPSED</span>
-         <span className="font-mono text-sm font-bold text-[#e5e2e1] tabular-nums">{formatElapsed(elapsedSeconds)}</span>
+         <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+           ELAPSED
+         </span>
+         <span className="font-mono text-sm font-bold text-[#e5e2e1] tabular-nums">
+           {formatElapsed(elapsedSeconds)}
+         </span>
        </div>
        <div className={`font-mono text-xs font-bold px-3 py-1 ${statusStyles}`}>
          {status}
@@ -379,6 +483,7 @@ New layout (based on Stitch strategist_view/code.html header and structure):
    ```
 
    Where statusStyles:
+
    ```tsx
    const statusStyles =
      status === "ACTIVE"
@@ -392,21 +497,31 @@ New layout (based on Stitch strategist_view/code.html header and structure):
    ```tsx
    <main className="flex-1 flex items-center justify-center">
      <div className="text-center space-y-4">
-       <div className="font-mono text-xs text-[#89919d] uppercase tracking-widest">AWAITING_MODULE_LOAD</div>
+       <div className="font-mono text-xs text-[#89919d] uppercase tracking-widest">
+         AWAITING_MODULE_LOAD
+       </div>
        <p className="font-mono text-sm text-[#404752]">
          Trading interface will be deployed in Phase 3
        </p>
        <div className="flex justify-center gap-8 mt-8">
          <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#2196f3]">
-           <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
-           <div className="font-mono text-xs text-[#2196f3]">STRATEGY_EDITOR</div>
+           <div className="font-mono text-[9px] text-[#89919d] uppercase">
+             MODULE
+           </div>
+           <div className="font-mono text-xs text-[#2196f3]">
+             STRATEGY_EDITOR
+           </div>
          </div>
          <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#404752]">
-           <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
+           <div className="font-mono text-[9px] text-[#89919d] uppercase">
+             MODULE
+           </div>
            <div className="font-mono text-xs text-[#404752]">MARKET_CHARTS</div>
          </div>
          <div className="bg-[#1c1b1b] p-4 border-l-2 border-[#404752]">
-           <div className="font-mono text-[9px] text-[#89919d] uppercase">MODULE</div>
+           <div className="font-mono text-[9px] text-[#89919d] uppercase">
+             MODULE
+           </div>
            <div className="font-mono text-xs text-[#404752]">INTEL_STREAM</div>
          </div>
        </div>
@@ -415,9 +530,9 @@ New layout (based on Stitch strategist_view/code.html header and structure):
    ```
 
 Keep all existing function definitions, state, useEffect hooks, WebSocket integration, and auth guards. Only the return JSX changes.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5`. Grep for "useWebSocket\|useGameStore\|useAuthStore" in game/page.tsx to confirm all game logic preserved.</verify>
-  <done>Game page has Stitch terminal header with team/ticker info, LIVE indicator with quarter, elapsed timer, status badge. Placeholder modules hint at Phase 3 content. Pause overlay restyled with blue accent. All game state, WebSocket, auth guards preserved.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5`. Grep for "useWebSocket\|useGameStore\|useAuthStore" in game/page.tsx to confirm all game logic preserved.</verify>
+<done>Game page has Stitch terminal header with team/ticker info, LIVE indicator with quarter, elapsed timer, status badge. Placeholder modules hint at Phase 3 content. Pause overlay restyled with blue accent. All game state, WebSocket, auth guards preserved.</done>
 </task>
 
 </tasks>
@@ -433,10 +548,11 @@ Keep all existing function definitions, state, useEffect hooks, WebSocket integr
 </verification>
 
 <success_criteria>
+
 - Admin page: GAME_CONTROL_STATION with 3-button grid, broadcast placeholder, large timer, status monitor
 - Lobby page: COMPLEX hero with animated pulse indicator, team count + latency stats, full roster table with current team highlighted
 - Game page: Terminal shell header matching Stitch strategist view, module placeholders for Phase 3
 - Team list renders as Stitch-styled table with rank/name/ticker/status columns
 - Connection indicator uses green/red square dots (not rounded)
 - Zero functional regressions across all three pages
-</success_criteria>
+  </success_criteria>

@@ -15,12 +15,14 @@ Two teams submit simultaneous buy orders for the same target stock. Both read `c
 Async SQLAlchemy makes it easy to forget that `await db.execute(select(...))` followed by a later `db.add()` / `await db.commit()` is NOT atomic. The read and the write are separate database operations with no lock held between them. Default PostgreSQL isolation level (READ COMMITTED) allows another transaction to insert/update between the read and the write.
 
 **How to avoid:**
+
 1. Use `SELECT ... FOR NO KEY UPDATE` on both the buyer's `StockHolding` row and the target `Team` row before validating. In SQLAlchemy: `select(StockHolding).where(...).with_for_update(key_share=True)`.
 2. Wrap the entire buy/sell flow in an explicit transaction with proper commit/rollback.
 3. Add a database-level CHECK constraint or trigger on `StockHolding` that enforces the ownership cap as a hard constraint, so even if application logic fails, the DB rejects the violation.
 4. Consider a Redis-based distributed lock per `(buyer_id, target_id)` pair for the hot path, falling back to DB locks as the safety net.
 
 **Warning signs:**
+
 - Holdings that exceed the 25% (or 30%) ownership cap in production data
 - `IntegrityError` or deadlock exceptions in trading logs
 - Teams complaining about inconsistent portfolio values
@@ -40,12 +42,14 @@ Every Celery task in the codebase (`process_directive`, `recalculate_price_task`
 Celery is fundamentally synchronous. The project needs async DB access (asyncpg) and async HTTP (httpx for OpenRouter). The path of least resistance is `asyncio.run()` per task, but this is an architectural mismatch that degrades under load.
 
 **How to avoid:**
+
 1. Use a persistent event loop per worker process. Set up an event loop at worker process init time using `@worker_process_init.connect` signal, and run all async tasks on that loop.
 2. Alternatively, maintain a single `create_async_engine` per worker process (not per task invocation as `get_worker_session()` currently does). Engine creation is expensive. Use a module-level engine initialized once.
 3. For the price sweep specifically: instead of spawning 40 individual `recalculate_price_task.delay()` calls (each creating its own engine), do all 40 price calculations in a single task with a single DB session.
 4. Consider replacing Celery with `asyncio` background tasks managed by FastAPI's lifespan for the periodic tick work, since the app runs on a single server anyway. Use Celery only for LLM calls that genuinely need retry/timeout isolation.
 
 **Warning signs:**
+
 - Celery worker memory growing over time (engine/connection pool leaks)
 - `asyncpg.exceptions.TooManyConnectionsError` in worker logs
 - Price updates becoming delayed or skipped under load
@@ -59,18 +63,20 @@ Phase 1 (Core Infrastructure). The Celery-async bridge is foundational. Getting 
 ### Pitfall 3: WebSocket Burst Sync Doing N+1 Queries Per Connection
 
 **What goes wrong:**
-When a client connects (or sends `sync_request`), `_build_market_burst()` runs: 1 query for news, 1 query for teams, then for EACH team it runs a query for `PriceHistory` (the last 2 entries). For 40 teams, that is 42 queries per connection. `_build_team_dossier()` does similar N+1 patterns for holdings. When 80 clients connect simultaneously (game start), that is 80 * 42 = 3,360 queries hitting PostgreSQL in seconds. On an 8GB/4vCPU VPS with `pool_size=20`, this will exhaust the connection pool and cause timeouts.
+When a client connects (or sends `sync_request`), `_build_market_burst()` runs: 1 query for news, 1 query for teams, then for EACH team it runs a query for `PriceHistory` (the last 2 entries). For 40 teams, that is 42 queries per connection. `_build_team_dossier()` does similar N+1 patterns for holdings. When 80 clients connect simultaneously (game start), that is 80 \* 42 = 3,360 queries hitting PostgreSQL in seconds. On an 8GB/4vCPU VPS with `pool_size=20`, this will exhaust the connection pool and cause timeouts.
 
 **Why it happens:**
 The burst sync is designed to give each client a complete snapshot on connect, which is correct behavior. But the implementation loads data row-by-row in Python loops instead of using JOINs or batch queries. SQLAlchemy's lazy loading patterns make this easy to write but deadly at scale.
 
 **How to avoid:**
+
 1. Batch the PriceHistory query: use a single query with a window function (`ROW_NUMBER() OVER (PARTITION BY team_id ORDER BY calculated_at DESC)`) to get the last 2 prices for ALL teams in one query.
 2. Cache the market burst payload in Redis with a 5-10 second TTL. All 80 clients connecting within the same window get the same cached snapshot. Invalidate on price updates.
 3. Stagger reconnections: when the game starts, don't broadcast to all clients simultaneously. Add a small random delay (0-2s) per client.
 4. For team dossiers, use `selectinload()` or `joinedload()` on the SQLAlchemy relationships instead of individual `await db.get()` calls inside loops.
 
 **Warning signs:**
+
 - Slow WebSocket connections (>2s to receive initial data)
 - PostgreSQL `idle in transaction` connections piling up
 - `asyncpg.exceptions.ConnectionDoesNotExistError` during game start
@@ -90,6 +96,7 @@ The PROJECT.md explicitly requires "Human-in-the-loop: admin validates/edits LLM
 The human-in-the-loop flow is architecturally complex: it requires a queue of pending evaluations, an admin UI to review/approve/modify, and a mechanism to "hold" the financial impact until approval. It is natural to skip this during initial development and wire up the direct path.
 
 **How to avoid:**
+
 1. Add a `PENDING_APPROVAL` status to `DirectiveStatus` enum. After LLM evaluation, set status to `PENDING_APPROVAL` instead of `COMPLETED`.
 2. Store the LLM's proposed scores and financial impact in the directive row but do NOT call `apply_financial_impact()` yet.
 3. Build an admin endpoint (`POST /admin/directives/{id}/approve`) that applies the impact and transitions to `COMPLETED`.
@@ -98,6 +105,7 @@ The human-in-the-loop flow is architecturally complex: it requires a queue of pe
 6. Add a WebSocket notification to the admin channel when directives are awaiting review.
 
 **Warning signs:**
+
 - Wild stock price swings from a single team's directive
 - Teams gaming the system with nonsensical directives that the LLM scores favorably
 - Admin complaints about having no oversight during the competition
@@ -117,6 +125,7 @@ When admin pauses the game, `gs.status = GameStatus.PAUSED` is set in the databa
 Celery beat schedules are static -- they fire on a timer, not based on application state. The game state is in PostgreSQL, but Celery beat does not consult it. This is a classic distributed state problem.
 
 **How to avoid:**
+
 1. Every periodic Celery task must check game state as its first action: `gs = await db.get(GameState, 1); if gs.status != GameStatus.ACTIVE: return`.
 2. When pausing, write `PAUSED` to a Redis key that Celery tasks can check cheaply (avoid hitting PostgreSQL on every tick).
 3. When stopping/resetting, revoke all pending scheduled tasks using `celery_app.control.revoke()` or use `celery_app.control.purge()`.
@@ -124,6 +133,7 @@ Celery beat schedules are static -- they fire on a timer, not based on applicati
 5. Add a `pause_offset` accumulator so that when the game resumes, elapsed time calculations account for total paused duration.
 
 **Warning signs:**
+
 - Stock prices changing while game is paused (visible on admin dashboard)
 - Teams getting eliminated during a crisis event pause
 - Duplicate "GAME_STARTED" events in WebSocket logs
@@ -143,6 +153,7 @@ When a client's WebSocket disconnects (network hiccup, laptop sleep, browser tab
 WebSocket reconnection with gap recovery requires maintaining a sequence number and an event buffer. The codebase has `_next_seq()` (sequence IDs on messages) but no mechanism for clients to say "I last received sequence 47, send me everything after that."
 
 **How to avoid:**
+
 1. Maintain a bounded event buffer (last 100 events) in Redis, keyed by event type (market, team).
 2. Client sends `{"type": "sync_request", "last_seq": 47}` on reconnect.
 3. Server replays events from `last_seq + 1` to current, then switches to live streaming.
@@ -150,6 +161,7 @@ WebSocket reconnection with gap recovery requires maintaining a sequence number 
 5. Client-side: implement exponential backoff reconnection with jitter (not aggressive retry loops).
 
 **Warning signs:**
+
 - Teams reporting "the game started but we didn't see it"
 - Inconsistent state between two devices of the same team
 - Spike in WebSocket connections after network blip (reconnection storm)
@@ -169,6 +181,7 @@ The Caddyfile is minimal: `reverse_proxy api:80`. Caddy's default HTTP timeout s
 Caddy's default `read_timeout` and `write_timeout` apply to the entire connection lifecycle, not per-message. For HTTP requests this is fine. For WebSockets that should live for hours, the defaults silently kill connections.
 
 **How to avoid:**
+
 1. Configure Caddy with explicit long timeouts for the WebSocket routes:
    ```
    reverse_proxy api:80 {
@@ -183,6 +196,7 @@ Caddy's default `read_timeout` and `write_timeout` apply to the entire connectio
 4. If Vercel is the frontend host, note that Vercel does NOT support WebSocket connections from Next.js API routes in production. WebSocket connections must go directly to the backend (via Caddy), not through Vercel.
 
 **Warning signs:**
+
 - WebSocket disconnections after exactly 30s, 60s, or 120s of idle time (timeout signature)
 - Clusters of disconnections at the same timestamp
 - Repeated `fix: ws` commits in git history (already happening)
@@ -202,12 +216,14 @@ The pricing formula in `pricing.py` has a subtle issue: `calculate_base_price()`
 The pricing functions were likely built incrementally -- base price first, then multipliers were added. The double-application of vibe is a composition bug that is hard to spot without tracing through the full call chain.
 
 **How to avoid:**
+
 1. Make `calculate_base_price()` a pure fundamentals calculation (no multipliers). Apply all multipliers in `calculate_final_price()` only.
 2. Compute ALL price components once and pass them through as a dataclass/dict, not re-query them at each step.
 3. Write unit tests that assert `final_price = base * vibe * sentiment` and catch double-counting.
 4. The price history should record the values used for the actual price calculation, not re-query them.
 
 **Warning signs:**
+
 - Stock prices that are extremely sensitive to vibe scores (small changes in consistency_score cause large price swings)
 - Prices diverging wildly from expected ranges after just a few directive cycles
 - Price history records showing different multipliers than what was actually used for pricing
@@ -219,53 +235,53 @@ Phase 2 (Game Engine / Simulation). This is a correctness bug, not a scalability
 
 ## Technical Debt Patterns
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| `asyncio.run()` per Celery task | Quick async-in-sync bridge | Connection pool churn, memory growth, event loop overhead | Never in production -- must fix before competition |
-| No DB migrations for schema changes | Faster iteration | Data loss on schema change, no rollback path | Development only, already using Alembic correctly |
-| Hardcoded admin API key (`admin-secret-key`) | Fast development | Trivially guessable auth for entire admin surface | Only during local development |
-| `datetime.utcnow()` everywhere | Works in single-timezone | No timezone awareness, breaks if server TZ changes, deprecated in Python 3.12+ | Acceptable if all infra is UTC and team is aware |
-| `except Exception: pass` on WebSocket broadcasts | Prevents broadcast failures from crashing main flow | Silent data loss, teams miss events, debugging blindness | Acceptable only if paired with logging (currently it is not) |
-| JSON-serializing financial impact as string in DB | Avoids JSONB column setup | Cannot query financial impacts efficiently, parsing overhead | Acceptable for this scale (40 teams) |
+| Shortcut                                          | Immediate Benefit                                   | Long-term Cost                                                                 | When Acceptable                                              |
+| ------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `asyncio.run()` per Celery task                   | Quick async-in-sync bridge                          | Connection pool churn, memory growth, event loop overhead                      | Never in production -- must fix before competition           |
+| No DB migrations for schema changes               | Faster iteration                                    | Data loss on schema change, no rollback path                                   | Development only, already using Alembic correctly            |
+| Hardcoded admin API key (`admin-secret-key`)      | Fast development                                    | Trivially guessable auth for entire admin surface                              | Only during local development                                |
+| `datetime.utcnow()` everywhere                    | Works in single-timezone                            | No timezone awareness, breaks if server TZ changes, deprecated in Python 3.12+ | Acceptable if all infra is UTC and team is aware             |
+| `except Exception: pass` on WebSocket broadcasts  | Prevents broadcast failures from crashing main flow | Silent data loss, teams miss events, debugging blindness                       | Acceptable only if paired with logging (currently it is not) |
+| JSON-serializing financial impact as string in DB | Avoids JSONB column setup                           | Cannot query financial impacts efficiently, parsing overhead                   | Acceptable for this scale (40 teams)                         |
 
 ## Integration Gotchas
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| OpenRouter API | No timeout on LLM calls, blocking the Celery worker for minutes | Set `timeout=30.0` (already done). Also set Celery `task_time_limit` (done at 300s). But 300s is too long -- a hung LLM call blocks a worker for 5 minutes. Reduce to 60s. |
-| Vercel + FastAPI WebSocket | Assuming Vercel can proxy WebSocket connections to backend | Vercel does NOT proxy WebSockets. Frontend must connect directly to the backend WebSocket endpoint (e.g., `wss://api-complex.helixtiet.in/ws/market`), not through a Vercel API route. |
-| Redis as Celery broker | Using same Redis instance for broker AND cache/pub-sub without key namespacing | Use separate Redis databases (db=0 for Celery, db=1 for caching, db=2 for pub-sub) or at minimum use key prefixes. A Celery `purge()` should not wipe cached market data. |
-| asyncpg in forked processes | Sharing a connection pool across fork boundaries (Celery prefork) | `get_worker_session()` correctly creates a new engine per task, but this is expensive. Better: use `solo` pool or create one engine per worker process, not per task. |
-| Alembic with async engine | Running `alembic upgrade head` with the async driver URL | Alembic migrations should use the sync `psycopg2` driver, not `asyncpg`. The alembic env.py needs a sync engine URL variant. |
+| Integration                 | Common Mistake                                                                 | Correct Approach                                                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenRouter API              | No timeout on LLM calls, blocking the Celery worker for minutes                | Set `timeout=30.0` (already done). Also set Celery `task_time_limit` (done at 300s). But 300s is too long -- a hung LLM call blocks a worker for 5 minutes. Reduce to 60s.             |
+| Vercel + FastAPI WebSocket  | Assuming Vercel can proxy WebSocket connections to backend                     | Vercel does NOT proxy WebSockets. Frontend must connect directly to the backend WebSocket endpoint (e.g., `wss://api-complex.helixtiet.in/ws/market`), not through a Vercel API route. |
+| Redis as Celery broker      | Using same Redis instance for broker AND cache/pub-sub without key namespacing | Use separate Redis databases (db=0 for Celery, db=1 for caching, db=2 for pub-sub) or at minimum use key prefixes. A Celery `purge()` should not wipe cached market data.              |
+| asyncpg in forked processes | Sharing a connection pool across fork boundaries (Celery prefork)              | `get_worker_session()` correctly creates a new engine per task, but this is expensive. Better: use `solo` pool or create one engine per worker process, not per task.                  |
+| Alembic with async engine   | Running `alembic upgrade head` with the async driver URL                       | Alembic migrations should use the sync `psycopg2` driver, not `asyncpg`. The alembic env.py needs a sync engine URL variant.                                                           |
 
 ## Performance Traps
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Broadcasting to all WebSocket clients sequentially | Broadcast latency grows linearly with client count | Use `asyncio.gather()` for concurrent sends (already partially done but verify) | At 40+ clients, last client gets data 1-2s late |
-| PriceHistory table growing unbounded | Queries slow down as game progresses, especially the "last 2 prices" query per team | Add index on `(team_id, calculated_at DESC)`. Partition or truncate after each competition. At 40 teams * 2 ticks/min * 120 min = 9,600 rows per game -- manageable but index is essential | At 5,000+ rows without index |
-| Full dossier rebuild on every sync_request | Database hammered when clients reconnect in bursts | Cache dossier per team in Redis (10s TTL), serve from cache | When 80 clients reconnect simultaneously (e.g., after a network blip) |
-| Loading all holdings with individual `db.get(Team, target_id)` per holding | N+1 query per holding per team per sync | Use a single JOIN query or batch-load all target teams | When a team has holdings in 10+ companies |
+| Trap                                                                       | Symptoms                                                                            | Prevention                                                                                                                                                                                 | When It Breaks                                                        |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Broadcasting to all WebSocket clients sequentially                         | Broadcast latency grows linearly with client count                                  | Use `asyncio.gather()` for concurrent sends (already partially done but verify)                                                                                                            | At 40+ clients, last client gets data 1-2s late                       |
+| PriceHistory table growing unbounded                                       | Queries slow down as game progresses, especially the "last 2 prices" query per team | Add index on `(team_id, calculated_at DESC)`. Partition or truncate after each competition. At 40 teams _ 2 ticks/min _ 120 min = 9,600 rows per game -- manageable but index is essential | At 5,000+ rows without index                                          |
+| Full dossier rebuild on every sync_request                                 | Database hammered when clients reconnect in bursts                                  | Cache dossier per team in Redis (10s TTL), serve from cache                                                                                                                                | When 80 clients reconnect simultaneously (e.g., after a network blip) |
+| Loading all holdings with individual `db.get(Team, target_id)` per holding | N+1 query per holding per team per sync                                             | Use a single JOIN query or batch-load all target teams                                                                                                                                     | When a team has holdings in 10+ companies                             |
 
 ## Security Mistakes
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Admin API key in environment variable with default fallback `admin-secret-key` | Anyone can control the game, start/stop/purge, eliminate teams | Remove the default. Fail loudly if `ADMIN_API_KEY` is not set. Use a strong random key. |
-| No rate limiting on trading endpoint | A single team can spam buy/sell requests, potentially exploiting race conditions or overwhelming the server | Add per-team rate limiting (e.g., max 10 orders per minute) via Redis counter |
-| LLM prompt injection partially handled but exploitable | The `INJECTION_PATTERNS` regex catches obvious patterns but misses Unicode homoglyphs, encoded payloads, or novel injection techniques | The current approach (zero consistency_score + warning) is good. Add a hard block: if injection detected, reject the directive entirely rather than processing it with zeroed scores |
-| No authentication on WebSocket endpoints | The market WebSocket (`/ws/market`) requires no auth. Anyone can connect and receive all market data. Team WebSocket uses `api_key` in the URL path, which is logged in access logs | Add JWT or session-based auth to market WebSocket. Move team API key from URL path to the first message after connection (authentication handshake) |
-| `team.api_key` used for both API auth and WebSocket identification | If the API key leaks (URL logs, browser history), the team's entire session is compromised | Use separate short-lived WebSocket tokens generated at login, not the persistent API key |
+| Mistake                                                                        | Risk                                                                                                                                                                                | Prevention                                                                                                                                                                           |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Admin API key in environment variable with default fallback `admin-secret-key` | Anyone can control the game, start/stop/purge, eliminate teams                                                                                                                      | Remove the default. Fail loudly if `ADMIN_API_KEY` is not set. Use a strong random key.                                                                                              |
+| No rate limiting on trading endpoint                                           | A single team can spam buy/sell requests, potentially exploiting race conditions or overwhelming the server                                                                         | Add per-team rate limiting (e.g., max 10 orders per minute) via Redis counter                                                                                                        |
+| LLM prompt injection partially handled but exploitable                         | The `INJECTION_PATTERNS` regex catches obvious patterns but misses Unicode homoglyphs, encoded payloads, or novel injection techniques                                              | The current approach (zero consistency_score + warning) is good. Add a hard block: if injection detected, reject the directive entirely rather than processing it with zeroed scores |
+| No authentication on WebSocket endpoints                                       | The market WebSocket (`/ws/market`) requires no auth. Anyone can connect and receive all market data. Team WebSocket uses `api_key` in the URL path, which is logged in access logs | Add JWT or session-based auth to market WebSocket. Move team API key from URL path to the first message after connection (authentication handshake)                                  |
+| `team.api_key` used for both API auth and WebSocket identification             | If the API key leaks (URL logs, browser history), the team's entire session is compromised                                                                                          | Use separate short-lived WebSocket tokens generated at login, not the persistent API key                                                                                             |
 
 ## UX Pitfalls
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| No optimistic UI on trade execution | Team clicks "Buy", waits 1-3s for round-trip, clicks again thinking it failed, gets double order | Show immediate "Order Pending" state, disable the button, confirm/reject when server responds |
-| LLM evaluation latency with no progress indicator | Team submits directive, sees nothing for 10-30 seconds, wonders if it worked | Show "Evaluating your directive..." with a spinner. Send WebSocket progress events: SUBMITTED -> PROCESSING -> COMPLETED |
-| Crisis event pause with no countdown or explanation | Admin pauses game, teams see "PAUSED" but do not know why, how long, or what they should do | Include a message with the pause event: "Crisis event: [description]. You have [X] minutes to respond." |
-| Eliminated teams get no closure | Team is eliminated in a purge, their WebSocket still works, they see data but cannot act. No clear "you are eliminated" screen | Detect elimination via WebSocket event, show a dedicated "Eliminated" overlay with final rank and stats |
-| Purge eliminates bottom half by market cap only | Teams that made great strategic decisions but had bad trading luck get eliminated. Feels unfair | Consider a composite score (market cap + directive quality + cash reserves) or at minimum show teams their rank leading up to a purge so they can trade strategically |
+| Pitfall                                             | User Impact                                                                                                                    | Better Approach                                                                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No optimistic UI on trade execution                 | Team clicks "Buy", waits 1-3s for round-trip, clicks again thinking it failed, gets double order                               | Show immediate "Order Pending" state, disable the button, confirm/reject when server responds                                                                         |
+| LLM evaluation latency with no progress indicator   | Team submits directive, sees nothing for 10-30 seconds, wonders if it worked                                                   | Show "Evaluating your directive..." with a spinner. Send WebSocket progress events: SUBMITTED -> PROCESSING -> COMPLETED                                              |
+| Crisis event pause with no countdown or explanation | Admin pauses game, teams see "PAUSED" but do not know why, how long, or what they should do                                    | Include a message with the pause event: "Crisis event: [description]. You have [X] minutes to respond."                                                               |
+| Eliminated teams get no closure                     | Team is eliminated in a purge, their WebSocket still works, they see data but cannot act. No clear "you are eliminated" screen | Detect elimination via WebSocket event, show a dedicated "Eliminated" overlay with final rank and stats                                                               |
+| Purge eliminates bottom half by market cap only     | Teams that made great strategic decisions but had bad trading luck get eliminated. Feels unfair                                | Consider a composite score (market cap + directive quality + cash reserves) or at minimum show teams their rank leading up to a purge so they can trade strategically |
 
 ## "Looks Done But Isn't" Checklist
 
@@ -280,29 +296,29 @@ Phase 2 (Game Engine / Simulation). This is a correctness bug, not a scalability
 
 ## Recovery Strategies
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Trading race condition (oversold shares) | MEDIUM | Pause game, run audit query for cap violations, manually adjust holdings and refund excess, resume. Add DB constraint to prevent recurrence. |
-| Celery worker OOM | LOW | Restart worker container (`docker restart celery_worker`). Fix root cause (engine leak) before next run. |
-| WebSocket storm after reconnection | LOW | Clients will eventually reconnect. Add Redis-cached burst sync to prevent DB overload on mass reconnect. |
-| LLM evaluation applied incorrect scores | HIGH | No undo mechanism exists. Must manually reverse financial impact via DB update, recalculate affected prices, notify team. Build admin "revert directive" endpoint. |
-| Price double-counting vibe multiplier | MEDIUM | Fix the formula, recalculate all current prices in a single sweep, broadcast corrected prices. Historical price data remains wrong -- document the correction. |
-| Game state stuck in PAUSED (admin lost connection) | LOW | Any admin can call `/game/resume`. Add a secondary admin auth method (e.g., CLI script) as backup. |
+| Pitfall                                            | Recovery Cost | Recovery Steps                                                                                                                                                     |
+| -------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Trading race condition (oversold shares)           | MEDIUM        | Pause game, run audit query for cap violations, manually adjust holdings and refund excess, resume. Add DB constraint to prevent recurrence.                       |
+| Celery worker OOM                                  | LOW           | Restart worker container (`docker restart celery_worker`). Fix root cause (engine leak) before next run.                                                           |
+| WebSocket storm after reconnection                 | LOW           | Clients will eventually reconnect. Add Redis-cached burst sync to prevent DB overload on mass reconnect.                                                           |
+| LLM evaluation applied incorrect scores            | HIGH          | No undo mechanism exists. Must manually reverse financial impact via DB update, recalculate affected prices, notify team. Build admin "revert directive" endpoint. |
+| Price double-counting vibe multiplier              | MEDIUM        | Fix the formula, recalculate all current prices in a single sweep, broadcast corrected prices. Historical price data remains wrong -- document the correction.     |
+| Game state stuck in PAUSED (admin lost connection) | LOW           | Any admin can call `/game/resume`. Add a secondary admin auth method (e.g., CLI script) as backup.                                                                 |
 
 ## Pitfall-to-Phase Mapping
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Trading race conditions (no row locking) | Phase 1: Core Infrastructure | Load test: 10 concurrent buy orders for same stock, verify cap never exceeded |
-| Celery asyncio.run() per task | Phase 1: Core Infrastructure | Monitor worker memory over 30-minute run, verify stable (no growth) |
-| WebSocket burst sync N+1 queries | Phase 2: Game Engine | Profile DB queries during 40-client simultaneous connect, verify < 10 queries total |
-| No human-in-the-loop gate | Phase 2: Game Engine | Submit directive, verify it enters PENDING_APPROVAL, verify admin can approve/modify |
-| Game pause does not stop Celery tasks | Phase 2: Game Engine | Pause game, wait 60s, verify no new PriceHistory rows created during pause |
-| No WebSocket reconnection protocol | Phase 3: Polish | Disconnect client, wait 30s, reconnect, verify missed events are replayed |
-| Caddy WebSocket timeout | Phase 1: Core Infrastructure | Connect WebSocket, leave idle 5 minutes, verify connection survives |
-| Price formula double-counting | Phase 2: Game Engine | Unit test: `final = base * vibe * sentiment`, assert no double-application |
-| Cooldown never expires | Phase 2: Game Engine | Submit directive, wait cooldown period, verify team auto-returns to ACTIVE |
-| Purge does not refund buyers of eliminated stocks | Phase 2: Game Engine | Purge a team, verify holders get cash refund or explicit "shares worthless" event |
+| Pitfall                                           | Prevention Phase             | Verification                                                                         |
+| ------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| Trading race conditions (no row locking)          | Phase 1: Core Infrastructure | Load test: 10 concurrent buy orders for same stock, verify cap never exceeded        |
+| Celery asyncio.run() per task                     | Phase 1: Core Infrastructure | Monitor worker memory over 30-minute run, verify stable (no growth)                  |
+| WebSocket burst sync N+1 queries                  | Phase 2: Game Engine         | Profile DB queries during 40-client simultaneous connect, verify < 10 queries total  |
+| No human-in-the-loop gate                         | Phase 2: Game Engine         | Submit directive, verify it enters PENDING_APPROVAL, verify admin can approve/modify |
+| Game pause does not stop Celery tasks             | Phase 2: Game Engine         | Pause game, wait 60s, verify no new PriceHistory rows created during pause           |
+| No WebSocket reconnection protocol                | Phase 3: Polish              | Disconnect client, wait 30s, reconnect, verify missed events are replayed            |
+| Caddy WebSocket timeout                           | Phase 1: Core Infrastructure | Connect WebSocket, leave idle 5 minutes, verify connection survives                  |
+| Price formula double-counting                     | Phase 2: Game Engine         | Unit test: `final = base * vibe * sentiment`, assert no double-application           |
+| Cooldown never expires                            | Phase 2: Game Engine         | Submit directive, wait cooldown period, verify team auto-returns to ACTIVE           |
+| Purge does not refund buyers of eliminated stocks | Phase 2: Game Engine         | Purge a team, verify holders get cash refund or explicit "shares worthless" event    |
 
 ## Sources
 
@@ -317,5 +333,6 @@ Phase 2 (Game Engine / Simulation). This is a correctness bug, not a scalability
 - Git commit history analysis (5 WebSocket-related fix commits)
 
 ---
-*Pitfalls research for: Complex Case Competition Platform*
-*Researched: 2026-04-16*
+
+_Pitfalls research for: Complex Case Competition Platform_
+_Researched: 2026-04-16_

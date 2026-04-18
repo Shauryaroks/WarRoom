@@ -6,6 +6,7 @@ See the full document in the conversation history.
 ## Key Alignment Requirements
 
 ### What exists and works:
+
 - Auth, teams, sub-accounts (strategist/trader)
 - Game state machine (start/pause/resume)
 - Admin portal (7 tabs)
@@ -34,6 +35,7 @@ See the full document in the conversation history.
 12. **Circuit Breakers** — ±25% per quarter price limits
 
 ### Admin control philosophy:
+
 - Admin decides which rounds/features to activate
 - Not all features are mandatory for every competition
 - Admin maps portfolios to teams manually

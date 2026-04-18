@@ -52,6 +52,7 @@ The new layout structure (matching Stitch auth_register/code.html):
    - `<p className="font-mono text-[10px] text-[#89919d] uppercase tracking-widest">SECURE_NODE_ENTRY // GATE_ALPHA</p>`
 
 5. **Form fields** (space-y-6) -- each field follows this pattern:
+
    ```tsx
    <div className="space-y-1">
      <label className="font-mono text-[10px] text-[#2196f3] uppercase font-bold tracking-tighter">
@@ -80,6 +81,7 @@ The new layout structure (matching Stitch auth_register/code.html):
    - `Field_04 // ACCESS_KEY` -- input: type="password"
 
 6. **Submit button**: Use the milled-metal gradient style:
+
    ```tsx
    <button
      type="submit"
@@ -91,10 +93,16 @@ The new layout structure (matching Stitch auth_register/code.html):
    ```
 
 7. **Login link section** (below button, pt-2 border-t border-[#404752]/20):
+
    ```tsx
    <div className="flex items-center justify-between pt-2 border-t border-[#404752]/20">
-     <span className="font-mono text-[10px] text-[#89919d] uppercase">Existing entry?</span>
-     <Link href="/auth/login" className="font-mono text-[10px] text-[#2196f3] hover:text-[#9ecaff] uppercase font-bold tracking-tight">
+     <span className="font-mono text-[10px] text-[#89919d] uppercase">
+       Existing entry?
+     </span>
+     <Link
+       href="/auth/login"
+       className="font-mono text-[10px] text-[#2196f3] hover:text-[#9ecaff] uppercase font-bold tracking-tight"
+     >
        Execute_Login
      </Link>
    </div>
@@ -108,16 +116,18 @@ The new layout structure (matching Stitch auth_register/code.html):
        <div className="w-2 h-2 bg-[#40e56c]/40" />
        <div className="w-2 h-2 bg-[#40e56c]/80" />
      </div>
-     <span className="font-mono text-[8px] text-[#404752] uppercase tracking-[0.3em]">ENCRYPTION_LAYER_AES256</span>
+     <span className="font-mono text-[8px] text-[#404752] uppercase tracking-[0.3em]">
+       ENCRYPTION_LAYER_AES256
+     </span>
    </div>
    ```
 
 Remove the shadcn Card, CardContent, Button, Input, Label component imports -- use native HTML elements styled directly with Tailwind. Keep all other imports (useState, Link, useRouter, toast, api, registerSchema).
 
 Do NOT use the `rounded-md` or `rounded-*` classes anywhere. All elements have sharp corners (0px radius from globals.css).
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5` -- no build errors. Grep for "registerSchema" and "handleSubmit" to confirm validation logic preserved.</verify>
-  <done>Register page matches Stitch terminal design: blue top strip, FIELD_01-04 labels in mono, milled-metal CTA, encryption indicator footer. All form validation, API calls, error handling, and router navigation preserved exactly.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5` -- no build errors. Grep for "registerSchema" and "handleSubmit" to confirm validation logic preserved.</verify>
+<done>Register page matches Stitch terminal design: blue top strip, FIELD_01-04 labels in mono, milled-metal CTA, encryption indicator footer. All form validation, API calls, error handling, and router navigation preserved exactly.</done>
 </task>
 
 <task type="auto">
@@ -133,11 +143,16 @@ The new layout structure (matching Stitch auth_login/code.html):
 1. **Outer**: `bg-[#131313] min-h-screen flex flex-col`
 
 2. **Top nav** (fixed): Same pattern as register page header but with nav links:
+
    ```tsx
    <nav className="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50">
-     <div className="text-xl font-black tracking-tighter text-[#2196f3] uppercase">COMPLEX</div>
+     <div className="text-xl font-black tracking-tighter text-[#2196f3] uppercase">
+       COMPLEX
+     </div>
      <div className="flex items-center gap-4">
-       <span className="font-mono text-[9px] font-medium text-[#40e56c] uppercase tracking-widest">SYSTEM_STABLE</span>
+       <span className="font-mono text-[9px] font-medium text-[#40e56c] uppercase tracking-widest">
+         SYSTEM_STABLE
+       </span>
      </div>
    </nav>
    ```
@@ -160,6 +175,7 @@ The new layout structure (matching Stitch auth_login/code.html):
    - Subtitle: `<p className="text-[#bfc7d4] text-xs font-mono uppercase">Enter credentials to bypass terminal firewall</p>`
 
    - **Role toggle** (Strategist/Trader):
+
      ```tsx
      <div className="bg-[#0e0e0e] p-1 flex border border-[#404752]/30">
        <button
@@ -197,9 +213,9 @@ The new layout structure (matching Stitch auth_login/code.html):
    - **Register link**: `<p className="text-[10px] font-mono uppercase text-[#bfc7d4] text-center pt-4">Unauthorized access is logged. <Link href="/auth/register" className="text-[#2196f3] font-bold hover:underline ml-2">Register New Agent</Link></p>`
 
 Remove shadcn Card, CardContent, Button, Input, Label imports. Use native HTML elements. Keep all other imports and logic.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5` -- no build errors. Grep for "loginSchema" and "storeLogin" to confirm auth logic preserved.</verify>
-  <done>Login page has Stitch split layout: left panel with COMPLEX branding + system status metrics, right panel with Initialize Session heading, Strategist/Trader segmented toggle in blue, terminal-styled inputs. All auth logic, role state, redirect, and Zustand integration preserved.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5` -- no build errors. Grep for "loginSchema" and "storeLogin" to confirm auth logic preserved.</verify>
+<done>Login page has Stitch split layout: left panel with COMPLEX branding + system status metrics, right panel with Initialize Session heading, Strategist/Trader segmented toggle in blue, terminal-styled inputs. All auth logic, role state, redirect, and Zustand integration preserved.</done>
 </task>
 
 <task type="auto">
@@ -215,10 +231,15 @@ Use the same card pattern as the register page but simpler (admin-specific):
 1. **Outer**: `bg-[#131313] min-h-screen flex flex-col items-center justify-center p-4`
 
 2. **Top header** (fixed): Same as register pattern:
+
    ```tsx
    <header className="fixed top-0 left-0 w-full px-6 h-12 flex justify-between items-center bg-[#0e0e0e] z-50">
-     <span className="text-xl font-black tracking-tighter text-[#2196f3]">COMPLEX</span>
-     <span className="font-mono text-[9px] font-medium text-[#89919d] uppercase tracking-widest">ADMIN_ACCESS_PORTAL</span>
+     <span className="text-xl font-black tracking-tighter text-[#2196f3]">
+       COMPLEX
+     </span>
+     <span className="font-mono text-[9px] font-medium text-[#89919d] uppercase tracking-widest">
+       ADMIN_ACCESS_PORTAL
+     </span>
    </header>
    ```
 
@@ -240,9 +261,9 @@ Use the same card pattern as the register page but simpler (admin-specific):
 7. **Footer decoration**: Same encryption bar pattern as register but with red accent dots.
 
 Remove shadcn Card, CardContent, Button, Input, Label imports. Use native HTML elements. Keep all other imports and logic.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5` -- no build errors. Grep for "adminLoginSchema" and "adminLogin" to confirm auth logic preserved.</verify>
-  <done>Admin login page has terminal aesthetic with red accent (admin differentiation), ADMIN_ACCESS heading, ELEVATED_PRIVILEGES subtitle, red-accented field labels and submit button. All validation, API calls, error handling, and Zustand adminLogin preserved.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | tail -5` -- no build errors. Grep for "adminLoginSchema" and "adminLogin" to confirm auth logic preserved.</verify>
+<done>Admin login page has terminal aesthetic with red accent (admin differentiation), ADMIN_ACCESS heading, ELEVATED_PRIVILEGES subtitle, red-accented field labels and submit button. All validation, API calls, error handling, and Zustand adminLogin preserved.</done>
 </task>
 
 </tasks>
@@ -257,8 +278,9 @@ Remove shadcn Card, CardContent, Button, Input, Label imports. Use native HTML e
 </verification>
 
 <success_criteria>
+
 - Register page: FIELD_01-04 labels, milled-metal button, encryption footer, blue top strip
 - Login page: Split layout with left branding panel, right form, Strategist/Trader toggle in blue
 - Admin login: Red accent differentiation, ADMIN_ACCESS heading, same terminal field styling
 - Zero functional regressions -- all form logic, API integration, error handling unchanged
-</success_criteria>
+  </success_criteria>

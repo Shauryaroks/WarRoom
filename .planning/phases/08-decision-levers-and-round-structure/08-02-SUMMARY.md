@@ -33,14 +33,15 @@ Full REST API layer for decision levers and round structure: admin War Room/Live
 
 ## Commits
 
-| Task | Name | Commit | Key Changes |
-|------|------|--------|-------------|
-| 1 | Admin game phase endpoints + Celery guard | b4694f6 | War Room/Live Floor admin endpoints, Celery tick guard, trading halt |
-| 2 | Decision + operating plan + budget endpoints | f380669 | Decision submission with per-lever validation, budget enforcement, operating plan, game info endpoints |
+| Task | Name                                         | Commit  | Key Changes                                                                                            |
+| ---- | -------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| 1    | Admin game phase endpoints + Celery guard    | b4694f6 | War Room/Live Floor admin endpoints, Celery tick guard, trading halt                                   |
+| 2    | Decision + operating plan + budget endpoints | f380669 | Decision submission with per-lever validation, budget enforcement, operating plan, game info endpoints |
 
 ## What Was Built
 
 ### Task 1: Admin Phase Transitions + Guards
+
 - **POST /api/v1/admin/game/war-room**: Enters War Room, sets macro_brief, logs activity, broadcasts phase change
 - **POST /api/v1/admin/game/live-floor**: Opens Live Floor, sets current_quarter_start, logs activity, broadcasts
 - **GET /api/v1/admin/game/phase**: Read-only current phase query
@@ -48,6 +49,7 @@ Full REST API layer for decision levers and round structure: admin War Room/Live
 - **Trading guard**: Buy and sell endpoints return 409 when game_phase is war_room
 
 ### Task 2: Team Decision & Budget Endpoints
+
 - **POST /api/v1/decisions/submit**: Bulk decision submission with per-lever validation (PRICING, MARKETING, SUPPLY_CHAIN, NEW_PRODUCT), server-side budget calculation (T-08-02), budget exceeded check (D-12), upsert on conflict (D-07)
 - **GET /api/v1/decisions/current**: Returns locked decisions for current team + round
 - **POST /api/v1/decisions/operating-plan**: War Room only, strategist only, upsert by team+round
@@ -57,14 +59,14 @@ Full REST API layer for decision levers and round structure: admin War Room/Live
 
 ## Threat Mitigations Applied
 
-| Threat ID | Mitigation |
-|-----------|------------|
-| T-08-01 | require_team + strategist role check on submit endpoints |
-| T-08-02 | Server recalculates budget_spent from decisions_json, ignores client value |
-| T-08-03 | require_admin on all admin phase endpoints |
-| T-08-04 | Per-lever validation with explicit field constraints and ranges |
-| T-08-05 | Upsert with ON CONFLICT prevents unbounded row creation |
-| T-08-07 | max_length=50000 on Pydantic operating plan schema |
+| Threat ID | Mitigation                                                                 |
+| --------- | -------------------------------------------------------------------------- |
+| T-08-01   | require_team + strategist role check on submit endpoints                   |
+| T-08-02   | Server recalculates budget_spent from decisions_json, ignores client value |
+| T-08-03   | require_admin on all admin phase endpoints                                 |
+| T-08-04   | Per-lever validation with explicit field constraints and ranges            |
+| T-08-05   | Upsert with ON CONFLICT prevents unbounded row creation                    |
+| T-08-07   | max_length=50000 on Pydantic operating plan schema                         |
 
 ## Deviations from Plan
 

@@ -113,10 +113,7 @@ export default function LedgerPage() {
             disabled={isLoading}
             className="flex items-center gap-2 bg-[#2196f3]/10 text-[#2196f3] border border-[#2196f3]/30 px-3 py-1.5 font-mono text-xs uppercase hover:bg-[#2196f3]/20 disabled:opacity-50"
           >
-            <RefreshCw
-              size={14}
-              className={isLoading ? "animate-spin" : ""}
-            />
+            <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
             REFRESH
           </button>
         </div>

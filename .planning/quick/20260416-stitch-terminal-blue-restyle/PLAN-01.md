@@ -72,11 +72,13 @@ Replace ALL `:root` CSS custom properties with the Stitch palette values. The ex
 ```
 
 IMPORTANT: Convert all values from HSL to hex format (raw hex values, not hsl()). Use this pattern:
+
 ```css
 --background: #131313;
 ```
 
 Also add these NEW custom properties inside `:root` for Stitch-specific surface tokens used across pages:
+
 ```css
 --surface-lowest: #0e0e0e;
 --surface-low: #1c1b1b;
@@ -94,6 +96,7 @@ Also add these NEW custom properties inside `:root` for Stitch-specific surface 
 ```
 
 Add these to the @theme inline block:
+
 ```
 --color-surface-lowest: var(--surface-lowest);
 --color-surface-low: var(--surface-low);
@@ -111,8 +114,10 @@ Add these to the @theme inline block:
 ```
 
 In the @layer base section, add the Stitch input focus style:
+
 ```css
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   outline: none !important;
   box-shadow: none !important;
   border-left: 2px solid #2196f3 !important;
@@ -120,6 +125,7 @@ input:focus, textarea:focus {
 ```
 
 Add a `.milled-metal-btn` utility class in @layer utilities:
+
 ```css
 .milled-metal-btn {
   background: linear-gradient(to bottom, #2196f3, #002c4f);
@@ -127,9 +133,9 @@ Add a `.milled-metal-btn` utility class in @layer utilities:
 ```
 
 Keep the existing `.font-data` utility class and the scrollbar styling.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | head -30` -- should compile without CSS errors. Grep globals.css for "#FF9500" or "hsl(36" to confirm no amber remnants: `grep -c "FF9500\|hsl(36" client/src/app/globals.css` should return 0.</verify>
-  <done>All CSS custom properties use Stitch hex values. --primary is #2196f3 (blue), --radius is 0px, all surface tier tokens are defined. No amber (#FF9500) values remain.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | head -30` -- should compile without CSS errors. Grep globals.css for "#FF9500" or "hsl(36" to confirm no amber remnants: `grep -c "FF9500\|hsl(36" client/src/app/globals.css` should return 0.</verify>
+<done>All CSS custom properties use Stitch hex values. --primary is #2196f3 (blue), --radius is 0px, all surface tier tokens are defined. No amber (#FF9500) values remain.</done>
 </task>
 
 <task type="auto">
@@ -143,7 +149,9 @@ Add a fixed bottom status bar matching the Stitch design footer pattern. This ba
 Update the layout body to include the status bar AFTER {children} and BEFORE the Toaster:
 
 ```tsx
-<body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+<body
+  className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+>
   {children}
   {/* Terminal Status Bar */}
   <footer className="fixed bottom-0 left-0 w-full h-6 flex justify-between items-center px-6 z-50 overflow-hidden bg-[#0e0e0e] border-t border-[#2a2a2a]">
@@ -151,9 +159,15 @@ Update the layout body to include the status bar AFTER {children} and BEFORE the
       SYSTEM_STABLE // LATENCY: 14MS
     </div>
     <div className="flex gap-6">
-      <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">API_DOCS</span>
-      <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">RULES</span>
-      <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">HELP_DESK</span>
+      <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">
+        API_DOCS
+      </span>
+      <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">
+        RULES
+      </span>
+      <span className="font-mono text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer uppercase transition-colors">
+        HELP_DESK
+      </span>
     </div>
   </footer>
   <Toaster
@@ -173,14 +187,15 @@ Update the layout body to include the status bar AFTER {children} and BEFORE the
 Also update the Toaster styling to match the new palette (background #201f1f = surface-container, border #404752 = outline-variant).
 
 Add `pb-6` to the body className to ensure page content doesn't get hidden behind the fixed status bar:
+
 ```tsx
 className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased pb-6`}
 ```
 
 Keep ALL existing imports, metadata, and font configurations unchanged.
-  </action>
-  <verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | head -30` -- should compile. Grep for "SYSTEM_STABLE" in layout.tsx to confirm status bar added.</verify>
-  <done>Root layout has a fixed h-6 status bar at the bottom with "SYSTEM_STABLE // LATENCY: 14MS" in green mono text, API_DOCS/RULES/HELP_DESK links in gray. Toaster styled with new palette. Body has pb-6 for clearance.</done>
+</action>
+<verify>Run `cd /home/shaurya/Projects/complex/client && npx next build 2>&1 | head -30` -- should compile. Grep for "SYSTEM_STABLE" in layout.tsx to confirm status bar added.</verify>
+<done>Root layout has a fixed h-6 status bar at the bottom with "SYSTEM_STABLE // LATENCY: 14MS" in green mono text, API_DOCS/RULES/HELP_DESK links in gray. Toaster styled with new palette. Body has pb-6 for clearance.</done>
 </task>
 
 </tasks>
@@ -194,8 +209,9 @@ Keep ALL existing imports, metadata, and font configurations unchanged.
 </verification>
 
 <success_criteria>
+
 - Primary color throughout the app is blue (#2196f3), not amber
 - All border-radius values are 0px (Precision Brutalism)
 - Bottom status bar visible on every page
 - Surface tier tokens available as CSS custom properties for page restyling
-</success_criteria>
+  </success_criteria>

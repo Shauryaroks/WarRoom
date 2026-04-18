@@ -161,10 +161,7 @@ export function CaselinePanel() {
             </div>
           ) : caseline?.caseline_document ? (
             <div className="caseline-markdown text-xs text-[#e5e2e1] leading-relaxed [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-[#9ecaff] [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-xs [&_h2]:font-bold [&_h2]:text-[#9ecaff] [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-xs [&_h3]:font-bold [&_h3]:text-[#89919d] [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:mb-2 [&_p]:text-[#e5e2e1] [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:mb-2 [&_li]:mb-0.5 [&_li]:text-[#e5e2e1] [&_strong]:text-[#9ecaff] [&_em]:text-[#89919d] [&_code]:bg-[#0e0e0e] [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[#f5a623] [&_blockquote]:border-l-2 [&_blockquote]:border-[#2196f3] [&_blockquote]:pl-3 [&_blockquote]:text-[#89919d] [&_blockquote]:my-2 [&_hr]:border-[#2a2a2a] [&_hr]:my-3 [&_table]:w-full [&_table]:my-3 [&_table]:border-collapse [&_table]:border [&_table]:border-[#2a2a2a] [&_table]:font-mono [&_table]:text-[10px] [&_thead]:bg-[#0e0e0e] [&_th]:border [&_th]:border-[#2a2a2a] [&_th]:px-2 [&_th]:py-1 [&_th]:text-[#9ecaff] [&_th]:font-bold [&_th]:text-left [&_th]:uppercase [&_th]:tracking-wide [&_td]:border [&_td]:border-[#2a2a2a] [&_td]:px-2 [&_td]:py-1 [&_td]:text-[#e5e2e1] [&_td]:align-top [&_tr:nth-child(even)]:bg-[#1a1919] [&_del]:text-[#89919d] [&_del]:line-through [&_input[type='checkbox']]:mr-1.5">
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-              >
+              <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                 {caseline.caseline_document}
               </Markdown>
             </div>

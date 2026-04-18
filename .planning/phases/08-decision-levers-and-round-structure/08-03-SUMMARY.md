@@ -9,7 +9,8 @@ dependency_graph:
   affects: [game-store.ts, GameSidebar.tsx, game/page.tsx, types.ts, api.ts]
 tech_stack:
   added: []
-  patterns: [collapsible-lever-sections, real-time-budget-bar, locked-decisions-view]
+  patterns:
+    [collapsible-lever-sections, real-time-budget-bar, locked-decisions-view]
 key_files:
   created:
     - client/src/components/game/DecisionsPanel.tsx
@@ -37,20 +38,22 @@ Five-category decision lever panel with Bloomberg-style budget bar, collapsible 
 
 ## Commits
 
-| Task | Name | Commit | Key Changes |
-|------|------|--------|-------------|
-| 1 | Types, API client, stores | 3579d86 | Phase 8 types, API methods, game store gamePhase, decisions-store |
-| 2 | DecisionsPanel, WarRoomPanel, Sidebar update | 22ded33 | DecisionsPanel with 5 lever sections, WarRoomPanel, DECISIONS tab, WS handler |
+| Task | Name                                         | Commit  | Key Changes                                                                   |
+| ---- | -------------------------------------------- | ------- | ----------------------------------------------------------------------------- |
+| 1    | Types, API client, stores                    | 3579d86 | Phase 8 types, API methods, game store gamePhase, decisions-store             |
+| 2    | DecisionsPanel, WarRoomPanel, Sidebar update | 22ded33 | DecisionsPanel with 5 lever sections, WarRoomPanel, DECISIONS tab, WS handler |
 
 ## What Was Built
 
 ### Task 1: Types, API Client, Stores
+
 - **Phase 8 types**: GamePhase, LeverCategory, PricingDecision, MarketingDecision, SupplyChainDecision, NewProductDecision, BulkDecisionSubmitRequest, DecisionResponse, BudgetResponse, GamePhaseResponse, OperatingPlanResponse, GamePhaseChangedPayload
 - **API client methods**: submitDecisions, getCurrentDecisions, submitOperatingPlan, getOperatingPlan, getGamePhase, getBudget
 - **Game store extensions**: gamePhase (GamePhase), macroBrief (string | null), setGamePhase action, reset includes new fields
 - **Decisions store**: budget, currentDecisions, isSubmitting, lastSubmittedAt with setters and reset
 
 ### Task 2: DecisionsPanel, WarRoomPanel, Sidebar
+
 - **DECISIONS tab** in GameSidebar: visible to strategist only, Sliders icon, placed after SOLUTIONS
 - **DecisionsPanel**: 5 collapsible lever sections
   - PRICING: slider for list price change (-15 to +15%), slider for promo depth (0-40%), dropdown for channel pricing (GT/MT/QCom/D2C)

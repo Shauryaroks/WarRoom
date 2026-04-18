@@ -1,245 +1,419 @@
-<!DOCTYPE html>
+<!doctype html>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>KINETIC_LEDGER_TERMINAL // LOGIN</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>KINETIC_LEDGER_TERMINAL // LOGIN</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
       tailwind.config = {
         darkMode: "class",
         theme: {
           extend: {
-            "colors": {
-                    "inverse-surface": "#e5e2e1",
-                    "on-tertiary-container": "#5d0011",
-                    "on-tertiary-fixed-variant": "#920021",
-                    "primary-fixed-dim": "#9ecaff",
-                    "secondary-fixed-dim": "#3ce36a",
-                    "tertiary": "#ffb3b3",
-                    "secondary-fixed": "#69ff87",
-                    "surface-bright": "#3a3939",
-                    "on-error": "#690005",
-                    "on-background": "#e5e2e1",
-                    "on-tertiary-fixed": "#400009",
-                    "surface-variant": "#353534",
-                    "surface-container-low": "#1c1b1b",
-                    "surface-tint": "#9ecaff",
-                    "on-error-container": "#ffdad6",
-                    "background": "#131313",
-                    "on-secondary": "#003912",
-                    "surface-container-highest": "#353534",
-                    "error": "#ffb4ab",
-                    "inverse-primary": "#0061a4",
-                    "tertiary-fixed": "#ffdad9",
-                    "surface-container-lowest": "#0e0e0e",
-                    "on-primary": "#003258",
-                    "on-primary-fixed": "#001d36",
-                    "on-primary-fixed-variant": "#00497d",
-                    "primary": "#9ecaff",
-                    "outline": "#89919d",
-                    "surface-container-high": "#2a2a2a",
-                    "on-secondary-container": "#004d1b",
-                    "on-primary-container": "#002c4f",
-                    "tertiary-container": "#ff5561",
-                    "error-container": "#93000a",
-                    "surface-dim": "#131313",
-                    "on-surface-variant": "#bfc7d4",
-                    "surface-container": "#201f1f",
-                    "on-surface": "#e5e2e1",
-                    "outline-variant": "#404752",
-                    "on-tertiary": "#680014",
-                    "secondary": "#40e56c",
-                    "tertiary-fixed-dim": "#ffb3b3",
-                    "on-secondary-fixed": "#002108",
-                    "primary-container": "#2196f3",
-                    "on-secondary-fixed-variant": "#00531e",
-                    "primary-fixed": "#d1e4ff",
-                    "surface": "#131313",
-                    "inverse-on-surface": "#313030",
-                    "secondary-container": "#02c953"
+            colors: {
+              "inverse-surface": "#e5e2e1",
+              "on-tertiary-container": "#5d0011",
+              "on-tertiary-fixed-variant": "#920021",
+              "primary-fixed-dim": "#9ecaff",
+              "secondary-fixed-dim": "#3ce36a",
+              tertiary: "#ffb3b3",
+              "secondary-fixed": "#69ff87",
+              "surface-bright": "#3a3939",
+              "on-error": "#690005",
+              "on-background": "#e5e2e1",
+              "on-tertiary-fixed": "#400009",
+              "surface-variant": "#353534",
+              "surface-container-low": "#1c1b1b",
+              "surface-tint": "#9ecaff",
+              "on-error-container": "#ffdad6",
+              background: "#131313",
+              "on-secondary": "#003912",
+              "surface-container-highest": "#353534",
+              error: "#ffb4ab",
+              "inverse-primary": "#0061a4",
+              "tertiary-fixed": "#ffdad9",
+              "surface-container-lowest": "#0e0e0e",
+              "on-primary": "#003258",
+              "on-primary-fixed": "#001d36",
+              "on-primary-fixed-variant": "#00497d",
+              primary: "#9ecaff",
+              outline: "#89919d",
+              "surface-container-high": "#2a2a2a",
+              "on-secondary-container": "#004d1b",
+              "on-primary-container": "#002c4f",
+              "tertiary-container": "#ff5561",
+              "error-container": "#93000a",
+              "surface-dim": "#131313",
+              "on-surface-variant": "#bfc7d4",
+              "surface-container": "#201f1f",
+              "on-surface": "#e5e2e1",
+              "outline-variant": "#404752",
+              "on-tertiary": "#680014",
+              secondary: "#40e56c",
+              "tertiary-fixed-dim": "#ffb3b3",
+              "on-secondary-fixed": "#002108",
+              "primary-container": "#2196f3",
+              "on-secondary-fixed-variant": "#00531e",
+              "primary-fixed": "#d1e4ff",
+              surface: "#131313",
+              "inverse-on-surface": "#313030",
+              "secondary-container": "#02c953",
             },
-            "borderRadius": {
-                    "DEFAULT": "0px",
-                    "lg": "0px",
-                    "xl": "0px",
-                    "full": "9999px"
+            borderRadius: {
+              DEFAULT: "0px",
+              lg: "0px",
+              xl: "0px",
+              full: "9999px",
             },
-            "fontFamily": {
-                    "headline": ["Inter", "sans-serif"],
-                    "body": ["Inter", "sans-serif"],
-                    "label": ["Inter", "sans-serif"],
-                    "mono": ["JetBrains Mono", "monospace"]
-            }
+            fontFamily: {
+              headline: ["Inter", "sans-serif"],
+              body: ["Inter", "sans-serif"],
+              label: ["Inter", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
           },
         },
-      }
+      };
     </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        body {
-            background-color: #131313;
-            color: #e5e2e1;
-            font-family: 'Inter', sans-serif;
-        }
-        .mono-data {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        input:focus {
-            outline: none;
-            border-left: 2px solid #2196f3 !important;
-        }
-        .glass-panel {
-            background: rgba(32, 31, 31, 0.8);
-            backdrop-filter: blur(20px);
-        }
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      body {
+        background-color: #131313;
+        color: #e5e2e1;
+        font-family: "Inter", sans-serif;
+      }
+      .mono-data {
+        font-family: "JetBrains Mono", monospace;
+      }
+      input:focus {
+        outline: none;
+        border-left: 2px solid #2196f3 !important;
+      }
+      .glass-panel {
+        background: rgba(32, 31, 31, 0.8);
+        backdrop-filter: blur(20px);
+      }
     </style>
-</head>
-<body class="bg-background text-on-background min-h-screen flex flex-col">
-<!-- Top Navigation Anchor (As prescribed in JSON) -->
-<nav class="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50">
-<div class="text-xl font-black tracking-tighter text-blue-500 uppercase">KINETIC_LEDGER_TERMINAL</div>
-<div class="hidden md:flex space-x-6 items-center">
-<span class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500">DASHBOARD</span>
-<span class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500">MARKETS</span>
-<span class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500">PORTFOLIO</span>
-<span class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500">REPORTS</span>
-</div>
-<div class="flex items-center space-x-4">
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-[#2a2a2a] transition-colors duration-150 p-1" data-icon="notifications">notifications</span>
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-[#2a2a2a] transition-colors duration-150 p-1" data-icon="settings">settings</span>
-</div>
-</nav>
-<!-- Main Content Area -->
-<main class="flex-grow flex items-center justify-center pt-12 pb-6 px-4">
-<!-- Asymmetric Bento Grid Layout for Login -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-0 w-full max-w-6xl border border-outline-variant/20">
-<!-- Left Info Panel (Editorial Style) -->
-<div class="lg:col-span-5 bg-surface-container-lowest p-8 flex flex-col justify-between border-r border-outline-variant/20">
-<div>
-<div class="mono-data text-blue-500 text-xs mb-4 tracking-tighter">ESTABLISHING SECURE_LINK...</div>
-<h1 class="text-4xl font-black uppercase tracking-tighter leading-none mb-6">COMPLEX<br/><span class="text-primary">ARCHITECTURE</span></h1>
-<p class="text-on-surface-variant text-sm max-w-xs mb-8 leading-relaxed">
-                        Precision Brutalism for high-frequency strategy execution. Access the kinetic ledger to manage high-density data in real-time.
-                    </p>
-</div>
-<div class="space-y-4">
-<div class="bg-surface-container-high p-4">
-<div class="mono-data text-[10px] text-secondary mb-1">SYSTEM_STATUS</div>
-<div class="flex justify-between items-end">
-<span class="mono-data text-xl">OPERATIONAL</span>
-<span class="mono-data text-[10px] opacity-50">99.98% UPTIME</span>
-</div>
-</div>
-<div class="grid grid-cols-2 gap-4">
-<div class="bg-surface-container p-4">
-<div class="mono-data text-[10px] text-on-surface-variant uppercase">Latency</div>
-<div class="mono-data text-lg">14MS</div>
-</div>
-<div class="bg-surface-container p-4">
-<div class="mono-data text-[10px] text-on-surface-variant uppercase">Nodes</div>
-<div class="mono-data text-lg">1,204</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Right Login Form Panel -->
-<div class="lg:col-span-7 bg-surface p-8 lg:p-16 flex flex-col justify-center">
-<div class="max-w-md mx-auto w-full">
-<div class="mb-10 text-center lg:text-left">
-<h2 class="text-2xl font-bold uppercase tracking-tight mb-2">Initialize Session</h2>
-<p class="text-on-surface-variant text-xs mono-data uppercase">Enter credentials to bypass terminal firewall</p>
-</div>
-<form class="space-y-6">
-<!-- Role Selector Toggle -->
-<div class="bg-surface-container-lowest p-1 flex border border-outline-variant/30">
-<button class="flex-1 py-2 text-[10px] mono-data uppercase tracking-widest bg-primary-container text-on-primary font-bold" type="button">
-                                Strategist
-                            </button>
-<button class="flex-1 py-2 text-[10px] mono-data uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button">
-                                Trader
-                            </button>
-</div>
-<!-- Email Input -->
-<div class="space-y-1">
-<label class="text-[10px] mono-data uppercase text-on-surface-variant ml-1">Email Address</label>
-<div class="relative">
-<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-outline" data-icon="alternate_email">alternate_email</span>
-<input class="w-full bg-surface-container-low border-0 border-l-2 border-transparent py-4 pl-10 mono-data text-sm placeholder:opacity-30 focus:ring-0 focus:bg-surface-container-high transition-all" placeholder="USER@KINETIC.SYS" type="email"/>
-</div>
-</div>
-<!-- Password Input -->
-<div class="space-y-1">
-<div class="flex justify-between items-center px-1">
-<label class="text-[10px] mono-data uppercase text-on-surface-variant">Access Token</label>
-<a class="text-[9px] mono-data uppercase text-primary hover:underline" href="#">Forgot?</a>
-</div>
-<div class="relative">
-<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-outline" data-icon="lock">lock</span>
-<input class="w-full bg-surface-container-low border-0 border-l-2 border-transparent py-4 pl-10 mono-data text-sm placeholder:opacity-30 focus:ring-0 focus:bg-surface-container-high transition-all" placeholder="••••••••••••" type="password"/>
-</div>
-</div>
-<!-- Action Button -->
-<button class="w-full bg-primary-container text-on-primary py-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-primary transition-colors flex items-center justify-center space-x-2 group" type="submit">
-<span>Login</span>
-<span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform" data-icon="login">login</span>
-</button>
-<div class="pt-4 text-center">
-<p class="text-[10px] mono-data uppercase text-on-surface-variant">
-                                Unauthorized access is logged. 
-                                <a class="text-primary font-bold hover:underline ml-2" href="#">Register New Agent</a>
-</p>
-</div>
-</form>
-</div>
-</div>
-</div>
-</main>
-<!-- Side Bar (As prescribed in JSON - Mobile Suppressed) -->
-<aside class="fixed left-0 top-12 bottom-0 hidden lg:flex flex-col items-center py-4 z-40 w-20 bg-[#0e0e0e] border-r border-outline-variant/10">
-<div class="flex flex-col space-y-8 items-center mt-4">
-<div class="group flex flex-col items-center cursor-pointer space-y-1">
-<div class="p-2 bg-blue-600/10 text-blue-500 border-l-2 border-blue-500">
-<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
-</div>
-<span class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight text-blue-500">TERMINAL</span>
-</div>
-<div class="group flex flex-col items-center cursor-pointer space-y-1 opacity-40 hover:opacity-100 transition-opacity">
-<div class="p-2 text-gray-600 group-hover:bg-[#2a2a2a]">
-<span class="material-symbols-outlined" data-icon="insights">insights</span>
-</div>
-<span class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight text-gray-600">ANALYTICS</span>
-</div>
-<div class="group flex flex-col items-center cursor-pointer space-y-1 opacity-40 hover:opacity-100 transition-opacity">
-<div class="p-2 text-gray-600 group-hover:bg-[#2a2a2a]">
-<span class="material-symbols-outlined" data-icon="code">code</span>
-</div>
-<span class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight text-gray-600">STRATEGY</span>
-</div>
-</div>
-<div class="mt-auto flex flex-col items-center space-y-6">
-<div class="w-10 h-10 bg-surface-container-high border border-outline-variant/30 flex items-center justify-center">
-<img alt="Avatar" class="w-full h-full object-cover" data-alt="close up of a digital human eye with glowing blue circuits inside the iris, high tech futuristic aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzw3gEMCPltVVdNwLbr6ZjMIsB5rMzM-yV6sANmjEE2clc7Q9kogSNeSklSRL0xVDCGcAzDibIkjyyYp-1ZviOnN00jPpBqZv9GoEahLR7-RsZO6spYQD_2vEQu_Jq_crlNBIM0c6HkazO_X3fphc35yyKsM6t9_vFiRWJFqiOB5S03gkbCjhHRojB1UVZqkwWgUUVc_q7qazJF8QqVRsyejUYaJzWpBJvY_XzqYszLJrd3JUZ2AeHD1C0cD5tsbGywndB-iEnruPK"/>
-</div>
-<div class="group flex flex-col items-center cursor-pointer space-y-1 opacity-40 hover:opacity-100 transition-opacity">
-<span class="material-symbols-outlined text-gray-600" data-icon="logout">logout</span>
-</div>
-</div>
-</aside>
-<!-- Footer (As prescribed in JSON) -->
-<footer class="fixed bottom-0 left-0 w-full h-6 flex justify-between items-center px-6 z-50 overflow-hidden bg-[#0e0e0e] border-t border-[#2a2a2a]">
-<div class="font-['JetBrains_Mono'] text-[9px] font-medium text-green-500 uppercase">SYSTEM_STABLE // LATENCY: 14MS</div>
-<div class="flex space-x-6">
-<span class="font-['JetBrains_Mono'] text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer transition-colors">API_DOCS</span>
-<span class="font-['JetBrains_Mono'] text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer transition-colors">RULES</span>
-<span class="font-['JetBrains_Mono'] text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer transition-colors">HELP_DESK</span>
-</div>
-</footer>
-<!-- Decorative Grid Background -->
-<div class="fixed inset-0 pointer-events-none opacity-[0.03] z-[-1]" style="background-image: linear-gradient(#9ecaff 1px, transparent 1px), linear-gradient(90deg, #9ecaff 1px, transparent 1px); background-size: 40px 40px;"></div>
-</body></html>
+  </head>
+  <body class="bg-background text-on-background min-h-screen flex flex-col">
+    <!-- Top Navigation Anchor (As prescribed in JSON) -->
+    <nav
+      class="flex justify-between items-center w-full px-4 h-12 bg-[#0e0e0e] fixed top-0 z-50"
+    >
+      <div class="text-xl font-black tracking-tighter text-blue-500 uppercase">
+        KINETIC_LEDGER_TERMINAL
+      </div>
+      <div class="hidden md:flex space-x-6 items-center">
+        <span
+          class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500"
+          >DASHBOARD</span
+        >
+        <span
+          class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500"
+          >MARKETS</span
+        >
+        <span
+          class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500"
+          >PORTFOLIO</span
+        >
+        <span
+          class="font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold text-gray-500"
+          >REPORTS</span
+        >
+      </div>
+      <div class="flex items-center space-x-4">
+        <span
+          class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-[#2a2a2a] transition-colors duration-150 p-1"
+          data-icon="notifications"
+          >notifications</span
+        >
+        <span
+          class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-[#2a2a2a] transition-colors duration-150 p-1"
+          data-icon="settings"
+          >settings</span
+        >
+      </div>
+    </nav>
+    <!-- Main Content Area -->
+    <main class="flex-grow flex items-center justify-center pt-12 pb-6 px-4">
+      <!-- Asymmetric Bento Grid Layout for Login -->
+      <div
+        class="grid grid-cols-1 lg:grid-cols-12 gap-0 w-full max-w-6xl border border-outline-variant/20"
+      >
+        <!-- Left Info Panel (Editorial Style) -->
+        <div
+          class="lg:col-span-5 bg-surface-container-lowest p-8 flex flex-col justify-between border-r border-outline-variant/20"
+        >
+          <div>
+            <div class="mono-data text-blue-500 text-xs mb-4 tracking-tighter">
+              ESTABLISHING SECURE_LINK...
+            </div>
+            <h1
+              class="text-4xl font-black uppercase tracking-tighter leading-none mb-6"
+            >
+              COMPLEX<br /><span class="text-primary">ARCHITECTURE</span>
+            </h1>
+            <p
+              class="text-on-surface-variant text-sm max-w-xs mb-8 leading-relaxed"
+            >
+              Precision Brutalism for high-frequency strategy execution. Access
+              the kinetic ledger to manage high-density data in real-time.
+            </p>
+          </div>
+          <div class="space-y-4">
+            <div class="bg-surface-container-high p-4">
+              <div class="mono-data text-[10px] text-secondary mb-1">
+                SYSTEM_STATUS
+              </div>
+              <div class="flex justify-between items-end">
+                <span class="mono-data text-xl">OPERATIONAL</span>
+                <span class="mono-data text-[10px] opacity-50"
+                  >99.98% UPTIME</span
+                >
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-surface-container p-4">
+                <div
+                  class="mono-data text-[10px] text-on-surface-variant uppercase"
+                >
+                  Latency
+                </div>
+                <div class="mono-data text-lg">14MS</div>
+              </div>
+              <div class="bg-surface-container p-4">
+                <div
+                  class="mono-data text-[10px] text-on-surface-variant uppercase"
+                >
+                  Nodes
+                </div>
+                <div class="mono-data text-lg">1,204</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Right Login Form Panel -->
+        <div
+          class="lg:col-span-7 bg-surface p-8 lg:p-16 flex flex-col justify-center"
+        >
+          <div class="max-w-md mx-auto w-full">
+            <div class="mb-10 text-center lg:text-left">
+              <h2 class="text-2xl font-bold uppercase tracking-tight mb-2">
+                Initialize Session
+              </h2>
+              <p class="text-on-surface-variant text-xs mono-data uppercase">
+                Enter credentials to bypass terminal firewall
+              </p>
+            </div>
+            <form class="space-y-6">
+              <!-- Role Selector Toggle -->
+              <div
+                class="bg-surface-container-lowest p-1 flex border border-outline-variant/30"
+              >
+                <button
+                  class="flex-1 py-2 text-[10px] mono-data uppercase tracking-widest bg-primary-container text-on-primary font-bold"
+                  type="button"
+                >
+                  Strategist
+                </button>
+                <button
+                  class="flex-1 py-2 text-[10px] mono-data uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                  type="button"
+                >
+                  Trader
+                </button>
+              </div>
+              <!-- Email Input -->
+              <div class="space-y-1">
+                <label
+                  class="text-[10px] mono-data uppercase text-on-surface-variant ml-1"
+                  >Email Address</label
+                >
+                <div class="relative">
+                  <span
+                    class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-outline"
+                    data-icon="alternate_email"
+                    >alternate_email</span
+                  >
+                  <input
+                    class="w-full bg-surface-container-low border-0 border-l-2 border-transparent py-4 pl-10 mono-data text-sm placeholder:opacity-30 focus:ring-0 focus:bg-surface-container-high transition-all"
+                    placeholder="USER@KINETIC.SYS"
+                    type="email"
+                  />
+                </div>
+              </div>
+              <!-- Password Input -->
+              <div class="space-y-1">
+                <div class="flex justify-between items-center px-1">
+                  <label
+                    class="text-[10px] mono-data uppercase text-on-surface-variant"
+                    >Access Token</label
+                  >
+                  <a
+                    class="text-[9px] mono-data uppercase text-primary hover:underline"
+                    href="#"
+                    >Forgot?</a
+                  >
+                </div>
+                <div class="relative">
+                  <span
+                    class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-outline"
+                    data-icon="lock"
+                    >lock</span
+                  >
+                  <input
+                    class="w-full bg-surface-container-low border-0 border-l-2 border-transparent py-4 pl-10 mono-data text-sm placeholder:opacity-30 focus:ring-0 focus:bg-surface-container-high transition-all"
+                    placeholder="••••••••••••"
+                    type="password"
+                  />
+                </div>
+              </div>
+              <!-- Action Button -->
+              <button
+                class="w-full bg-primary-container text-on-primary py-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-primary transition-colors flex items-center justify-center space-x-2 group"
+                type="submit"
+              >
+                <span>Login</span>
+                <span
+                  class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform"
+                  data-icon="login"
+                  >login</span
+                >
+              </button>
+              <div class="pt-4 text-center">
+                <p
+                  class="text-[10px] mono-data uppercase text-on-surface-variant"
+                >
+                  Unauthorized access is logged.
+                  <a
+                    class="text-primary font-bold hover:underline ml-2"
+                    href="#"
+                    >Register New Agent</a
+                  >
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+    <!-- Side Bar (As prescribed in JSON - Mobile Suppressed) -->
+    <aside
+      class="fixed left-0 top-12 bottom-0 hidden lg:flex flex-col items-center py-4 z-40 w-20 bg-[#0e0e0e] border-r border-outline-variant/10"
+    >
+      <div class="flex flex-col space-y-8 items-center mt-4">
+        <div class="group flex flex-col items-center cursor-pointer space-y-1">
+          <div
+            class="p-2 bg-blue-600/10 text-blue-500 border-l-2 border-blue-500"
+          >
+            <span class="material-symbols-outlined" data-icon="terminal"
+              >terminal</span
+            >
+          </div>
+          <span
+            class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight text-blue-500"
+            >TERMINAL</span
+          >
+        </div>
+        <div
+          class="group flex flex-col items-center cursor-pointer space-y-1 opacity-40 hover:opacity-100 transition-opacity"
+        >
+          <div class="p-2 text-gray-600 group-hover:bg-[#2a2a2a]">
+            <span class="material-symbols-outlined" data-icon="insights"
+              >insights</span
+            >
+          </div>
+          <span
+            class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight text-gray-600"
+            >ANALYTICS</span
+          >
+        </div>
+        <div
+          class="group flex flex-col items-center cursor-pointer space-y-1 opacity-40 hover:opacity-100 transition-opacity"
+        >
+          <div class="p-2 text-gray-600 group-hover:bg-[#2a2a2a]">
+            <span class="material-symbols-outlined" data-icon="code">code</span>
+          </div>
+          <span
+            class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-tight text-gray-600"
+            >STRATEGY</span
+          >
+        </div>
+      </div>
+      <div class="mt-auto flex flex-col items-center space-y-6">
+        <div
+          class="w-10 h-10 bg-surface-container-high border border-outline-variant/30 flex items-center justify-center"
+        >
+          <img
+            alt="Avatar"
+            class="w-full h-full object-cover"
+            data-alt="close up of a digital human eye with glowing blue circuits inside the iris, high tech futuristic aesthetic"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzw3gEMCPltVVdNwLbr6ZjMIsB5rMzM-yV6sANmjEE2clc7Q9kogSNeSklSRL0xVDCGcAzDibIkjyyYp-1ZviOnN00jPpBqZv9GoEahLR7-RsZO6spYQD_2vEQu_Jq_crlNBIM0c6HkazO_X3fphc35yyKsM6t9_vFiRWJFqiOB5S03gkbCjhHRojB1UVZqkwWgUUVc_q7qazJF8QqVRsyejUYaJzWpBJvY_XzqYszLJrd3JUZ2AeHD1C0cD5tsbGywndB-iEnruPK"
+          />
+        </div>
+        <div
+          class="group flex flex-col items-center cursor-pointer space-y-1 opacity-40 hover:opacity-100 transition-opacity"
+        >
+          <span
+            class="material-symbols-outlined text-gray-600"
+            data-icon="logout"
+            >logout</span
+          >
+        </div>
+      </div>
+    </aside>
+    <!-- Footer (As prescribed in JSON) -->
+    <footer
+      class="fixed bottom-0 left-0 w-full h-6 flex justify-between items-center px-6 z-50 overflow-hidden bg-[#0e0e0e] border-t border-[#2a2a2a]"
+    >
+      <div
+        class="font-['JetBrains_Mono'] text-[9px] font-medium text-green-500 uppercase"
+      >
+        SYSTEM_STABLE // LATENCY: 14MS
+      </div>
+      <div class="flex space-x-6">
+        <span
+          class="font-['JetBrains_Mono'] text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer transition-colors"
+          >API_DOCS</span
+        >
+        <span
+          class="font-['JetBrains_Mono'] text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer transition-colors"
+          >RULES</span
+        >
+        <span
+          class="font-['JetBrains_Mono'] text-[9px] font-medium text-gray-600 hover:text-white cursor-pointer transition-colors"
+          >HELP_DESK</span
+        >
+      </div>
+    </footer>
+    <!-- Decorative Grid Background -->
+    <div
+      class="fixed inset-0 pointer-events-none opacity-[0.03] z-[-1]"
+      style="
+        background-image:
+          linear-gradient(#9ecaff 1px, transparent 1px),
+          linear-gradient(90deg, #9ecaff 1px, transparent 1px);
+        background-size: 40px 40px;
+      "
+    ></div>
+  </body>
+</html>

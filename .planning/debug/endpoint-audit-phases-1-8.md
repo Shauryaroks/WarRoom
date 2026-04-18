@@ -21,6 +21,7 @@ scope: broad-audit
 ## Scope
 
 **In scope (phases 1-8):**
+
 - Auth: `/api/v1/auth/*` (login, register, me)
 - Admin: `/api/v1/admin/*` (teams, game phase controls, war-room/live-floor, archetypes, evaluations queue, crisis, broadcast, news inject)
 - Teams: `/api/v1/teams/*` (caseline, game-state, phase, operating-plan)
@@ -31,6 +32,7 @@ scope: broad-audit
 - Decisions: `/api/v1/decisions/*` (submit, budget)
 
 **Out of scope (Phase 9 — not yet implemented):**
+
 - `/api/v1/admin/fundamentals-queue/*`
 - `/api/v1/admin/teams/:id/override-fundamentals`
 - `/api/v1/admin/teams/:id/fundamentals`
@@ -47,16 +49,16 @@ next_action: Delegate audit to general-purpose agent with 200k fresh context
 
 **Endpoint inventory (54 endpoints in phases 1-8, Phase 9 skipped per scope):**
 
-| Router | Count | Prefix |
-|--------|-------|--------|
-| auth | 3 | /api/v1/auth |
-| admin | 32 | /api/v1/admin |
-| teams | 2 | /api/v1/teams |
-| game | 2 | /api/v1/game |
-| market | 3 | /api/v1/market |
-| solutions | 4 | /api/v1/solutions |
-| trading | 4 | /api/v1/trading |
-| decisions | 4 | /api/v1/decisions |
+| Router    | Count | Prefix            |
+| --------- | ----- | ----------------- |
+| auth      | 3     | /api/v1/auth      |
+| admin     | 32    | /api/v1/admin     |
+| teams     | 2     | /api/v1/teams     |
+| game      | 2     | /api/v1/game      |
+| market    | 3     | /api/v1/market    |
+| solutions | 4     | /api/v1/solutions |
+| trading   | 4     | /api/v1/trading   |
+| decisions | 4     | /api/v1/decisions |
 
 **Audit script:** `server/scripts/audit_endpoints.py` — covers happy path, no-auth, wrong-role, malformed-body, not-found, and bogus-uuid paths for all 54 endpoints (98 assertions total).
 

@@ -1,4 +1,5 @@
 <!-- generated-by: gsd-doc-writer -->
+
 # Complex API Documentation
 
 ## Authentication
@@ -12,6 +13,7 @@ Authorization: Bearer <your_jwt_token>
 ```
 
 **Token Payload Claims:**
+
 - `sub`: User ID (UUID)
 - `role`: Role of the user (`strategist`, `trader`, or `admin`)
 - `team_id`: Team ID (UUID, absent for admins)
@@ -20,6 +22,7 @@ Authorization: Bearer <your_jwt_token>
 
 **WebSocket Authentication:**
 WebSocket connections to `/ws` require authentication via the first message sent over the socket:
+
 ```json
 {
   "type": "auth",
@@ -29,46 +32,46 @@ WebSocket connections to `/ws` require authentication via the first message sent
 
 ## Endpoints Overview
 
-*Note: Base URL for all endpoints is `/api/v1`.*
+_Note: Base URL for all endpoints is `/api/v1`._
 
-| Method | Path | Description | Auth Required |
-|--------|------|-------------|---------------|
-| **Auth** | | | |
-| POST | `/auth/register` | Register a new team (creates Strategist & Trader) | No |
-| POST | `/auth/login` | Login as a team member | No |
-| GET | `/auth/me` | Get current user info | Yes |
-| **Admin** | | | |
-| POST | `/admin/login` | Admin login | No |
-| GET | `/admin/teams` | List all teams | Yes (Admin) |
-| POST | `/admin/teams/{id}/approve` | Approve a team registration | Yes (Admin) |
-| POST | `/admin/game/start` | Start the simulation | Yes (Admin) |
-| GET | `/admin/game/state` | Get overall game state | Yes (Admin) |
-| POST | `/admin/broadcast` | Broadcast a message to all connected clients | Yes (Admin) |
-| **Teams** | | | |
-| GET | `/teams/approved` | List all approved teams | Yes |
-| GET | `/teams/game-state` | Get public game state | Yes |
-| **Trading** | | | |
-| POST | `/trading/buy` | Execute a buy order | Yes (Trader) |
-| POST | `/trading/sell` | Execute a sell order | Yes (Trader) |
-| GET | `/trading/portfolio` | Get current portfolio positions | Yes (Trader) |
-| **Market** | | | |
-| GET | `/market/companies` | List all companies and current market data | Yes |
-| GET | `/market/prices/{id}` | Get historical price data for a team | Yes |
-| GET | `/market/leaderboard` | Get current leaderboard | Yes |
-| GET | `/market/news` | Get latest news feed | Yes |
-| **Solutions** | | | |
-| POST | `/solutions/submit` | Submit a strategic solution | Yes (Strategist) |
-| GET | `/solutions/my-solutions` | View past submitted solutions | Yes |
-| GET | `/solutions/caseline` | Get current caseline assignment | Yes |
-| **Decisions** | | | |
-| POST | `/decisions/submit` | Submit business lever decisions | Yes (Strategist) |
-| POST | `/decisions/operating-plan` | Submit operating plan markdown | Yes (Strategist) |
-| GET | `/decisions/current` | Get currently submitted decisions | Yes |
-| **Game** | | | |
-| GET | `/game/phase` | Get current game phase (e.g., war_room) | Yes |
-| GET | `/game/budget` | Get current team budget | Yes |
+| Method        | Path                        | Description                                       | Auth Required    |
+| ------------- | --------------------------- | ------------------------------------------------- | ---------------- |
+| **Auth**      |                             |                                                   |                  |
+| POST          | `/auth/register`            | Register a new team (creates Strategist & Trader) | No               |
+| POST          | `/auth/login`               | Login as a team member                            | No               |
+| GET           | `/auth/me`                  | Get current user info                             | Yes              |
+| **Admin**     |                             |                                                   |                  |
+| POST          | `/admin/login`              | Admin login                                       | No               |
+| GET           | `/admin/teams`              | List all teams                                    | Yes (Admin)      |
+| POST          | `/admin/teams/{id}/approve` | Approve a team registration                       | Yes (Admin)      |
+| POST          | `/admin/game/start`         | Start the simulation                              | Yes (Admin)      |
+| GET           | `/admin/game/state`         | Get overall game state                            | Yes (Admin)      |
+| POST          | `/admin/broadcast`          | Broadcast a message to all connected clients      | Yes (Admin)      |
+| **Teams**     |                             |                                                   |                  |
+| GET           | `/teams/approved`           | List all approved teams                           | Yes              |
+| GET           | `/teams/game-state`         | Get public game state                             | Yes              |
+| **Trading**   |                             |                                                   |                  |
+| POST          | `/trading/buy`              | Execute a buy order                               | Yes (Trader)     |
+| POST          | `/trading/sell`             | Execute a sell order                              | Yes (Trader)     |
+| GET           | `/trading/portfolio`        | Get current portfolio positions                   | Yes (Trader)     |
+| **Market**    |                             |                                                   |                  |
+| GET           | `/market/companies`         | List all companies and current market data        | Yes              |
+| GET           | `/market/prices/{id}`       | Get historical price data for a team              | Yes              |
+| GET           | `/market/leaderboard`       | Get current leaderboard                           | Yes              |
+| GET           | `/market/news`              | Get latest news feed                              | Yes              |
+| **Solutions** |                             |                                                   |                  |
+| POST          | `/solutions/submit`         | Submit a strategic solution                       | Yes (Strategist) |
+| GET           | `/solutions/my-solutions`   | View past submitted solutions                     | Yes              |
+| GET           | `/solutions/caseline`       | Get current caseline assignment                   | Yes              |
+| **Decisions** |                             |                                                   |                  |
+| POST          | `/decisions/submit`         | Submit business lever decisions                   | Yes (Strategist) |
+| POST          | `/decisions/operating-plan` | Submit operating plan markdown                    | Yes (Strategist) |
+| GET           | `/decisions/current`        | Get currently submitted decisions                 | Yes              |
+| **Game**      |                             |                                                   |                  |
+| GET           | `/game/phase`               | Get current game phase (e.g., war_room)           | Yes              |
+| GET           | `/game/budget`              | Get current team budget                           | Yes              |
 
-*There is also a single WebSocket endpoint at `/ws` for real-time market ticks, notifications, and events.*
+_There is also a single WebSocket endpoint at `/ws` for real-time market ticks, notifications, and events._
 
 ## Request/Response Formats
 
@@ -76,7 +79,8 @@ The API expects standard JSON requests with `Content-Type: application/json` and
 
 **Example: Submitting Business Decisions (`POST /api/v1/decisions/submit`)**
 
-*Request Shape:*
+_Request Shape:_
+
 ```json
 {
   "decisions": [
@@ -89,7 +93,8 @@ The API expects standard JSON requests with `Content-Type: application/json` and
 }
 ```
 
-*Response Shape:*
+_Response Shape:_
+
 ```json
 {
   "message": "Decisions submitted successfully",
@@ -114,9 +119,11 @@ The API relies on FastAPI's default exception handling. Error responses typicall
   "detail": "Descriptive error message here"
 }
 ```
-*Note: Validation errors (HTTP 422) return a more structured `detail` array describing exactly which fields failed validation.*
+
+_Note: Validation errors (HTTP 422) return a more structured `detail` array describing exactly which fields failed validation._
 
 **Common HTTP Status Codes:**
+
 - `200 OK`: Request succeeded.
 - `201 Created`: Resource successfully created (e.g., Registration).
 - `400 Bad Request`: Invalid input or business logic violation (e.g., Insufficient funds for a trade).
@@ -128,9 +135,10 @@ The API relies on FastAPI's default exception handling. Error responses typicall
 
 ## Rate Limits
 
-There is currently **no explicit rate limiting** configured at the application level (no Redis-backed rate limiting middleware is used). 
+There is currently **no explicit rate limiting** configured at the application level (no Redis-backed rate limiting middleware is used).
 
 However, the API enforces specific business-logic "cooldowns" and state restrictions:
+
 - Strategic solutions have a timeout/cooldown window between submissions (enforced by `GET /api/v1/solutions/cooldown` logic).
 - Trading is restricted during specific game phases.
 - Certain endpoints strictly enforce user roles (e.g., only the `strategist` can submit a solution, only the `trader` can execute trades).

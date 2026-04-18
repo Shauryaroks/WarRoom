@@ -7,6 +7,7 @@ Design the UI for **Complex**, a real-time case competition platform where 32-40
 ## Design System
 
 **Theme:** Bloomberg Terminal-inspired
+
 - **Background:** Near-black (#0A0A0A to #1A1A1A)
 - **Surface:** Dark gray (#1E1E1E to #2A2A2A)
 - **Borders:** Subtle gray (#333333)
@@ -25,6 +26,7 @@ Design the UI for **Complex**, a real-time case competition platform where 32-40
 ### 1. Auth Pages (`/auth/register` and `/auth/login`)
 
 **Register page:**
+
 - Team name field
 - Ticker symbol field (3-5 uppercase letters, like NYSE tickers)
 - Email field
@@ -34,6 +36,7 @@ Design the UI for **Complex**, a real-time case competition platform where 32-40
 - Bloomberg-style minimal branding — logo at top, dark background, single centered card
 
 **Login page:**
+
 - Email field
 - Password field
 - Role selector: "Strategist" or "Trader" (toggle or radio — each sub-account logs in separately)
@@ -55,12 +58,14 @@ Design the UI for **Complex**, a real-time case competition platform where 32-40
 This is the primary terminal view. **Dense, Bloomberg-style multi-panel layout.**
 
 **Header bar:**
+
 - Team name + ticker
 - Game timer (server-authoritative, shows elapsed time and current simulated quarter e.g. "Q2 2024")
 - Game status indicator (LIVE / PAUSED / CRISIS)
 - Cash balance
 
 **Left panel — Strategy & Solutions:**
+
 - Directive/solution editor (markdown textarea or rich text)
 - "Submit Solution" / "Submit Microtweak" button
 - Cooldown timer (shows remaining cooldown if active)
@@ -68,18 +73,21 @@ This is the primary terminal view. **Dense, Bloomberg-style multi-panel layout.*
 - LLM evaluation results for past submissions (score + narrative, when approved by admin)
 
 **Center panel — Market Overview:**
+
 - **VIEW ONLY for Strategist** — clearly labeled "VIEW ONLY"
 - Candlestick chart (primary, large) — own company's stock price
 - Mini sparkline charts for other companies
 - Current stock price with change indicator (green up / red down)
 
 **Right panel — News Feed:**
+
 - Scrollable news feed with timestamps
 - News tagged by type: [GLOBAL], [LOCAL], [CRISIS]
 - Auto-scrolls to latest
 - Crisis events highlighted with red banner
 
 **Bottom bar:**
+
 - Portfolio summary (own stock value + investments in others)
 - Leaderboard position
 - Connection status indicator
@@ -91,6 +99,7 @@ Same Bloomberg multi-panel layout but different panel emphasis:
 **Header bar:** Same as strategist
 
 **Left panel — Trading:**
+
 - Company selector dropdown (list of all active companies with current prices)
 - Buy/Sell toggle
 - Shares quantity input
@@ -100,6 +109,7 @@ Same Bloomberg multi-panel layout but different panel emphasis:
 - Total portfolio value
 
 **Center panel — Market Charts:**
+
 - **FULL ACCESS for Trader**
 - Large candlestick chart — selected company
 - Company selector tabs along top
@@ -107,10 +117,12 @@ Same Bloomberg multi-panel layout but different panel emphasis:
 - Price change percentages
 
 **Right panel — News Feed:**
+
 - Same as strategist view
 - News is critical for trading decisions
 
 **Bottom bar:**
+
 - Cash balance prominently displayed
 - Recent trades history (last 5-10 trades)
 - Leaderboard
@@ -120,26 +132,31 @@ Same Bloomberg multi-panel layout but different panel emphasis:
 **NOT Bloomberg-styled** — cleaner, more functional admin UI (still dark theme but less dense).
 
 **Top navigation:**
+
 - Dashboard | Teams | Game Control | Evaluations | News | Crisis
 
 **Dashboard tab:**
+
 - All teams table: Team | Ticker | Stock Price | Change | Submissions | Score | Status
 - Real-time updating values
 - Mini chart sparklines per team
 - Overall market health indicators
 
 **Teams tab:**
+
 - Pending approvals section (approve/reject buttons)
 - Active teams list with option to remove/eliminate
 - Team details on click
 
 **Game Control tab:**
+
 - Start / Pause / Resume buttons (large, obvious)
 - Game timer display
 - Current phase/quarter indicator
 - Broadcast message input + send button
 
 **Evaluations tab:**
+
 - Queue of pending LLM evaluations
 - Each item shows: Team | Submission excerpt | LLM Score | LLM Narrative
 - "Approve" / "Edit" / "Reject" buttons per item
@@ -147,11 +164,13 @@ Same Bloomberg multi-panel layout but different panel emphasis:
 - Approved/rejected history
 
 **News tab:**
+
 - Inject news form: headline + body + type (Global/Local)
 - News history (what's been sent)
 - LLM-generated news toggle/preview
 
 **Crisis tab:**
+
 - Crisis event creator: scenario description + response time limit
 - "Inject Crisis" button (with confirmation — this pauses the market)
 - Crisis history

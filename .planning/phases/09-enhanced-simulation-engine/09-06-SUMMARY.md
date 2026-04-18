@@ -6,7 +6,11 @@ tags: [admin-ui, fundamentals-page, sidebar-nav, phase-9]
 dependency_graph:
   requires: [09-05]
   provides: [/admin/fundamentals page, FUND sidebar nav]
-  affects: [client/src/app/admin/fundamentals/page.tsx, client/src/components/admin/admin-sidebar.tsx]
+  affects:
+    [
+      client/src/app/admin/fundamentals/page.tsx,
+      client/src/components/admin/admin-sidebar.tsx,
+    ]
 simplifications_vs_plan:
   - CaselinePanel fundamentals strip SKIPPED — teams don't see their fundamentals yet (read-only display can be added in a polish pass)
   - No human verification checkpoint task — inline execution bypassed the blocking gate
@@ -23,6 +27,7 @@ metrics:
 # Phase 9 Plan 06 — Summary
 
 Admin Fundamentals page live at `/admin/fundamentals` with:
+
 - Filter tabs (PENDING_APPROVAL / APPROVED / REJECTED / FAILED)
 - RUN_LLM_EVAL button with round-number input triggers server-side fan-out
 - Expandable rows showing 4-delta grid (MS / Profitability / Ops / Brand Health) + narrative
@@ -34,6 +39,7 @@ Sidebar FUND nav added between EVALS and MARKETS.
 **Commit:** `6160ff10 feat(09-05,06): admin Fundamentals queue UI + API client + sidebar`
 
 **Deferred:**
+
 - CaselinePanel fundamentals strip (Strategist team-side display)
 - WebSocket auto-refresh of admin queue on `fundamentals_updated` broadcast
 - Human verification checkpoint (plan originally required blocking gate — skipped for speed)

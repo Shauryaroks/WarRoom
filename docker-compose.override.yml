@@ -2,14 +2,24 @@ services:
   api:
     # Bypass `uv run` — /opt/venv is on PATH via Dockerfile ENV. Avoids uv's
     # pyproject.toml/uv.lock read which SELinux blocks on first-boot race.
-    command: ["sh", "-c", "python init_db.py && exec uvicorn app.main:app --host 0.0.0.0 --port 80"]
+    command:
+      [
+        "sh",
+        "-c",
+        "python init_db.py && exec uvicorn app.main:app --host 0.0.0.0 --port 80",
+      ]
     environment:
       PYTHONPATH: /app
     volumes:
       - ./server:/app:z
   worker:
     # `celery` directly instead of `uv run`. Schedule file → /tmp (not host bind mount).
-    command: ["sh", "-c", "exec celery -A app.worker.celery_app worker --beat -s /tmp/celerybeat-schedule --loglevel=info"]
+    command:
+      [
+        "sh",
+        "-c",
+        "exec celery -A app.worker.celery_app worker --beat -s /tmp/celerybeat-schedule --loglevel=info",
+      ]
     environment:
       PYTHONPATH: /app
     volumes:

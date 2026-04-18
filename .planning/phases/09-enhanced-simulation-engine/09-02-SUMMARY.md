@@ -5,7 +5,17 @@ subsystem: simulation-engine
 tags: [simulation, phase-9, per-tick-engine, v1-cleanup]
 dependency_graph:
   requires: [09-01]
-  provides: [compute_price, z_score, compute_weighted_z, compute_drift_target, compute_ramp_fraction, compute_sentiment, consume_shock, calculate_all_prices]
+  provides:
+    [
+      compute_price,
+      z_score,
+      compute_weighted_z,
+      compute_drift_target,
+      compute_ramp_fraction,
+      compute_sentiment,
+      consume_shock,
+      calculate_all_prices,
+    ]
   affects: [simulation_service.py, evaluation_service.py, admin.py]
 decisions:
   - Per-tick engine rewritten wholesale; interpolate_price deleted; target_price/ticks_to_target columns dropped (done in Wave 1)

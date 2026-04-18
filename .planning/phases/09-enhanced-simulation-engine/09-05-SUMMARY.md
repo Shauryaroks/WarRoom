@@ -5,7 +5,17 @@ subsystem: api-client
 tags: [api-client, types, phase-9]
 dependency_graph:
   requires: [09-04]
-  provides: [listFundamentalsQueue, approveFundamental, rejectFundamental, computeFundamentals, FundamentalEvalListItem, FundamentalApproveResponse, FundamentalsUpdatedPayload, FundamentalDeltas]
+  provides:
+    [
+      listFundamentalsQueue,
+      approveFundamental,
+      rejectFundamental,
+      computeFundamentals,
+      FundamentalEvalListItem,
+      FundamentalApproveResponse,
+      FundamentalsUpdatedPayload,
+      FundamentalDeltas,
+    ]
   affects: [types.ts, api.ts]
 simplifications_vs_plan:
   - No separate fundamentals store (Zustand) — admin page manages local state directly

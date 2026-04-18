@@ -9,7 +9,12 @@ dependency_graph:
   affects: [all-pages]
 tech_stack:
   added: []
-  patterns: [css-custom-properties-hex, precision-brutalism-zero-radius, fixed-status-bar]
+  patterns:
+    [
+      css-custom-properties-hex,
+      precision-brutalism-zero-radius,
+      fixed-status-bar,
+    ]
 key_files:
   created: []
   modified:
@@ -34,14 +39,15 @@ Replace amber Bloomberg palette with Stitch "Complex Terminal Blue" blue palette
 
 ## Task Results
 
-| Task | Name | Commit | Status |
-|------|------|--------|--------|
-| 1 | Replace CSS custom properties with Stitch Terminal Blue palette | 12856e6 | Done |
-| 2 | Add bottom status bar to root layout | eb47d64 | Done |
+| Task | Name                                                            | Commit  | Status |
+| ---- | --------------------------------------------------------------- | ------- | ------ |
+| 1    | Replace CSS custom properties with Stitch Terminal Blue palette | 12856e6 | Done   |
+| 2    | Add bottom status bar to root layout                            | eb47d64 | Done   |
 
 ## What Changed
 
 ### Task 1: CSS Design Tokens (12856e6)
+
 - Replaced all `:root` CSS custom properties from HSL amber values to hex Stitch blue values
 - Primary color changed from `hsl(36 100% 50%)` (amber) to `#2196f3` (blue)
 - Border radius set to `0px` for Precision Brutalism aesthetic
@@ -52,6 +58,7 @@ Replace amber Bloomberg palette with Stitch "Complex Terminal Blue" blue palette
 - Updated scrollbar color to match new palette
 
 ### Task 2: Root Layout Status Bar (eb47d64)
+
 - Added fixed `h-6` bottom status bar with `SYSTEM_STABLE // LATENCY: 14MS` green indicator
 - Added `API_DOCS`, `RULES`, `HELP_DESK` footer links with hover transitions
 - Updated Toaster background to `#201f1f` and border to `#404752` (Stitch palette)

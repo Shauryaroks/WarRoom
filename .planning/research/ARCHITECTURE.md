@@ -72,16 +72,16 @@
 
 ### Component Responsibilities
 
-| Component | Responsibility | Implementation |
-|-----------|----------------|----------------|
-| **Next.js Frontend** | UI rendering, auth state, WebSocket consumers, REST calls | Vercel-hosted, React contexts for Auth/Game/WebSocket state |
-| **Caddy** | TLS termination, reverse proxy, WebSocket upgrade | Docker container, auto-HTTPS via Let's Encrypt |
-| **FastAPI API** | REST endpoints, WebSocket connection management, request validation | Single Uvicorn process, async SQLAlchemy, in-process ConnectionManager |
-| **Celery Worker** | Background task execution: LLM calls, price recalculation, bankruptcy detection | Separate Docker container, same codebase, `asyncio.run()` bridge |
-| **Celery Beat** | Periodic task scheduling (price sweeps, bankruptcy checks) | Co-located with worker via `--beat` flag |
-| **PostgreSQL** | Persistent state: teams, directives, transactions, price history, game state | Docker volume, pool_size=20, asyncpg driver |
-| **Redis** | Celery message broker and result backend | Docker container, single DB (db 0) |
-| **OpenRouter** | LLM inference for directive evaluation | External API, called from worker tasks only |
+| Component            | Responsibility                                                                  | Implementation                                                         |
+| -------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Next.js Frontend** | UI rendering, auth state, WebSocket consumers, REST calls                       | Vercel-hosted, React contexts for Auth/Game/WebSocket state            |
+| **Caddy**            | TLS termination, reverse proxy, WebSocket upgrade                               | Docker container, auto-HTTPS via Let's Encrypt                         |
+| **FastAPI API**      | REST endpoints, WebSocket connection management, request validation             | Single Uvicorn process, async SQLAlchemy, in-process ConnectionManager |
+| **Celery Worker**    | Background task execution: LLM calls, price recalculation, bankruptcy detection | Separate Docker container, same codebase, `asyncio.run()` bridge       |
+| **Celery Beat**      | Periodic task scheduling (price sweeps, bankruptcy checks)                      | Co-located with worker via `--beat` flag                               |
+| **PostgreSQL**       | Persistent state: teams, directives, transactions, price history, game state    | Docker volume, pool_size=20, asyncpg driver                            |
+| **Redis**            | Celery message broker and result backend                                        | Docker container, single DB (db 0)                                     |
+| **OpenRouter**       | LLM inference for directive evaluation                                          | External API, called from worker tasks only                            |
 
 ## Recommended Project Structure
 
@@ -150,12 +150,13 @@ client/
 **When to use:** Single-server deployments with <200 concurrent connections. No need for Redis pub/sub when there is only one API process.
 
 **Trade-offs:**
+
 - Pro: Simple, no external pub/sub layer, direct `await ws.send_text()`
 - Pro: Burst sync eliminates stale-state bugs on reconnect
 - Con: Cannot horizontally scale the API process (all WS connections must be on the same process)
 - Con: Worker tasks cannot push to WebSocket directly -- they must import the manager singleton (fragile coupling)
 
-**Current implementation note:** The worker tasks currently import `from app.websocket import manager` and call `await manager.broadcast_price_update(...)` directly. This works because the Celery worker creates a fresh event loop via `asyncio.run()`, but the `manager` instance in the worker process is a *different* instance than the one in the API process. **This means worker-initiated broadcasts silently fail -- they push to an empty connection set.** Only API-process-initiated pushes reach clients.
+**Current implementation note:** The worker tasks currently import `from app.websocket import manager` and call `await manager.broadcast_price_update(...)` directly. This works because the Celery worker creates a fresh event loop via `asyncio.run()`, but the `manager` instance in the worker process is a _different_ instance than the one in the API process. **This means worker-initiated broadcasts silently fail -- they push to an empty connection set.** Only API-process-initiated pushes reach clients.
 
 **Fix required:** Worker tasks should publish to Redis pub/sub, and the API process should subscribe and relay to WebSocket clients. Alternatively, worker tasks should call the API via HTTP to trigger broadcasts.
 
@@ -166,6 +167,7 @@ client/
 **When to use:** When you need reliable periodic execution that survives API restarts. Celery Beat persists its schedule in Redis.
 
 **Trade-offs:**
+
 - Pro: Decoupled from the API process lifecycle -- ticks continue even if the API crashes
 - Pro: Built-in retry, time limits, and task tracking
 - Con: Celery workers run in a separate process/container, so they cannot access in-process state (like WebSocket connections)
@@ -178,6 +180,7 @@ client/
 **When to use:** When LLM output directly affects game state (financial changes, scores). Never trust raw LLM output for numerical values.
 
 **Trade-offs:**
+
 - Pro: Rich, contextual evaluation that considers market state, competitors, and team history
 - Pro: Clamping prevents catastrophic LLM hallucinations (max $500k cash swing per directive)
 - Con: LLM latency (5-30s per call) means directive results are async
@@ -192,6 +195,7 @@ client/
 **When to use:** Competition/event settings where sessions are short-lived and token refresh complexity is unnecessary.
 
 **Trade-offs:**
+
 - Pro: Simple, stateless, no token expiry management
 - Pro: API key doubles as WebSocket auth (`/ws/team/{api_key}`)
 - Con: API key in URL path for WebSocket is visible in logs/proxies
@@ -313,17 +317,17 @@ SETUP ──[POST /game/start]──> ACTIVE ──[POST /game/pause]──> PAU
 
 ## Scaling Considerations
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1 event, ~80 users | Current architecture is sufficient. Single Uvicorn process, single Celery worker. Monitor: WebSocket memory, Celery task queue depth, PostgreSQL connection count. |
-| Multiple concurrent events | Add `event_id` FK to all tables. Namespace WebSocket rooms by event. Consider separate DB per event or schema-based isolation. |
-| 200+ concurrent WS | Move ConnectionManager to Redis pub/sub. Run multiple Uvicorn workers behind a load balancer. Each worker subscribes to Redis channels and relays to its local WS connections. |
+| Scale                      | Architecture Adjustments                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1 event, ~80 users         | Current architecture is sufficient. Single Uvicorn process, single Celery worker. Monitor: WebSocket memory, Celery task queue depth, PostgreSQL connection count.             |
+| Multiple concurrent events | Add `event_id` FK to all tables. Namespace WebSocket rooms by event. Consider separate DB per event or schema-based isolation.                                                 |
+| 200+ concurrent WS         | Move ConnectionManager to Redis pub/sub. Run multiple Uvicorn workers behind a load balancer. Each worker subscribes to Redis channels and relays to its local WS connections. |
 
 ### Scaling Priorities
 
 1. **First bottleneck: Worker-to-WebSocket communication.** The current architecture has a broken broadcast path from Celery workers to WebSocket clients. At any scale, this must be fixed. Options: (a) Redis pub/sub relay, (b) HTTP callback from worker to API, (c) SSE polling fallback.
 
-2. **Second bottleneck: Database connections under price sweep.** Every 30s, all teams get a `recalculate_price_task.delay()`. With 40 teams, that is 40 concurrent tasks, each creating a fresh async engine (via `get_worker_session`). Pool size is 5 per engine, so 40 engines * 5 = 200 potential connections. PostgreSQL default max is 100. The worker session factory should share a single engine across tasks, not create one per task.
+2. **Second bottleneck: Database connections under price sweep.** Every 30s, all teams get a `recalculate_price_task.delay()`. With 40 teams, that is 40 concurrent tasks, each creating a fresh async engine (via `get_worker_session`). Pool size is 5 per engine, so 40 engines \* 5 = 200 potential connections. PostgreSQL default max is 100. The worker session factory should share a single engine across tasks, not create one per task.
 
 3. **Third bottleneck: LLM call latency.** If 10 teams submit directives simultaneously, that is 10 sequential LLM calls (Celery worker prefetch=10 but likely single worker). Each takes 5-30s. Queue depth grows. Consider: increase worker concurrency, or batch LLM calls.
 
@@ -389,21 +393,21 @@ def _get_worker_engine():
 
 ### External Services
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
+| Service        | Integration Pattern                                    | Notes                                                                                                                            |
+| -------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | **OpenRouter** | HTTP POST from Celery worker, structured JSON response | 30s timeout, retry once at temperature=0 on failure, neutral fallback on double-failure. Model configurable via GameState table. |
-| **Vercel** | Hosts Next.js frontend, no direct backend integration | Frontend calls API via `NEXT_PUBLIC_API_URL` env var. WebSocket URL derived from API URL. |
+| **Vercel**     | Hosts Next.js frontend, no direct backend integration  | Frontend calls API via `NEXT_PUBLIC_API_URL` env var. WebSocket URL derived from API URL.                                        |
 
 ### Internal Boundaries
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Frontend <-> API | REST (HTTPS) + WebSocket (WSS) | Caddy terminates TLS. CORS allows all origins (fine for competition). |
-| API <-> Worker | Celery task queue (Redis) | API dispatches tasks via `.delay()`. Worker processes async. No direct return -- results written to DB. |
-| Worker <-> API (push) | **BROKEN** -- should be Redis pub/sub | Worker needs to notify API of state changes for WebSocket broadcast. Currently imports singleton (no-op in worker process). |
-| API <-> PostgreSQL | Async SQLAlchemy (asyncpg) | Pool size 20, no overflow. All mutations use proper transactions. |
-| Worker <-> PostgreSQL | Async SQLAlchemy (asyncpg) via `get_worker_session()` | Creates fresh engine per task (anti-pattern, see above). |
-| API <-> Redis | Direct (health checks only) | Celery handles its own Redis connection. API only touches Redis for health endpoint. |
+| Boundary              | Communication                                         | Notes                                                                                                                       |
+| --------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Frontend <-> API      | REST (HTTPS) + WebSocket (WSS)                        | Caddy terminates TLS. CORS allows all origins (fine for competition).                                                       |
+| API <-> Worker        | Celery task queue (Redis)                             | API dispatches tasks via `.delay()`. Worker processes async. No direct return -- results written to DB.                     |
+| Worker <-> API (push) | **BROKEN** -- should be Redis pub/sub                 | Worker needs to notify API of state changes for WebSocket broadcast. Currently imports singleton (no-op in worker process). |
+| API <-> PostgreSQL    | Async SQLAlchemy (asyncpg)                            | Pool size 20, no overflow. All mutations use proper transactions.                                                           |
+| Worker <-> PostgreSQL | Async SQLAlchemy (asyncpg) via `get_worker_session()` | Creates fresh engine per task (anti-pattern, see above).                                                                    |
+| API <-> Redis         | Direct (health checks only)                           | Celery handles its own Redis connection. API only touches Redis for health endpoint.                                        |
 
 ## Build Order (Dependency Graph)
 
@@ -473,5 +477,6 @@ Phase 6: Game Mechanics (depends on Phase 3 + 4)
 - FastAPI WebSocket documentation (connection lifecycle)
 
 ---
-*Architecture research for: Complex -- Case Competition Platform*
-*Researched: 2026-04-16*
+
+_Architecture research for: Complex -- Case Competition Platform_
+_Researched: 2026-04-16_

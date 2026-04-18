@@ -1,4 +1,5 @@
 <!-- generated-by: gsd-doc-writer -->
+
 # Backend FastAPI Server Overview
 
 The backend is built with FastAPI and runs the entire simulation engine, including team validation, real-time market updates, LLM evaluation pipelines, and portfolio management.

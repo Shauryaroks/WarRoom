@@ -50,14 +50,14 @@ All 32 decisions (D-01 through D-32) in `09-CONTEXT.md` are locked. Research doe
 
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|------------------|
-| SIM-05 | Price formula uses 4 weighted fundamentals (MS 35%, Profitability 30%, Ops 20%, Brand Health 15%) | D-06/D-10/D-11 alias-relabel; implementation in Architecture Pattern 2 |
-| SIM-06 | Each fundamental scored relative to archetype benchmark band (not absolute) | D-07 z-score formula; `_validate_benchmark_bands` at admin.py:1427 already validates the bands shape |
-| SIM-07 | Event shocks ±3% to ±15% discrete price jumps | D-16/D-17/D-18/D-19 — new `PendingShock` table, admin crisis + `is_event` news |
-| SIM-08 | Sentiment flow from net trading pressure | D-13/D-14 — last-60s signed INR volume / market_cap × 0.02, clamped ±0.3% |
-| SIM-09 | Decision impact phases in over 3-5 minutes (smoothing) | D-20/D-21 — 5-tick linear ramp, `ramp_started_at` + `drift_target_pct` Team columns |
-| ARCH-03 | Archetype-relative scoring: team's z-score against archetype's fair-expectations band | D-07 implementation; Phase 7 `benchmark_bands` JSON is already stored on `archetypes.benchmark_bands` |
+| ID      | Description                                                                                       | Research Support                                                                                      |
+| ------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| SIM-05  | Price formula uses 4 weighted fundamentals (MS 35%, Profitability 30%, Ops 20%, Brand Health 15%) | D-06/D-10/D-11 alias-relabel; implementation in Architecture Pattern 2                                |
+| SIM-06  | Each fundamental scored relative to archetype benchmark band (not absolute)                       | D-07 z-score formula; `_validate_benchmark_bands` at admin.py:1427 already validates the bands shape  |
+| SIM-07  | Event shocks ±3% to ±15% discrete price jumps                                                     | D-16/D-17/D-18/D-19 — new `PendingShock` table, admin crisis + `is_event` news                        |
+| SIM-08  | Sentiment flow from net trading pressure                                                          | D-13/D-14 — last-60s signed INR volume / market_cap × 0.02, clamped ±0.3%                             |
+| SIM-09  | Decision impact phases in over 3-5 minutes (smoothing)                                            | D-20/D-21 — 5-tick linear ramp, `ramp_started_at` + `drift_target_pct` Team columns                   |
+| ARCH-03 | Archetype-relative scoring: team's z-score against archetype's fair-expectations band             | D-07 implementation; Phase 7 `benchmark_bands` JSON is already stored on `archetypes.benchmark_bands` |
 
 ## Project Constraints (from CLAUDE.md)
 
@@ -70,45 +70,45 @@ All 32 decisions (D-01 through D-32) in `09-CONTEXT.md` are locked. Research doe
 
 ## Architectural Responsibility Map
 
-| Capability | Primary Tier | Secondary Tier | Rationale |
-|------------|-------------|----------------|-----------|
-| Price compute per tick | Celery worker (sync entry / async body) | — | Tick is triggered by Celery Beat; must not block FastAPI event loop |
-| Batched DB read for ACTIVE teams per tick | PostgreSQL (async SQLAlchemy) | — | Single `SELECT ... WHERE status=ACTIVE` with eager-loaded archetype |
-| Sentiment aggregate query | PostgreSQL | — | `SELECT SUM(CASE WHEN tx_type=BUY THEN total_value ELSE -total_value END) ... WHERE executed_at > now()-60s` per team |
-| Archetype benchmark bands (read) | PostgreSQL | Redis cache (optional) | Bands are immutable during a game; cache once per tick or on archetype change |
-| LLM fundamental eval call | Celery worker (one subtask per team) | OpenRouter API | Fan-out at War Room entry; `httpx.AsyncClient(timeout=90.0)` already in `llm_service.call_openrouter` |
-| FundamentalEvaluation lifecycle (PENDING_APPROVAL → APPROVED) | PostgreSQL + FastAPI admin API | — | Mirrors Phase 5 Evaluation — same DB state machine |
-| Admin Fundamentals Queue UI | Next.js client (admin) | — | Mirrors `/admin/evaluations/page.tsx` pattern |
-| Caseline fundamentals strip (z-score display) | Next.js client (game view, Strategist) | REST `/api/v1/teams/:id/fundamentals` (new) | Strategist-only read endpoint; caseline panel extends |
-| Shock enqueue (admin crisis) | FastAPI admin API | Celery tick consumer | Crisis endpoint writes `PendingShock` row + broadcasts |
-| Shock enqueue (LLM news) | Celery news task | — | `generate_news` extended to write `PendingShock` when `is_event=true` |
-| WebSocket events (`price_update`, `shock_applied`, `fundamentals_updated`) | Redis pub/sub | Next.js WebSocket hook | Broadcast AFTER `db.commit()` (existing pattern in tick, evaluation, news tasks) |
-| Alembic migration (005) | Alembic | — | Standard pattern; enum types, JSON Text columns, nullable columns for safe rollback |
+| Capability                                                                 | Primary Tier                            | Secondary Tier                              | Rationale                                                                                                             |
+| -------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Price compute per tick                                                     | Celery worker (sync entry / async body) | —                                           | Tick is triggered by Celery Beat; must not block FastAPI event loop                                                   |
+| Batched DB read for ACTIVE teams per tick                                  | PostgreSQL (async SQLAlchemy)           | —                                           | Single `SELECT ... WHERE status=ACTIVE` with eager-loaded archetype                                                   |
+| Sentiment aggregate query                                                  | PostgreSQL                              | —                                           | `SELECT SUM(CASE WHEN tx_type=BUY THEN total_value ELSE -total_value END) ... WHERE executed_at > now()-60s` per team |
+| Archetype benchmark bands (read)                                           | PostgreSQL                              | Redis cache (optional)                      | Bands are immutable during a game; cache once per tick or on archetype change                                         |
+| LLM fundamental eval call                                                  | Celery worker (one subtask per team)    | OpenRouter API                              | Fan-out at War Room entry; `httpx.AsyncClient(timeout=90.0)` already in `llm_service.call_openrouter`                 |
+| FundamentalEvaluation lifecycle (PENDING_APPROVAL → APPROVED)              | PostgreSQL + FastAPI admin API          | —                                           | Mirrors Phase 5 Evaluation — same DB state machine                                                                    |
+| Admin Fundamentals Queue UI                                                | Next.js client (admin)                  | —                                           | Mirrors `/admin/evaluations/page.tsx` pattern                                                                         |
+| Caseline fundamentals strip (z-score display)                              | Next.js client (game view, Strategist)  | REST `/api/v1/teams/:id/fundamentals` (new) | Strategist-only read endpoint; caseline panel extends                                                                 |
+| Shock enqueue (admin crisis)                                               | FastAPI admin API                       | Celery tick consumer                        | Crisis endpoint writes `PendingShock` row + broadcasts                                                                |
+| Shock enqueue (LLM news)                                                   | Celery news task                        | —                                           | `generate_news` extended to write `PendingShock` when `is_event=true`                                                 |
+| WebSocket events (`price_update`, `shock_applied`, `fundamentals_updated`) | Redis pub/sub                           | Next.js WebSocket hook                      | Broadcast AFTER `db.commit()` (existing pattern in tick, evaluation, news tasks)                                      |
+| Alembic migration (005)                                                    | Alembic                                 | —                                           | Standard pattern; enum types, JSON Text columns, nullable columns for safe rollback                                   |
 
 ## Standard Stack
 
 ### Core (already in use — do NOT re-add)
 
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| FastAPI | >=0.135.3 | Admin API endpoints | Already in use; native async; Pydantic 2 response models |
-| SQLAlchemy | >=2.0.49 async | ORM for new Team columns, FundamentalEvaluation, PendingShock | `AsyncSession` + `asyncpg` — required by CLAUDE.md; existing tick loop uses it |
-| asyncpg | >=0.29.0 | PostgreSQL async driver | Already in use |
-| Alembic | >=1.18.4 | Schema migration (new `005_fundamentals` revision) | Existing patterns in `versions/003_add_archetype.py`, `004_decision_levers_round_structure.py` |
-| Celery | >=5.6.3 | Fan-out `compute_fundamentals` subtasks | Existing tasks at `server/app/worker/tasks/*.py`; Beat already scheduled for `game.tick` |
-| Redis | 7 / redis-py >=7.1.1 | pub/sub for new WS event types | Existing `app/redis_pubsub.py` patterns |
-| httpx | >=0.27.0 | OpenRouter API client | Already wrapped in `call_openrouter` |
-| Pydantic | >=2.9.0 | Request/response schemas for new endpoints | Existing style in `admin.py` and `schemas/decisions.py` |
-| pytest + pytest-asyncio | >=8.0.0 / >=0.23.0 | Unit + integration tests | `asyncio_mode = "auto"` in `pyproject.toml`; existing fixtures in `tests/conftest.py` |
+| Library                 | Version              | Purpose                                                       | Why Standard                                                                                   |
+| ----------------------- | -------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| FastAPI                 | >=0.135.3            | Admin API endpoints                                           | Already in use; native async; Pydantic 2 response models                                       |
+| SQLAlchemy              | >=2.0.49 async       | ORM for new Team columns, FundamentalEvaluation, PendingShock | `AsyncSession` + `asyncpg` — required by CLAUDE.md; existing tick loop uses it                 |
+| asyncpg                 | >=0.29.0             | PostgreSQL async driver                                       | Already in use                                                                                 |
+| Alembic                 | >=1.18.4             | Schema migration (new `005_fundamentals` revision)            | Existing patterns in `versions/003_add_archetype.py`, `004_decision_levers_round_structure.py` |
+| Celery                  | >=5.6.3              | Fan-out `compute_fundamentals` subtasks                       | Existing tasks at `server/app/worker/tasks/*.py`; Beat already scheduled for `game.tick`       |
+| Redis                   | 7 / redis-py >=7.1.1 | pub/sub for new WS event types                                | Existing `app/redis_pubsub.py` patterns                                                        |
+| httpx                   | >=0.27.0             | OpenRouter API client                                         | Already wrapped in `call_openrouter`                                                           |
+| Pydantic                | >=2.9.0              | Request/response schemas for new endpoints                    | Existing style in `admin.py` and `schemas/decisions.py`                                        |
+| pytest + pytest-asyncio | >=8.0.0 / >=0.23.0   | Unit + integration tests                                      | `asyncio_mode = "auto"` in `pyproject.toml`; existing fixtures in `tests/conftest.py`          |
 
 ### Frontend (already in use)
 
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| Next.js | 16.2.3 | Admin page at `/admin/fundamentals` (new route) | Existing `/admin/evaluations/page.tsx` is the template |
-| Zustand | 5.0.12 | Could extend `market-store.ts` for shock events — NOT required if state lives in component | Existing `handlePriceUpdate` already consumes tick messages |
-| Zod | 4.3.6 | Validate WS message shapes — optional but useful for `shock_applied` and `fundamentals_updated` | Already in project; not currently validating WS on client |
-| lightweight-charts | 5.1.0 | Existing candle chart surfaces shocks naturally as visible jumps | No changes needed — shocks produce single-tick price deltas the chart renders |
+| Library            | Version | Purpose                                                                                         | Why Standard                                                                  |
+| ------------------ | ------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Next.js            | 16.2.3  | Admin page at `/admin/fundamentals` (new route)                                                 | Existing `/admin/evaluations/page.tsx` is the template                        |
+| Zustand            | 5.0.12  | Could extend `market-store.ts` for shock events — NOT required if state lives in component      | Existing `handlePriceUpdate` already consumes tick messages                   |
+| Zod                | 4.3.6   | Validate WS message shapes — optional but useful for `shock_applied` and `fundamentals_updated` | Already in project; not currently validating WS on client                     |
+| lightweight-charts | 5.1.0   | Existing candle chart surfaces shocks naturally as visible jumps                                | No changes needed — shocks produce single-tick price deltas the chart renders |
 
 ### New Libraries
 
@@ -116,12 +116,12 @@ None. All functionality can be built on existing dependencies.
 
 ### Alternatives Considered
 
-| Instead of | Could Use | Tradeoff |
-|------------|-----------|----------|
-| New `PendingShock` table | JSON column on `teams` (queued_shocks) | Table is cleaner for audit trail + source_ref_id FK; CONTEXT.md D-19 locks the table |
-| Fan-out via Celery `group()` | Plain loop enqueueing individual `compute_fundamentals_for_team.delay()` calls | `group()` gives result aggregation, but we don't need it — admin approves each independently. Plain loop is simpler and matches existing pattern. |
-| Per-tick SELECT per team | Single batched SELECT with eager-loaded archetype | Batched is strictly faster; existing `calculate_all_prices` already does this |
-| Custom JSON schema enforcement | Pydantic validation of LLM output after parse | JSON schema on OpenRouter side enforces strictness; Pydantic re-validates. Use both (existing pattern in `generate_news.py`) |
+| Instead of                     | Could Use                                                                      | Tradeoff                                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New `PendingShock` table       | JSON column on `teams` (queued_shocks)                                         | Table is cleaner for audit trail + source_ref_id FK; CONTEXT.md D-19 locks the table                                                              |
+| Fan-out via Celery `group()`   | Plain loop enqueueing individual `compute_fundamentals_for_team.delay()` calls | `group()` gives result aggregation, but we don't need it — admin approves each independently. Plain loop is simpler and matches existing pattern. |
+| Per-tick SELECT per team       | Single batched SELECT with eager-loaded archetype                              | Batched is strictly faster; existing `calculate_all_prices` already does this                                                                     |
+| Custom JSON schema enforcement | Pydantic validation of LLM output after parse                                  | JSON schema on OpenRouter side enforces strictness; Pydantic re-validates. Use both (existing pattern in `generate_news.py`)                      |
 
 **Installation:** No `pip install` needed. All dependencies present in `server/pyproject.toml`.
 
@@ -279,20 +279,20 @@ client/src/
 
 The single most important pattern: `FundamentalEvaluation` is a parallel lifecycle to `Evaluation`. Every function, endpoint, UI behavior has a direct analog. `[VERIFIED: server/app/services/evaluation_service.py, server/app/api/admin.py:948-1148, client/src/app/admin/evaluations/page.tsx]`
 
-| Phase 5 Evaluation | Phase 9 FundamentalEvaluation |
-|--------------------|-------------------------------|
-| `Evaluation` model with `EvaluationStatus` enum (PROCESSING/PENDING_APPROVAL/APPROVED/REJECTED/FAILED) | `FundamentalEvaluation` model with new `FundamentalEvalStatus` enum (same values, separate enum) |
-| `evaluation_service.build_prompt(db, solution_id)` returns messages list | `fundamental_service.build_fundamental_prompt(db, team_id, round_number)` returns messages list |
-| `evaluate_solution` Celery task: `asyncio.run(_evaluate(solution_id))` with 120s time_limit | `compute_fundamentals_for_team` Celery task: `asyncio.run(_compute(team_id, round_number))` with 120s time_limit |
-| Task calls `call_openrouter(messages, json_schema=None)` (default EVALUATION_SCHEMA) | Task calls `call_openrouter(messages, json_schema=FUNDAMENTAL_DELTA_SCHEMA)` |
-| On success: `save_evaluation` writes PENDING_APPROVAL, commit, then `publish_broadcast_sync("evaluation_pending")` | On success: `save_fundamental_evaluation`, commit, then `publish_broadcast_sync("fundamental_evaluation_pending")` |
-| On failure: create FAILED Evaluation, publish `evaluation_failed` to team, raise for retry | On failure: create FAILED FundamentalEvaluation, publish to team, raise for retry |
-| `GET /api/v1/admin/evaluations` with `status` filter | `GET /api/v1/admin/fundamentals-queue` with `status` filter |
-| `PUT /api/v1/admin/evaluations/:id` edits before approval (409 if not PENDING_APPROVAL) | `PATCH /api/v1/admin/fundamentals-queue/:id` edits `proposed_deltas`/`admin_edits` |
-| `POST /api/v1/admin/evaluations/:id/approve` → `approve_evaluation` writes target_price, publishes news, dispatches `generate_news` | `POST /api/v1/admin/fundamentals-queue/:id/approve` → `apply_fundamental_deltas` updates Team fundamentals + sets `ramp_started_at` + `drift_target_pct`, broadcasts `fundamentals_updated` |
-| `POST /api/v1/admin/evaluations/:id/reject` with optional `admin_notes` | `POST /api/v1/admin/fundamentals-queue/:id/reject` with optional `admin_notes` |
-| `_approve_evaluation` raises `ValueError` if status != PENDING_APPROVAL; endpoint converts to 409 | Same — mirror the ValueError → 409 mapping |
-| Admin page `/admin/evaluations/page.tsx`: filter bar, card list, expandable edit, APPROVE/REJECT buttons, toast notifications, `useWebSocket` hook for auto-refresh on `evaluation_pending` | `/admin/fundamentals/page.tsx`: same structure, listens for `fundamental_evaluation_pending` |
+| Phase 5 Evaluation                                                                                                                                                                          | Phase 9 FundamentalEvaluation                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Evaluation` model with `EvaluationStatus` enum (PROCESSING/PENDING_APPROVAL/APPROVED/REJECTED/FAILED)                                                                                      | `FundamentalEvaluation` model with new `FundamentalEvalStatus` enum (same values, separate enum)                                                                                            |
+| `evaluation_service.build_prompt(db, solution_id)` returns messages list                                                                                                                    | `fundamental_service.build_fundamental_prompt(db, team_id, round_number)` returns messages list                                                                                             |
+| `evaluate_solution` Celery task: `asyncio.run(_evaluate(solution_id))` with 120s time_limit                                                                                                 | `compute_fundamentals_for_team` Celery task: `asyncio.run(_compute(team_id, round_number))` with 120s time_limit                                                                            |
+| Task calls `call_openrouter(messages, json_schema=None)` (default EVALUATION_SCHEMA)                                                                                                        | Task calls `call_openrouter(messages, json_schema=FUNDAMENTAL_DELTA_SCHEMA)`                                                                                                                |
+| On success: `save_evaluation` writes PENDING_APPROVAL, commit, then `publish_broadcast_sync("evaluation_pending")`                                                                          | On success: `save_fundamental_evaluation`, commit, then `publish_broadcast_sync("fundamental_evaluation_pending")`                                                                          |
+| On failure: create FAILED Evaluation, publish `evaluation_failed` to team, raise for retry                                                                                                  | On failure: create FAILED FundamentalEvaluation, publish to team, raise for retry                                                                                                           |
+| `GET /api/v1/admin/evaluations` with `status` filter                                                                                                                                        | `GET /api/v1/admin/fundamentals-queue` with `status` filter                                                                                                                                 |
+| `PUT /api/v1/admin/evaluations/:id` edits before approval (409 if not PENDING_APPROVAL)                                                                                                     | `PATCH /api/v1/admin/fundamentals-queue/:id` edits `proposed_deltas`/`admin_edits`                                                                                                          |
+| `POST /api/v1/admin/evaluations/:id/approve` → `approve_evaluation` writes target_price, publishes news, dispatches `generate_news`                                                         | `POST /api/v1/admin/fundamentals-queue/:id/approve` → `apply_fundamental_deltas` updates Team fundamentals + sets `ramp_started_at` + `drift_target_pct`, broadcasts `fundamentals_updated` |
+| `POST /api/v1/admin/evaluations/:id/reject` with optional `admin_notes`                                                                                                                     | `POST /api/v1/admin/fundamentals-queue/:id/reject` with optional `admin_notes`                                                                                                              |
+| `_approve_evaluation` raises `ValueError` if status != PENDING_APPROVAL; endpoint converts to 409                                                                                           | Same — mirror the ValueError → 409 mapping                                                                                                                                                  |
+| Admin page `/admin/evaluations/page.tsx`: filter bar, card list, expandable edit, APPROVE/REJECT buttons, toast notifications, `useWebSocket` hook for auto-refresh on `evaluation_pending` | `/admin/fundamentals/page.tsx`: same structure, listens for `fundamental_evaluation_pending`                                                                                                |
 
 **Example — mirroring `approve_evaluation` in `fundamental_service.apply_fundamental_deltas`:**
 
@@ -613,6 +613,7 @@ FUNDAMENTAL_DELTA_SCHEMA = {
 ```
 
 **Magnitude mapping in worker task after LLM returns:**
+
 ```python
 SEVERITY_MAG = {"MINOR": Decimal("3"), "MAJOR": Decimal("8"), "CATASTROPHIC": Decimal("15")}
 DIRECTION_SIGN = {"POSITIVE": Decimal("1"), "NEGATIVE": Decimal("-1")}
@@ -629,6 +630,7 @@ if payload["is_event"]:
 The existing `inject_crisis` endpoint at `server/app/api/admin.py:1203` accepts `scenario` + `timer_seconds` but doesn't currently target specific teams. For Phase 9, CONTEXT.md D-16/D-17 requires: admin specifies target team(s) + direction + severity, and we write `PendingShock` rows at injection time.
 
 **Two options for planner:**
+
 1. **Extend `CrisisInjectRequest`** with `affected_team_ids: list[str]`, `severity: SeverityEnum`, `direction: DirectionEnum`. Backward compatibility: if absent, no shock is enqueued (existing auto-pause behavior preserved).
 2. **Separate endpoint** `POST /api/v1/admin/crisis/shock` that takes team_ids + severity + direction and writes `PendingShock` rows. Existing `crisis/inject` stays as "pure narrative" crisis.
 
@@ -646,15 +648,15 @@ Recommendation: option 1 — fewer endpoints, CONTEXT.md D-16 treats admin crisi
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| LLM structured JSON output | Custom regex/json.loads with manual key validation | `llm_service.call_openrouter(json_schema=FUNDAMENTAL_DELTA_SCHEMA)` | Already wraps OpenRouter's `response_format={"type": "json_schema", …}`, enforces strict mode, handles parse errors, tracks latency/tokens. `[VERIFIED: server/app/services/llm_service.py:99-186]` |
-| WebSocket broadcast from Celery | Direct WebSocket writes from worker | `publish_broadcast_sync(dict)` in `app/redis_pubsub.py` | Celery workers are sync; `publish_broadcast_sync` bridges to Redis pub/sub relay that fans out to all connected clients. `[VERIFIED: server/app/redis_pubsub.py:37-44]` |
-| Retry logic for LLM calls | Custom retry loop with backoff | Celery `max_retries=2, default_retry_delay=10` + `task.retry()` | Pattern demonstrated in `evaluate_solution` task. `[VERIFIED: server/app/worker/tasks/evaluate_solution.py:17-23]` |
-| Async DB session in worker | `AsyncSessionLocal()` directly | `get_worker_session()` context manager | Avoids asyncpg pool conflicts in forked Celery workers by creating fresh engine per task. `[VERIFIED: server/app/database.py:62-86]` |
-| Benchmark bands parsing | Per-use `json.loads` + ad-hoc key checks | Reuse `_validate_benchmark_bands` logic at `admin.py:1427` for writes; extract shared helper `parse_benchmark_bands(bands_str) -> dict` for reads | Keys are already locked: `market_share/margin/growth/ops_efficiency`. Shared helper prevents drift. `[VERIFIED: server/app/api/admin.py:1427-1452]` |
-| Pydantic models for new endpoints | Inline dict schemas | Separate `schemas/fundamentals.py` module | Mirror pattern of `schemas/decisions.py` (Phase 8). Keeps `admin.py` readable. |
-| Admin page layout/wiring | New UI framework | Clone `client/src/app/admin/evaluations/page.tsx` | Full pattern: filter bar, cards, expand-to-edit, `useWebSocket` refresh, toast. ~600 LOC already solving this exact UX. `[VERIFIED: client/src/app/admin/evaluations/page.tsx:1-625]` |
+| Problem                           | Don't Build                                        | Use Instead                                                                                                                                       | Why                                                                                                                                                                                                 |
+| --------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LLM structured JSON output        | Custom regex/json.loads with manual key validation | `llm_service.call_openrouter(json_schema=FUNDAMENTAL_DELTA_SCHEMA)`                                                                               | Already wraps OpenRouter's `response_format={"type": "json_schema", …}`, enforces strict mode, handles parse errors, tracks latency/tokens. `[VERIFIED: server/app/services/llm_service.py:99-186]` |
+| WebSocket broadcast from Celery   | Direct WebSocket writes from worker                | `publish_broadcast_sync(dict)` in `app/redis_pubsub.py`                                                                                           | Celery workers are sync; `publish_broadcast_sync` bridges to Redis pub/sub relay that fans out to all connected clients. `[VERIFIED: server/app/redis_pubsub.py:37-44]`                             |
+| Retry logic for LLM calls         | Custom retry loop with backoff                     | Celery `max_retries=2, default_retry_delay=10` + `task.retry()`                                                                                   | Pattern demonstrated in `evaluate_solution` task. `[VERIFIED: server/app/worker/tasks/evaluate_solution.py:17-23]`                                                                                  |
+| Async DB session in worker        | `AsyncSessionLocal()` directly                     | `get_worker_session()` context manager                                                                                                            | Avoids asyncpg pool conflicts in forked Celery workers by creating fresh engine per task. `[VERIFIED: server/app/database.py:62-86]`                                                                |
+| Benchmark bands parsing           | Per-use `json.loads` + ad-hoc key checks           | Reuse `_validate_benchmark_bands` logic at `admin.py:1427` for writes; extract shared helper `parse_benchmark_bands(bands_str) -> dict` for reads | Keys are already locked: `market_share/margin/growth/ops_efficiency`. Shared helper prevents drift. `[VERIFIED: server/app/api/admin.py:1427-1452]`                                                 |
+| Pydantic models for new endpoints | Inline dict schemas                                | Separate `schemas/fundamentals.py` module                                                                                                         | Mirror pattern of `schemas/decisions.py` (Phase 8). Keeps `admin.py` readable.                                                                                                                      |
+| Admin page layout/wiring          | New UI framework                                   | Clone `client/src/app/admin/evaluations/page.tsx`                                                                                                 | Full pattern: filter bar, cards, expand-to-edit, `useWebSocket` refresh, toast. ~600 LOC already solving this exact UX. `[VERIFIED: client/src/app/admin/evaluations/page.tsx:1-625]`               |
 
 **Key insight:** This phase is largely a mechanical clone of Phase 5's evaluation pipeline plus a fresh per-tick formula. The value is in the formula and the data-model surgery — not in novel architecture. Plans should be aggressive about calling out "mirror file X" to minimize invention.
 
@@ -662,15 +664,16 @@ Recommendation: option 1 — fewer endpoints, CONTEXT.md D-16 treats admin crisi
 
 This is a rename/refactor phase (dropping `target_price`/`ticks_to_target`; adding/renaming fundamentals; altering LLM contract). Audit:
 
-| Category | Items Found | Action Required |
-|----------|-------------|------------------|
-| Stored data | `teams.target_price` column (existing rows have values after Phase 4+); `teams.ticks_to_target` column; Phase 5 `evaluations.price_timeline` JSON rows referenced in approve path | **Data migration:** migration 005 drops columns; prior values lost but that's intended (D-28 says v1 is removed, not gated). Existing APPROVED evaluations remain but their target_price no longer affects price (D-28 handles this — approve_evaluation body updated to not write target_price). Existing PENDING_APPROVAL evaluations: admin can still approve them; the approved_evaluation function is edited to skip the target_price assignment. No migration of evaluation rows needed. |
-| Live service config | No external services store this renaming. OpenRouter API key unchanged. Celery Beat schedule (`game-tick-every-60s`) unchanged. | None |
-| OS-registered state | No systemd/pm2/Task Scheduler registrations reference price formula internals. Docker container names unchanged. | None |
-| Secrets/env vars | `OPENROUTER_API_KEY`, `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET` — none reference v1 names. | None |
-| Build artifacts | No Python package artifacts (`.egg-info`) or npm lockfile needs regeneration from this phase alone. Migration runs at container startup or manually via `alembic upgrade head`. | `alembic upgrade head` in dev, staging, prod. Document in phase summary. |
+| Category            | Items Found                                                                                                                                                                       | Action Required                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stored data         | `teams.target_price` column (existing rows have values after Phase 4+); `teams.ticks_to_target` column; Phase 5 `evaluations.price_timeline` JSON rows referenced in approve path | **Data migration:** migration 005 drops columns; prior values lost but that's intended (D-28 says v1 is removed, not gated). Existing APPROVED evaluations remain but their target_price no longer affects price (D-28 handles this — approve_evaluation body updated to not write target_price). Existing PENDING_APPROVAL evaluations: admin can still approve them; the approved_evaluation function is edited to skip the target_price assignment. No migration of evaluation rows needed. |
+| Live service config | No external services store this renaming. OpenRouter API key unchanged. Celery Beat schedule (`game-tick-every-60s`) unchanged.                                                   | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| OS-registered state | No systemd/pm2/Task Scheduler registrations reference price formula internals. Docker container names unchanged.                                                                  | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Secrets/env vars    | `OPENROUTER_API_KEY`, `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET` — none reference v1 names.                                                                                        | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Build artifacts     | No Python package artifacts (`.egg-info`) or npm lockfile needs regeneration from this phase alone. Migration runs at container startup or manually via `alembic upgrade head`.   | `alembic upgrade head` in dev, staging, prod. Document in phase summary.                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 **Canonical question answered:** After every file in the repo is updated, what runtime systems still have the old string/state?
+
 - Existing PostgreSQL `teams` rows with populated `target_price`/`ticks_to_target` — migration drops columns.
 - In-flight PENDING_APPROVAL evaluations (Phase 5) — admin approves them normally; approve path no longer writes target_price per D-28.
 - Redis: caches only `game:status` and `game:phase` — not team-level data. No action.
@@ -682,12 +685,14 @@ This is a rename/refactor phase (dropping `target_price`/`ticks_to_target`; addi
 ## Common Pitfalls
 
 ### Pitfall 1: Ramp Reset Snap-Back (D-21)
+
 **What goes wrong:** Admin approves a new FundamentalEvaluation mid-ramp. Naïve implementation resets `ramp_started_at` to now and `ramp_fraction` becomes 0, so `drift_now = 0`, which undoes 3 minutes of price drift in one tick. Price chart snaps.
 **Why it happens:** Formula literal interpretation of "reset ramp" without preserving current drift.
 **How to avoid:** D-21 mandates "drift_now at the moment of reset becomes the new ramp floor." Implementation: persist `drift_floor_pct` on Team (or compute in-memory from prior `ramp_started_at` + prior `drift_target_pct`, then overwrite). Simpler: add a `drift_floor_pct` Decimal column to the migration, write it during `apply_fundamental_deltas`, and use `drift_now = max(drift_floor_pct, ramp_fraction * drift_target_pct)`.
 **Warning signs:** A single-tick price drop >1% immediately after admin approval, with no shock or sentiment to explain it.
 
 ### Pitfall 2: PostgreSQL `DISTINCT ON` + asyncpg Edge Cases
+
 **What goes wrong:** SQLAlchemy 2.0's `.distinct(column)` generates `SELECT DISTINCT ON (column)` — fine in PostgreSQL but requires that the `ORDER BY` clause begins with the distinct-on columns. If Python re-orders via `.order_by(enqueued_at.asc())` alone, Postgres errors out.
 **Why it happens:** `DISTINCT ON` is a Postgres extension with specific ordering semantics.
 **How to avoid:** Always write `.order_by(team_id, enqueued_at)` and `.distinct(team_id)` together. OR use a window-function subquery: `ROW_NUMBER() OVER (PARTITION BY team_id ORDER BY enqueued_at) = 1`.
@@ -695,45 +700,53 @@ This is a rename/refactor phase (dropping `target_price`/`ticks_to_target`; addi
 `[CITED: https://www.postgresql.org/docs/15/sql-select.html#SQL-DISTINCT]`
 
 ### Pitfall 3: Empty `benchmark_bands` on Legacy Teams
+
 **What goes wrong:** Any Team that was created before archetype assignment becomes mandatory has `archetype_id = NULL`. `compute_price` tries to read `team.archetype.benchmark_bands` and crashes with AttributeError.
 **Why it happens:** `Team.archetype_id` is `nullable=True` (per Phase 7 migration). Teams in PENDING/READY states may not yet have archetypes.
 **How to avoid:** Filter the tick SELECT to `status=ACTIVE AND archetype_id IS NOT NULL`, OR in the per-team compute, skip teams without archetype (price stays flat, no PriceHistory row) — matches CONTEXT.md §code_context.risks: "failure mode is team without archetype. Fallback: skip fundamental computation; price stays flat."
 **Warning signs:** `AttributeError: 'NoneType' object has no attribute 'benchmark_bands'` at tick time.
 
 ### Pitfall 4: Null-Safe Fundamentals on First Compute
+
 **What goes wrong:** After migration, existing Team rows have NULL `fundamental_*` columns until archetype assignment populates them. Until then, `z_score(None, min, max)` explodes.
 **Why it happens:** Migration adds columns as nullable (safe rollback). Archetype assignment writes midpoints, but there's a window of time where a team is ACTIVE without fundamentals.
 **How to avoid:** In `compute_price`, treat any NULL fundamental as "skip this team." OR update the Phase 7 archetype-assign endpoint to populate fundamentals immediately (D-03 says "at archetype assignment time"). Plan must include a backfill script or one-off SQL to populate existing ACTIVE teams before the new tick loop runs.
 **Warning signs:** `TypeError: unsupported operand type(s) for -: 'NoneType' and 'Decimal'` at tick time.
 
 ### Pitfall 5: `approve_evaluation` Still Writes target_price
+
 **What goes wrong:** Phase 5 `approve_evaluation` at `evaluation_service.py:214-282` writes `team.target_price = …` and `team.ticks_to_target = 20`. After migration, these columns don't exist → SQLAlchemy raises. OR (if columns are kept temporarily) — ghost writes that do nothing.
 **Why it happens:** D-28 says Phase 5 Evaluation stays but no longer sets target_price. Requires code surgery on existing approve path.
 **How to avoid:** Edit `approve_evaluation` body to remove the target_price/ticks_to_target write lines (lines 251-259 in current `evaluation_service.py`). Keep the news publication + MarketNews insert. Tests covering `test_approve_writes_target_price` in `tests/test_evaluation.py:224` must be updated to assert news created but NOT target_price written (which no longer exists).
 **Warning signs:** Existing Phase 5 tests fail after migration with `AttributeError: target_price` or `Column "target_price" does not exist`.
 
 ### Pitfall 6: Sentiment Query Missing Teams with Zero Volume
+
 **What goes wrong:** The `GROUP BY target_team_id` aggregate only returns rows for teams with at least one trade in last 60s. The Python loop then misses them and `sentiment` defaults to... what?
 **Why it happens:** Aggregate queries naturally skip groups with no rows.
 **How to avoid:** `sentiment_by_team = {row.target_team_id: ... for row in rows}` then `sentiment = sentiment_by_team.get(team.id, Decimal("0"))` in the per-team loop. Default zero = no sentiment contribution when no trades, which is correct.
 **Warning signs:** `KeyError` at tick time, OR silent no-op if dict .get default is wrong.
 
 ### Pitfall 7: `distinct` with multi-column ORDER BY semantics
+
 (See Pitfall 2) — worth repeating separately because the plan will have tests that catch this only on the multi-shock case.
 
 ### Pitfall 8: LLM Hallucinates Wrong Delta Signs
+
 **What goes wrong:** LLM returns `market_share_delta: -3.2` when team had a great quarter, because the team is D2C Challenger (low-baseline archetype) and LLM interpreted "challenger" as declining.
 **Why it happens:** Deltas are relative to current fundamentals, but LLM must be prompted to think in "did they improve their position within their archetype's band."
 **How to avoid:** Craft the system prompt to explicitly state: "Output deltas RELATIVE TO the team's current fundamentals, not absolute. A 'good quarter for a D2C Challenger' means positive deltas even if their absolute market share is 2% and the Legacy Giant is at 22%." Include archetype benchmark_bands in the prompt context so LLM sees the frame of reference. Admin approval catches remaining mistakes per D-02.
 **Warning signs:** Persistent pattern of low-archetype teams receiving negative deltas even after "good" decision rounds.
 
 ### Pitfall 9: Shock Direction Misalignment
+
 **What goes wrong:** LLM returns `is_event=true, severity=MAJOR, direction=POSITIVE` for a news item that is clearly negative (e.g., "factory fire"). Price jumps up.
 **Why it happens:** LLM tone detection imperfect.
 **How to avoid:** (a) Admin approval of news isn't required today, but phase 9 should log `ActivityEvent` on every shock enqueue so admin can see and reverse via crisis inject if needed. (b) Add sentiment_score cross-check: if `news.sentiment_score < 0` and `direction=POSITIVE`, flag in admin dashboard. Out of scope for Phase 9 unless plan adds it.
 **Warning signs:** Team complaints about "why did we jump +8% when we just had bad news."
 
 ### Pitfall 10: Celery Fan-Out Stampede at Quarter Transition
+
 **What goes wrong:** 40 simultaneous `compute_fundamentals_for_team.delay()` calls hit OpenRouter within milliseconds. Free-tier rate limit (typical: 20 req/min) trips. 20 tasks FAIL, admin gets 20 empty queue items.
 **Why it happens:** No throttling on fan-out.
 **How to avoid:** Use Celery `rate_limit` on `compute_fundamentals_for_team` task (e.g., `rate_limit="20/m"`) — Celery will queue and release at the throttled rate. OR use `task.apply_async(countdown=random.uniform(0, 30))` to spread over 30 seconds. OR move to a paid tier model.
@@ -961,44 +974,77 @@ async def _execute_tick():
 ```tsx
 // Source: extends client/src/components/game/CaselinePanel.tsx (VERIFIED reference file)
 // Load via new GET /api/v1/teams/me/fundamentals (or extend getCaseline response)
-{fundamentals && (
-  <div className="space-y-3">
-    <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">FUNDAMENTALS</div>
-    <div className="grid grid-cols-2 gap-1">
-      {[
-        { label: "MKT SHARE",  value: fundamentals.market_share,  z: fundamentals.z_market_share,  band: bands.market_share },
-        { label: "PROFITABILITY", value: fundamentals.margin,     z: fundamentals.z_margin,        band: bands.margin },
-        { label: "OPS EFF",    value: fundamentals.ops_efficiency, z: fundamentals.z_ops_efficiency, band: bands.ops_efficiency },
-        { label: "BRAND HEALTH", value: fundamentals.growth,      z: fundamentals.z_growth,        band: bands.growth },
-      ].map(({ label, value, z, band }) => {
-        const inBand = Math.abs(z) <= 1;
-        const color = inBand ? "#02c953" : z > 0 ? "#9ecaff" : "#FF1744";
-        return (
-          <div key={label} className="bg-[#201f1f] p-2">
-            <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest mb-1">{label}</div>
-            <div className="flex justify-between items-baseline">
-              <span className="font-mono text-xs" style={{ color }}>{Number(value).toFixed(2)}</span>
-              <span className="font-mono text-[10px] text-[#89919d]">z {Number(z).toFixed(2)}</span>
+{
+  fundamentals && (
+    <div className="space-y-3">
+      <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
+        FUNDAMENTALS
+      </div>
+      <div className="grid grid-cols-2 gap-1">
+        {[
+          {
+            label: "MKT SHARE",
+            value: fundamentals.market_share,
+            z: fundamentals.z_market_share,
+            band: bands.market_share,
+          },
+          {
+            label: "PROFITABILITY",
+            value: fundamentals.margin,
+            z: fundamentals.z_margin,
+            band: bands.margin,
+          },
+          {
+            label: "OPS EFF",
+            value: fundamentals.ops_efficiency,
+            z: fundamentals.z_ops_efficiency,
+            band: bands.ops_efficiency,
+          },
+          {
+            label: "BRAND HEALTH",
+            value: fundamentals.growth,
+            z: fundamentals.z_growth,
+            band: bands.growth,
+          },
+        ].map(({ label, value, z, band }) => {
+          const inBand = Math.abs(z) <= 1;
+          const color = inBand ? "#02c953" : z > 0 ? "#9ecaff" : "#FF1744";
+          return (
+            <div key={label} className="bg-[#201f1f] p-2">
+              <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest mb-1">
+                {label}
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="font-mono text-xs" style={{ color }}>
+                  {Number(value).toFixed(2)}
+                </span>
+                <span className="font-mono text-[10px] text-[#89919d]">
+                  z {Number(z).toFixed(2)}
+                </span>
+              </div>
+              <div className="text-[9px] text-[#404752] font-mono mt-1">
+                band {band[0]}-{band[1]}
+              </div>
             </div>
-            <div className="text-[9px] text-[#404752] font-mono mt-1">band {band[0]}-{band[1]}</div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 ```
 
 ## State of the Art
 
-| Old Approach (v1) | Current Approach (v2, Phase 9) | When Changed | Impact |
-|-------------------|--------------------------------|--------------|--------|
+| Old Approach (v1)                                                                                                                                                   | Current Approach (v2, Phase 9)                                                                                                                                                       | When Changed  | Impact                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | LLM evaluates solution → returns `price_timeline` → admin approves → writes `target_price` and `ticks_to_target=20` → per-tick linear interpolation + bounded noise | LLM evaluates at quarter boundary → returns fundamental deltas → admin approves → writes fundamentals + resets ramp → per-tick formula: weighted z-score + sentiment + shock + noise | Phase 9 (now) | v1 pipeline replaced. `interpolate_price` deleted. `set_team_score` admin endpoint returns 410 Gone. Phase 5 `Evaluation` stays (quality_score becomes LLM-narrative input, not price driver). |
-| Random walk + quality_score (Phase 4) | Fundamental-driven (Phase 9) | Phase 9 | Price is no longer "random walk toward admin-set target" — it's "continuously pressured by how well the team is doing in its archetype's band" |
-| No event shocks — only narrative news | Explicit shock mechanism: admin crisis + LLM-tagged news, enqueued via PendingShock table, single-tick jumps | Phase 9 | Volatility surface more realistic — crises and major announcements cause visible discontinuities in the candle chart |
-| Sentiment absent | Last-60s signed INR volume / market_cap, clamped ±0.3%/tick | Phase 9 | Trading pressure now visibly influences price (though small per-tick, cumulative over a window) |
+| Random walk + quality_score (Phase 4)                                                                                                                               | Fundamental-driven (Phase 9)                                                                                                                                                         | Phase 9       | Price is no longer "random walk toward admin-set target" — it's "continuously pressured by how well the team is doing in its archetype's band"                                                 |
+| No event shocks — only narrative news                                                                                                                               | Explicit shock mechanism: admin crisis + LLM-tagged news, enqueued via PendingShock table, single-tick jumps                                                                         | Phase 9       | Volatility surface more realistic — crises and major announcements cause visible discontinuities in the candle chart                                                                           |
+| Sentiment absent                                                                                                                                                    | Last-60s signed INR volume / market_cap, clamped ±0.3%/tick                                                                                                                          | Phase 9       | Trading pressure now visibly influences price (though small per-tick, cumulative over a window)                                                                                                |
 
 **Deprecated / outdated (post-Phase-9):**
+
 - `Team.target_price`, `Team.ticks_to_target` — dropped
 - `interpolate_price(current, target, ticks_remaining)` — deleted
 - `set_team_score(db, team_id, quality_score)` — deleted from `simulation_service.py`
@@ -1007,15 +1053,15 @@ async def _execute_tick():
 
 ## Assumptions Log
 
-| # | Claim | Section | Risk if Wrong |
-|---|-------|---------|---------------|
-| A1 | `teams.stock_price * Decimal(shares_outstanding)` is the correct market cap for sentiment normalization | Pattern 4, Example 1 | If "market cap" in CONTEXT.md D-14 means "public float × price", sentiment normalization differs by ~10× for teams with 900k treasury shares. Clamp still bounds it, so impact is capped — but mathematical meaning shifts. Confirm with user. |
-| A2 | Magnitude storage format: `PendingShock.magnitude_pct` stores signed percentage as Decimal (e.g., `-15.000` for -15%, `+3.000` for +3%) | Pattern 5, Pattern 8, Migration 005 | If stored as fraction (e.g., `-0.15`), Example 1's `/ Decimal("100")` is wrong. Consistent treatment required across enqueue + consume. |
-| A3 | LLM news schema changes (`is_event`, `severity`, `direction`, `affected_tickers`) belong at the top level of the news output, not nested inside `market_commentary` or `world_event` | Pattern 8 | If LLM is expected to tag each sub-article separately, schema shape differs. Current NEWS_SCHEMA at `generate_news.py:20` has two nested objects — Phase 9 plan must specify shape. |
-| A4 | "Admin crisis fires on the team(s) named by admin" means the admin endpoint request body must be extended with `affected_team_ids`, `severity`, `direction` | Pattern 9 | If admin crisis is meant to continue firing on all active teams (existing no-target behavior), only the LLM news shock path is new. Check CONTEXT.md D-16 intent — decision is ambiguous between "admin named team(s)" and extending the existing crisis model. |
-| A5 | `drift_floor_pct` column is needed to implement D-21 snap-free ramp reset | Pitfall 1 | If computed in-memory from prior state (without a persistent column), implementation is stateless but requires admin-approval transaction to read + compute before overwriting. Either approach works; picking one affects migration 005 shape. |
-| A6 | Fundamentals are expressed in the same units as benchmark bands (percentages stored as numbers — e.g., 15.5 for 15.5% market share) | Example 1 z_score, Pattern 1 deltas | If stored as fractions (0.155), every math line mis-scales. Existing `benchmark_bands` stores `[20, 25]` meaning "20% to 25%" per Phase 7 D-03 — so fundamentals are percentages too. Verify by inspecting the seed archetypes. |
-| A7 | The existing admin `/admin/crisis/inject` endpoint at `admin.py:1203` can be extended (backward-compatible) with optional fields, OR the Phase 9 plan creates a separate `/crisis/shock` endpoint | Pattern 9 | Impacts whether planner adds one or two endpoints. Recommendation: extend (fewer endpoints, cleaner semantics). |
+| #   | Claim                                                                                                                                                                                             | Section                             | Risk if Wrong                                                                                                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | `teams.stock_price * Decimal(shares_outstanding)` is the correct market cap for sentiment normalization                                                                                           | Pattern 4, Example 1                | If "market cap" in CONTEXT.md D-14 means "public float × price", sentiment normalization differs by ~10× for teams with 900k treasury shares. Clamp still bounds it, so impact is capped — but mathematical meaning shifts. Confirm with user.                  |
+| A2  | Magnitude storage format: `PendingShock.magnitude_pct` stores signed percentage as Decimal (e.g., `-15.000` for -15%, `+3.000` for +3%)                                                           | Pattern 5, Pattern 8, Migration 005 | If stored as fraction (e.g., `-0.15`), Example 1's `/ Decimal("100")` is wrong. Consistent treatment required across enqueue + consume.                                                                                                                         |
+| A3  | LLM news schema changes (`is_event`, `severity`, `direction`, `affected_tickers`) belong at the top level of the news output, not nested inside `market_commentary` or `world_event`              | Pattern 8                           | If LLM is expected to tag each sub-article separately, schema shape differs. Current NEWS_SCHEMA at `generate_news.py:20` has two nested objects — Phase 9 plan must specify shape.                                                                             |
+| A4  | "Admin crisis fires on the team(s) named by admin" means the admin endpoint request body must be extended with `affected_team_ids`, `severity`, `direction`                                       | Pattern 9                           | If admin crisis is meant to continue firing on all active teams (existing no-target behavior), only the LLM news shock path is new. Check CONTEXT.md D-16 intent — decision is ambiguous between "admin named team(s)" and extending the existing crisis model. |
+| A5  | `drift_floor_pct` column is needed to implement D-21 snap-free ramp reset                                                                                                                         | Pitfall 1                           | If computed in-memory from prior state (without a persistent column), implementation is stateless but requires admin-approval transaction to read + compute before overwriting. Either approach works; picking one affects migration 005 shape.                 |
+| A6  | Fundamentals are expressed in the same units as benchmark bands (percentages stored as numbers — e.g., 15.5 for 15.5% market share)                                                               | Example 1 z_score, Pattern 1 deltas | If stored as fractions (0.155), every math line mis-scales. Existing `benchmark_bands` stores `[20, 25]` meaning "20% to 25%" per Phase 7 D-03 — so fundamentals are percentages too. Verify by inspecting the seed archetypes.                                 |
+| A7  | The existing admin `/admin/crisis/inject` endpoint at `admin.py:1203` can be extended (backward-compatible) with optional fields, OR the Phase 9 plan creates a separate `/crisis/shock` endpoint | Pattern 9                           | Impacts whether planner adds one or two endpoints. Recommendation: extend (fewer endpoints, cleaner semantics).                                                                                                                                                 |
 
 **If an assumption fires wrong:** the planner should add a clarifying question for the discuss-phase or CONTEXT.md supplement before committing to that design decision.
 
@@ -1061,16 +1107,16 @@ async def _execute_tick():
 
 ## Environment Availability
 
-| Dependency | Required By | Available | Version | Fallback |
-|------------|------------|-----------|---------|----------|
-| Python 3.11-3.13 | Backend | ✓ (per pyproject.toml `requires-python = ">=3.11,<3.14"`) | — | — |
-| PostgreSQL 15 | DB migrations + new tables | Presumed ✓ (Docker compose service) | 15 | — |
-| Redis 7 | Celery broker + pub/sub | Presumed ✓ | 7 | — |
-| Celery worker + Beat processes | Periodic tasks + LLM fan-out | Presumed ✓ (already running for Phases 4-8) | 5.6.3+ | — |
-| OpenRouter API + API key (`OPENROUTER_API_KEY`) | LLM fundamental eval | Presumed ✓ (used by Phase 5 `evaluate_solution`) | — | **Rate limit concern:** see Pitfall 10. Recommend `rate_limit="20/m"` on new task. |
-| `nvidia/nemotron-3-super-120b-a12b:free` model (default) | Fundamental evaluation | ✓ (per `llm_service.py:129`) | — | Can override per-call via `model=` param |
-| Alembic CLI (`alembic upgrade head`) | Schema migration | ✓ (migrations 001-004 applied) | 1.18.4+ | `init_db.py create_all` does NOT migrate existing tables — must run Alembic explicitly |
-| Context7 MCP (documentation lookups) | Not required | — | — | CLI fallback via `npx ctx7@latest` documented |
+| Dependency                                               | Required By                  | Available                                                 | Version | Fallback                                                                               |
+| -------------------------------------------------------- | ---------------------------- | --------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| Python 3.11-3.13                                         | Backend                      | ✓ (per pyproject.toml `requires-python = ">=3.11,<3.14"`) | —       | —                                                                                      |
+| PostgreSQL 15                                            | DB migrations + new tables   | Presumed ✓ (Docker compose service)                       | 15      | —                                                                                      |
+| Redis 7                                                  | Celery broker + pub/sub      | Presumed ✓                                                | 7       | —                                                                                      |
+| Celery worker + Beat processes                           | Periodic tasks + LLM fan-out | Presumed ✓ (already running for Phases 4-8)               | 5.6.3+  | —                                                                                      |
+| OpenRouter API + API key (`OPENROUTER_API_KEY`)          | LLM fundamental eval         | Presumed ✓ (used by Phase 5 `evaluate_solution`)          | —       | **Rate limit concern:** see Pitfall 10. Recommend `rate_limit="20/m"` on new task.     |
+| `nvidia/nemotron-3-super-120b-a12b:free` model (default) | Fundamental evaluation       | ✓ (per `llm_service.py:129`)                              | —       | Can override per-call via `model=` param                                               |
+| Alembic CLI (`alembic upgrade head`)                     | Schema migration             | ✓ (migrations 001-004 applied)                            | 1.18.4+ | `init_db.py create_all` does NOT migrate existing tables — must run Alembic explicitly |
+| Context7 MCP (documentation lookups)                     | Not required                 | —                                                         | —       | CLI fallback via `npx ctx7@latest` documented                                          |
 
 **Missing dependencies with no fallback:** None — phase is entirely within existing stack.
 
@@ -1081,46 +1127,47 @@ async def _execute_tick():
 ## Validation Architecture
 
 ### Test Framework
-| Property | Value |
-|----------|-------|
-| Framework | pytest 8.0+ with pytest-asyncio 0.23+ (`asyncio_mode = "auto"`) |
-| Config file | `server/pyproject.toml` `[tool.pytest.ini_options]` |
-| Test directory | `server/tests/` (see `server/tests/test_simulation.py`, `test_evaluation.py` for reference) |
-| Fixtures | `server/tests/conftest.py` — `mock_db`, `mock_redis`, `mock_team`, `mock_evaluation`, `game_state_active` |
-| Quick run command | `cd server && uv run pytest tests/test_simulation.py -x` |
-| Full suite command | `cd server && uv run pytest -x` |
-| Frontend | No existing frontend test suite in the project. Visual verification via admin UI. |
+
+| Property           | Value                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| Framework          | pytest 8.0+ with pytest-asyncio 0.23+ (`asyncio_mode = "auto"`)                                           |
+| Config file        | `server/pyproject.toml` `[tool.pytest.ini_options]`                                                       |
+| Test directory     | `server/tests/` (see `server/tests/test_simulation.py`, `test_evaluation.py` for reference)               |
+| Fixtures           | `server/tests/conftest.py` — `mock_db`, `mock_redis`, `mock_team`, `mock_evaluation`, `game_state_active` |
+| Quick run command  | `cd server && uv run pytest tests/test_simulation.py -x`                                                  |
+| Full suite command | `cd server && uv run pytest -x`                                                                           |
+| Frontend           | No existing frontend test suite in the project. Visual verification via admin UI.                         |
 
 ### Phase Requirements → Test Map
 
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| SIM-05 | Weighted z-score with 35/30/20/15 weights returns correct drift_target | unit | `uv run pytest tests/test_simulation.py::TestComputeDriftTarget -x` | ❌ Wave 0 (test_simulation.py exists but test class is new) |
-| SIM-05 | `compute_price` produces `new_price = prev * (1 + drift + sentiment + shock + noise)` | unit | `uv run pytest tests/test_simulation.py::TestComputePrice -x` | ❌ Wave 0 |
-| SIM-06 | `z_score(midpoint)` returns 0; `z_score(band_max)` returns +1; `z_score(band_min)` returns -1 | unit (property) | `uv run pytest tests/test_simulation.py::TestZScore -x` | ❌ Wave 0 |
-| SIM-06 | `z_score` clamps at ±2 for extreme values | unit | same | ❌ Wave 0 |
-| SIM-07 | `PendingShock` with magnitude +8 produces multiplier of +0.08 in next tick | integration | `uv run pytest tests/test_simulation.py::TestShockApplication -x` | ❌ Wave 0 |
-| SIM-07 | FIFO consumption: two shocks queued per team → only first applied per tick | integration | same | ❌ Wave 0 |
-| SIM-07 | Admin crisis `inject_crisis` with `affected_team_ids` + severity + direction writes PendingShock | integration | `uv run pytest tests/test_admin_fundamentals.py::TestCrisisShockEnqueue -x` | ❌ Wave 0 |
-| SIM-07 | LLM news with `is_event=true, severity=MAJOR, direction=NEGATIVE` enqueues -8% shock | integration | `uv run pytest tests/test_shock_enqueue.py -x` | ❌ Wave 0 |
-| SIM-08 | Signed INR volume aggregate: 2 BUY txns + 1 SELL txn in last 60s computes correctly | integration | `uv run pytest tests/test_simulation.py::TestSentimentQuery -x` | ❌ Wave 0 |
-| SIM-08 | Sentiment normalization clamps to ±0.3%/tick even with extreme volume | unit | same | ❌ Wave 0 |
-| SIM-08 | Sentiment sign preserved: net buying → positive, net selling → negative | unit (property) | same | ❌ Wave 0 |
-| SIM-09 | `compute_ramp_fraction` monotonic non-decreasing over time, capped at 1.0 at tick 5+ | unit (property) | `uv run pytest tests/test_simulation.py::TestRamp -x` | ❌ Wave 0 |
-| SIM-09 | Ramp fraction 0.0 immediately after `ramp_started_at` set | unit | same | ❌ Wave 0 |
-| SIM-09 | New approval mid-ramp: `drift_now` does not decrease (snap-free per D-21) | integration | `uv run pytest tests/test_fundamental_service.py::TestRampReset -x` | ❌ Wave 0 |
-| ARCH-03 | Team with `fundamental_market_share` at band midpoint → z_market_share = 0 | unit | `uv run pytest tests/test_simulation.py::TestArchetypeRelative -x` | ❌ Wave 0 |
-| ARCH-03 | Same absolute MS value gives different z-scores for different archetypes | unit | same | ❌ Wave 0 |
-| D-01/D-02 | `build_fundamental_prompt` includes Decision rows, OperatingPlan, archetype bands, current fundamentals | unit | `uv run pytest tests/test_fundamental_service.py::TestBuildPrompt -x` | ❌ Wave 0 |
-| D-01/D-02 | `save_fundamental_evaluation` creates PENDING_APPROVAL record | unit | `uv run pytest tests/test_fundamental_service.py::TestSaveEvaluation -x` | ❌ Wave 0 |
-| D-02 | `apply_fundamental_deltas` updates team fundamentals, sets `ramp_started_at`, computes new `drift_target_pct` | integration | `uv run pytest tests/test_fundamental_service.py::TestApplyDeltas -x` | ❌ Wave 0 |
-| D-02 | Admin edits `proposed_deltas` via PATCH → approval uses `admin_edits` over `proposed_deltas` | integration | `uv run pytest tests/test_admin_fundamentals.py::TestEditThenApprove -x` | ❌ Wave 0 |
-| D-02 | Reject does not modify team fundamentals | integration | `uv run pytest tests/test_admin_fundamentals.py::TestReject -x` | ❌ Wave 0 |
-| D-28 | `POST /api/v1/admin/teams/:id/score` returns 410 Gone | integration | `uv run pytest tests/test_admin.py::TestSetScoreDeprecated -x` | ❌ Wave 0 |
-| D-28 | `approve_evaluation` (Phase 5) no longer writes target_price (column doesn't exist) | integration | `uv run pytest tests/test_evaluation.py::TestApproveEvaluation -x` | ✅ existing test file; **needs update** — existing assertions will fail |
-| D-29 | `game.tick` task still schedules, still broadcasts `price_update`, skips when `game:phase=war_room` | integration | `uv run pytest tests/test_game_tick.py -x` | ✅ existing test file; likely no change needed |
-| end-to-end | War Room transition enqueues `compute_fundamentals_for_team` for each ACTIVE team | integration | `uv run pytest tests/test_fundamental_service.py::TestQuarterTransitionFanOut -x` | ❌ Wave 0 |
-| end-to-end | Full tick cycle with fundamentals + sentiment + shock + noise produces a PriceHistory row and a WS broadcast | integration | `uv run pytest tests/test_simulation.py::TestFullTickCycle -x` | ❌ Wave 0 |
+| Req ID     | Behavior                                                                                                      | Test Type       | Automated Command                                                                 | File Exists?                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| SIM-05     | Weighted z-score with 35/30/20/15 weights returns correct drift_target                                        | unit            | `uv run pytest tests/test_simulation.py::TestComputeDriftTarget -x`               | ❌ Wave 0 (test_simulation.py exists but test class is new)             |
+| SIM-05     | `compute_price` produces `new_price = prev * (1 + drift + sentiment + shock + noise)`                         | unit            | `uv run pytest tests/test_simulation.py::TestComputePrice -x`                     | ❌ Wave 0                                                               |
+| SIM-06     | `z_score(midpoint)` returns 0; `z_score(band_max)` returns +1; `z_score(band_min)` returns -1                 | unit (property) | `uv run pytest tests/test_simulation.py::TestZScore -x`                           | ❌ Wave 0                                                               |
+| SIM-06     | `z_score` clamps at ±2 for extreme values                                                                     | unit            | same                                                                              | ❌ Wave 0                                                               |
+| SIM-07     | `PendingShock` with magnitude +8 produces multiplier of +0.08 in next tick                                    | integration     | `uv run pytest tests/test_simulation.py::TestShockApplication -x`                 | ❌ Wave 0                                                               |
+| SIM-07     | FIFO consumption: two shocks queued per team → only first applied per tick                                    | integration     | same                                                                              | ❌ Wave 0                                                               |
+| SIM-07     | Admin crisis `inject_crisis` with `affected_team_ids` + severity + direction writes PendingShock              | integration     | `uv run pytest tests/test_admin_fundamentals.py::TestCrisisShockEnqueue -x`       | ❌ Wave 0                                                               |
+| SIM-07     | LLM news with `is_event=true, severity=MAJOR, direction=NEGATIVE` enqueues -8% shock                          | integration     | `uv run pytest tests/test_shock_enqueue.py -x`                                    | ❌ Wave 0                                                               |
+| SIM-08     | Signed INR volume aggregate: 2 BUY txns + 1 SELL txn in last 60s computes correctly                           | integration     | `uv run pytest tests/test_simulation.py::TestSentimentQuery -x`                   | ❌ Wave 0                                                               |
+| SIM-08     | Sentiment normalization clamps to ±0.3%/tick even with extreme volume                                         | unit            | same                                                                              | ❌ Wave 0                                                               |
+| SIM-08     | Sentiment sign preserved: net buying → positive, net selling → negative                                       | unit (property) | same                                                                              | ❌ Wave 0                                                               |
+| SIM-09     | `compute_ramp_fraction` monotonic non-decreasing over time, capped at 1.0 at tick 5+                          | unit (property) | `uv run pytest tests/test_simulation.py::TestRamp -x`                             | ❌ Wave 0                                                               |
+| SIM-09     | Ramp fraction 0.0 immediately after `ramp_started_at` set                                                     | unit            | same                                                                              | ❌ Wave 0                                                               |
+| SIM-09     | New approval mid-ramp: `drift_now` does not decrease (snap-free per D-21)                                     | integration     | `uv run pytest tests/test_fundamental_service.py::TestRampReset -x`               | ❌ Wave 0                                                               |
+| ARCH-03    | Team with `fundamental_market_share` at band midpoint → z_market_share = 0                                    | unit            | `uv run pytest tests/test_simulation.py::TestArchetypeRelative -x`                | ❌ Wave 0                                                               |
+| ARCH-03    | Same absolute MS value gives different z-scores for different archetypes                                      | unit            | same                                                                              | ❌ Wave 0                                                               |
+| D-01/D-02  | `build_fundamental_prompt` includes Decision rows, OperatingPlan, archetype bands, current fundamentals       | unit            | `uv run pytest tests/test_fundamental_service.py::TestBuildPrompt -x`             | ❌ Wave 0                                                               |
+| D-01/D-02  | `save_fundamental_evaluation` creates PENDING_APPROVAL record                                                 | unit            | `uv run pytest tests/test_fundamental_service.py::TestSaveEvaluation -x`          | ❌ Wave 0                                                               |
+| D-02       | `apply_fundamental_deltas` updates team fundamentals, sets `ramp_started_at`, computes new `drift_target_pct` | integration     | `uv run pytest tests/test_fundamental_service.py::TestApplyDeltas -x`             | ❌ Wave 0                                                               |
+| D-02       | Admin edits `proposed_deltas` via PATCH → approval uses `admin_edits` over `proposed_deltas`                  | integration     | `uv run pytest tests/test_admin_fundamentals.py::TestEditThenApprove -x`          | ❌ Wave 0                                                               |
+| D-02       | Reject does not modify team fundamentals                                                                      | integration     | `uv run pytest tests/test_admin_fundamentals.py::TestReject -x`                   | ❌ Wave 0                                                               |
+| D-28       | `POST /api/v1/admin/teams/:id/score` returns 410 Gone                                                         | integration     | `uv run pytest tests/test_admin.py::TestSetScoreDeprecated -x`                    | ❌ Wave 0                                                               |
+| D-28       | `approve_evaluation` (Phase 5) no longer writes target_price (column doesn't exist)                           | integration     | `uv run pytest tests/test_evaluation.py::TestApproveEvaluation -x`                | ✅ existing test file; **needs update** — existing assertions will fail |
+| D-29       | `game.tick` task still schedules, still broadcasts `price_update`, skips when `game:phase=war_room`           | integration     | `uv run pytest tests/test_game_tick.py -x`                                        | ✅ existing test file; likely no change needed                          |
+| end-to-end | War Room transition enqueues `compute_fundamentals_for_team` for each ACTIVE team                             | integration     | `uv run pytest tests/test_fundamental_service.py::TestQuarterTransitionFanOut -x` | ❌ Wave 0                                                               |
+| end-to-end | Full tick cycle with fundamentals + sentiment + shock + noise produces a PriceHistory row and a WS broadcast  | integration     | `uv run pytest tests/test_simulation.py::TestFullTickCycle -x`                    | ❌ Wave 0                                                               |
 
 ### Property Tests to Include
 
@@ -1131,6 +1178,7 @@ async def _execute_tick():
 - **Price floor invariant:** `compute_price` never returns less than `Decimal("0.01")` regardless of inputs.
 
 ### Sampling Rate
+
 - **Per task commit:** `cd server && uv run pytest tests/test_simulation.py tests/test_fundamental_service.py -x` (~5-10s)
 - **Per wave merge:** `cd server && uv run pytest -x` (full backend suite)
 - **Phase gate:** Full backend suite green + manual smoke: admin approves fundamental eval → caseline fundamentals tile updates → next tick shows price drift.
@@ -1149,34 +1197,35 @@ async def _execute_tick():
 
 ### Applicable ASVS Categories
 
-| ASVS Category | Applies | Standard Control |
-|---------------|---------|-----------------|
-| V2 Authentication | yes | Reuse `require_admin` dep for all new admin endpoints; JWT in `Authorization: Bearer` header (`server/app/auth_utils.py`) |
-| V3 Session Management | no | No new session behavior; admin token unchanged |
-| V4 Access Control | yes | Admin-only endpoints use `_admin: dict = Depends(require_admin)` on every route — matches existing Phase 5 approval routes. Team-scoped fundamental read (`GET /api/v1/teams/me/fundamentals`) uses `require_team_member` / per-team JWT |
-| V5 Input Validation | yes | Pydantic field constraints: `round_number: int = Field(ge=0)`, deltas `float = Field(ge=-100, le=100)`, magnitude `Decimal` constrained at 3/8/15 server-side (don't trust LLM literal). Reuse existing `_validate_benchmark_bands` for anything touching bands |
-| V6 Cryptography | no | No new cryptographic primitives |
-| V7 Error Handling | yes | LLM failure must not leak team business logic to other teams. Mirror `evaluate_solution` pattern: FAILED status on exception, publish to *source team only* via `publish_to_team_sync` |
-| V10 Malicious Code | yes | LLM output is parsed as JSON with strict schema; no exec/eval on LLM text. Narrative field is stored as Text, rendered as plain text (React auto-escapes). |
-| V13 API & Web Service | yes | All mutations (approve, reject, override) require POST/PATCH, not GET. CSRF concerns: admin sends JWT Bearer, not cookies — so classic CSRF doesn't apply. |
+| ASVS Category         | Applies | Standard Control                                                                                                                                                                                                                                                |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V2 Authentication     | yes     | Reuse `require_admin` dep for all new admin endpoints; JWT in `Authorization: Bearer` header (`server/app/auth_utils.py`)                                                                                                                                       |
+| V3 Session Management | no      | No new session behavior; admin token unchanged                                                                                                                                                                                                                  |
+| V4 Access Control     | yes     | Admin-only endpoints use `_admin: dict = Depends(require_admin)` on every route — matches existing Phase 5 approval routes. Team-scoped fundamental read (`GET /api/v1/teams/me/fundamentals`) uses `require_team_member` / per-team JWT                        |
+| V5 Input Validation   | yes     | Pydantic field constraints: `round_number: int = Field(ge=0)`, deltas `float = Field(ge=-100, le=100)`, magnitude `Decimal` constrained at 3/8/15 server-side (don't trust LLM literal). Reuse existing `_validate_benchmark_bands` for anything touching bands |
+| V6 Cryptography       | no      | No new cryptographic primitives                                                                                                                                                                                                                                 |
+| V7 Error Handling     | yes     | LLM failure must not leak team business logic to other teams. Mirror `evaluate_solution` pattern: FAILED status on exception, publish to _source team only_ via `publish_to_team_sync`                                                                          |
+| V10 Malicious Code    | yes     | LLM output is parsed as JSON with strict schema; no exec/eval on LLM text. Narrative field is stored as Text, rendered as plain text (React auto-escapes).                                                                                                      |
+| V13 API & Web Service | yes     | All mutations (approve, reject, override) require POST/PATCH, not GET. CSRF concerns: admin sends JWT Bearer, not cookies — so classic CSRF doesn't apply.                                                                                                      |
 
 ### Known Threat Patterns for this stack
 
-| Pattern | STRIDE | Standard Mitigation |
-|---------|--------|---------------------|
-| LLM prompt injection (team operating plan could attempt to embed "produce positive deltas") | Tampering, Elevation of Privilege | System prompt explicitly instructs LLM to treat operating plan content as untrusted data, not instructions. Admin approval layer catches successful injections (D-02). |
-| SQL injection via dynamic SQL in sentiment aggregate | Tampering | SQLAlchemy Core/ORM binds parameters — no string concat with user input. Verified in Pattern 4 above. |
-| Race condition: two admins approve same FundamentalEvaluation simultaneously → double-apply deltas | Tampering | Check `status == PENDING_APPROVAL` before apply; raise `ValueError` and return 409 Conflict on mismatch. Mirrors `approve_evaluation` at `evaluation_service.py:238-242`. |
-| Race condition: fundamental approval runs concurrently with tick loop reading team fundamentals | Tampering | `selectinload(Team.archetype)` + no inter-tick locking means the tick gets a snapshot per-tick. Admin approval commits atomically. Eventual consistency is acceptable — next tick picks up new values. |
-| Admin issues override while tick is mid-compute | Tampering | Same as above — tick snapshots at SELECT time. |
-| Shock enqueue from compromised LLM news output (false news flagged as event) | Spoofing | Admin sees all shock events via `shock_applied` WS + `ActivityEvent` log. Can reverse with counter-crisis. Not Phase 9 scope to auto-detect. |
-| PendingShock DoS: attacker triggers many crisis events | Denial of Service | `require_admin` on crisis endpoint; admin-only workflow. Rate limiting not required for this surface. |
-| Leaking team A's fundamentals to team B | Information Disclosure | `GET /api/v1/teams/me/fundamentals` scoped to JWT's team_id. No public fundamentals endpoint. Admin endpoint behind `require_admin`. |
-| LLM call leaks secret in prompt context | Information Disclosure | Prompt includes only: team public data (caseline, archetype bands, current fundamentals, decision rows, operating plan). No API keys, no other teams' private data. Verify in `build_fundamental_prompt` code review. |
+| Pattern                                                                                            | STRIDE                            | Standard Mitigation                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LLM prompt injection (team operating plan could attempt to embed "produce positive deltas")        | Tampering, Elevation of Privilege | System prompt explicitly instructs LLM to treat operating plan content as untrusted data, not instructions. Admin approval layer catches successful injections (D-02).                                                |
+| SQL injection via dynamic SQL in sentiment aggregate                                               | Tampering                         | SQLAlchemy Core/ORM binds parameters — no string concat with user input. Verified in Pattern 4 above.                                                                                                                 |
+| Race condition: two admins approve same FundamentalEvaluation simultaneously → double-apply deltas | Tampering                         | Check `status == PENDING_APPROVAL` before apply; raise `ValueError` and return 409 Conflict on mismatch. Mirrors `approve_evaluation` at `evaluation_service.py:238-242`.                                             |
+| Race condition: fundamental approval runs concurrently with tick loop reading team fundamentals    | Tampering                         | `selectinload(Team.archetype)` + no inter-tick locking means the tick gets a snapshot per-tick. Admin approval commits atomically. Eventual consistency is acceptable — next tick picks up new values.                |
+| Admin issues override while tick is mid-compute                                                    | Tampering                         | Same as above — tick snapshots at SELECT time.                                                                                                                                                                        |
+| Shock enqueue from compromised LLM news output (false news flagged as event)                       | Spoofing                          | Admin sees all shock events via `shock_applied` WS + `ActivityEvent` log. Can reverse with counter-crisis. Not Phase 9 scope to auto-detect.                                                                          |
+| PendingShock DoS: attacker triggers many crisis events                                             | Denial of Service                 | `require_admin` on crisis endpoint; admin-only workflow. Rate limiting not required for this surface.                                                                                                                 |
+| Leaking team A's fundamentals to team B                                                            | Information Disclosure            | `GET /api/v1/teams/me/fundamentals` scoped to JWT's team_id. No public fundamentals endpoint. Admin endpoint behind `require_admin`.                                                                                  |
+| LLM call leaks secret in prompt context                                                            | Information Disclosure            | Prompt includes only: team public data (caseline, archetype bands, current fundamentals, decision rows, operating plan). No API keys, no other teams' private data. Verify in `build_fundamental_prompt` code review. |
 
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `server/app/services/evaluation_service.py` — Phase 5 approval pipeline, the 1:1 mirror template for Phase 9. `[VERIFIED: codebase]`
 - `server/app/services/simulation_service.py` — current `interpolate_price`, `calculate_all_prices`, `set_team_score`. `[VERIFIED: codebase]`
 - `server/app/services/llm_service.py` — `call_openrouter(json_schema=…)` signature. `[VERIFIED: codebase]`
@@ -1203,17 +1252,20 @@ async def _execute_tick():
 - `CLAUDE.md` — project stack and constraints. `[VERIFIED: codebase]`
 
 ### Secondary (MEDIUM confidence)
+
 - `[CITED: https://www.postgresql.org/docs/15/sql-select.html#SQL-DISTINCT]` — `DISTINCT ON` semantics for FIFO shock query.
 - `[CITED: https://docs.celeryq.dev/en/stable/userguide/tasks.html#Task.rate_limit]` — Celery `rate_limit` for LLM fan-out throttling.
 - `[CITED: https://platform.openai.com/docs/guides/structured-outputs]` — JSON schema `strict: true` guarantees conformance (OpenRouter proxies this for upstream models; some free models may emit looser JSON).
 
 ### Tertiary (LOW confidence)
+
 - Quarter-boundary LLM cost estimate: 40 teams × 20 quarters × 1 call = 800 calls/competition. At typical OpenRouter prices for nemotron-3-super (free tier) or comparable paid (~$0.002/call), well under $5/competition. `[ASSUMED]` — depends on model choice and actual token volumes.
 - Tick latency target <50ms for 40 teams: based on existing Phase 4 tick performance (~10-20ms for pure batch + interpolate). New formula adds constant work per team (sentiment lookup is a dict `.get`, z-score is 4 arithmetic ops). Estimate is conservative. `[ASSUMED]` — measure after implementation.
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all dependencies in `pyproject.toml` verified; no new libraries required.
 - Architecture patterns: HIGH — Phase 5 pipeline is fully mirrored; existing patterns verified line-by-line.
 - Per-tick formula implementation: HIGH — straightforward translation of CONTEXT.md D-06/07 math to Python.
@@ -1230,4 +1282,4 @@ async def _execute_tick():
 
 ---
 
-*Researched for Phase 9: Enhanced Simulation Engine. Downstream consumers (planner, plan-checker, execute-phase) must read `09-CONTEXT.md` first, then this file. Assumptions A1-A7 require discussion before plan finalization.*
+_Researched for Phase 9: Enhanced Simulation Engine. Downstream consumers (planner, plan-checker, execute-phase) must read `09-CONTEXT.md` first, then this file. Assumptions A1-A7 require discussion before plan finalization._

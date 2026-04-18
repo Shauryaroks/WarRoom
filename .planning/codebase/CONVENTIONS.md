@@ -6,6 +6,7 @@
 ## Python Backend
 
 ### File Organization
+
 ```
 server/app/
 ├── api/          # FastAPI route handlers
@@ -18,16 +19,18 @@ server/app/
 ```
 
 ### Naming Conventions
-| Element | Convention | Example |
-|---------|------------|---------|
-| Database models | PascalCase | `GameState`, `Team` |
-| API routers | snake_case | `game.py`, `trading.py` |
-| Services | snake_case | `game_service.py`, `trading_service.py` |
-| Celery tasks | snake_case | `game_tick.py`, `evaluate_solution.py` |
-| Pydantic schemas | PascalCase | `TeamCreate`, `TradeRequest` |
-| Enums | PascalCase + enum suffix where needed | `TeamStatus`, `GameStatus` |
+
+| Element          | Convention                            | Example                                 |
+| ---------------- | ------------------------------------- | --------------------------------------- |
+| Database models  | PascalCase                            | `GameState`, `Team`                     |
+| API routers      | snake_case                            | `game.py`, `trading.py`                 |
+| Services         | snake_case                            | `game_service.py`, `trading_service.py` |
+| Celery tasks     | snake_case                            | `game_tick.py`, `evaluate_solution.py`  |
+| Pydantic schemas | PascalCase                            | `TeamCreate`, `TradeRequest`            |
+| Enums            | PascalCase + enum suffix where needed | `TeamStatus`, `GameStatus`              |
 
 ### SQLAlchemy Model Patterns
+
 ```python
 # Column definitions using Mapped type annotations
 id: Mapped[int] = mapped_column(primary_key=True)
@@ -39,6 +42,7 @@ teams: Mapped[list["Team"]] = relationship(back_populates="game")
 ```
 
 ### Pydantic Schema Patterns
+
 ```python
 # Request/Response with config with_config(populate_by_name=True))
 class TeamCreate(ConfigMixin):
@@ -47,6 +51,7 @@ class TeamCreate(ConfigMixin):
 ```
 
 ### API Route Patterns
+
 ```python
 # Standard router setup
 router = APIRouter(prefix="/teams", tags=["teams"])
@@ -59,6 +64,7 @@ async def create_team(...) -> TeamPublic:
 ## TypeScript Frontend
 
 ### File Organization
+
 ```
 client/src/
 ├── components/   # React components
@@ -68,14 +74,16 @@ client/src/
 ```
 
 ### Naming Conventions
-| Element | Convention | Example |
-|---------|------------|---------|
+
+| Element    | Convention | Example             |
+| ---------- | ---------- | ------------------- |
 | Components | PascalCase | `GameDashboard.tsx` |
-| Stores | kebab-case | `game-store.ts` |
-| Hooks | camelCase | `useWebSocket.ts` |
-| Types | PascalCase | `types.ts` exports |
+| Stores     | kebab-case | `game-store.ts`     |
+| Hooks      | camelCase  | `useWebSocket.ts`   |
+| Types      | PascalCase | `types.ts` exports  |
 
 ### Zustand Store Pattern
+
 ```typescript
 interface GameState {
   game: GameState | null;
@@ -87,14 +95,15 @@ export const useGameStore = create<GameState>()(
       game: null,
       // ...
     }),
-    { name: 'game-store' }
-  )
+    { name: "game-store" },
+  ),
 );
 ```
 
 ## Git Conventions
 
 ### Commit Messages
+
 - `feat: add X` - New feature
 - `fix: fix X` - Bug fix
 - `refactor: restructure X` - Code reorganization
@@ -102,6 +111,7 @@ export const useGameStore = create<GameState>()(
 - `docs: update X` - Documentation
 
 ### Branch Naming
+
 - `phase/NN-name` - Phase implementation
 - `fix/issue-description` - Bug fixes
 - `quick/date-description` - Quick tasks
@@ -109,19 +119,23 @@ export const useGameStore = create<GameState>()(
 ## General Patterns
 
 ### Error Handling
+
 - Backend: Raise HTTPException with status_code and detail
 - Frontend: Handle in try/catch, update store on error
 
 ### Environment Configuration
+
 - Backend: `.env` with pydantic-settings
 - Use `settings.DATABASE_URL`, `settings.REDIS_URL`, etc.
 
 ### WebSocket Messages
+
 ```python
 # Server broadcasts via Redis pub/sub
 await publish("ws:broadcast", json.dumps(message))
 ```
 
 ### Authentication
+
 - JWT in Authorization header: `Bearer <token>`
 - Token contains `{sub: team_id, role: "team"|"admin"}`

@@ -9,7 +9,12 @@ dependency_graph:
   affects: [admin-teams, admin-settings, game-caseline]
 tech_stack:
   added: []
-  patterns: [archetype-dropdown-auto-fill, benchmark-bands-display, create-form-with-slug-generation]
+  patterns:
+    [
+      archetype-dropdown-auto-fill,
+      benchmark-bands-display,
+      create-form-with-slug-generation,
+    ]
 key_files:
   created: []
   modified:
@@ -37,15 +42,16 @@ Frontend types, API client, admin archetype dropdown with auto-fill, creation fo
 
 ## Completed Tasks
 
-| Task | Name | Commit | Key Files |
-|------|------|--------|-----------|
-| 1 | TypeScript types, API client methods, and admin Teams archetype dropdown | 945d36f | types.ts, api.ts, teams/page.tsx, team-table.tsx |
-| 2 | Admin Settings archetype creation form and game CaselinePanel archetype badge | 74e9191 | settings/page.tsx, CaselinePanel.tsx |
-| 3 | Verify archetype system end-to-end | -- | Deferred to orchestrator (checkpoint:human-verify) |
+| Task | Name                                                                          | Commit  | Key Files                                          |
+| ---- | ----------------------------------------------------------------------------- | ------- | -------------------------------------------------- |
+| 1    | TypeScript types, API client methods, and admin Teams archetype dropdown      | 945d36f | types.ts, api.ts, teams/page.tsx, team-table.tsx   |
+| 2    | Admin Settings archetype creation form and game CaselinePanel archetype badge | 74e9191 | settings/page.tsx, CaselinePanel.tsx               |
+| 3    | Verify archetype system end-to-end                                            | --      | Deferred to orchestrator (checkpoint:human-verify) |
 
 ## What Was Built
 
 ### Task 1: Types + API + Teams Dropdown
+
 - Added `ArchetypeResponse`, `ArchetypeAssignResponse`, `ArchetypeSeedResponse`, `BenchmarkBands` types
 - Extended `AdminTeam` with `archetype_id` and `archetype_name` fields
 - Extended `CaselineResponse` with `archetype_name`, `archetype_slug`, `sector`, `benchmark_bands`, and 4 SWOT fields
@@ -55,6 +61,7 @@ Frontend types, API client, admin archetype dropdown with auto-fill, creation fo
 - TeamTable shows archetype name badge inline with team name
 
 ### Task 2: Settings Form + CaselinePanel Badge
+
 - Added ARCHETYPE_MANAGEMENT section in Settings between GAME_CONFIGURATION and DANGER_ZONE
 - Seed presets button calls seed API and shows created/skipped counts
 - Archetype list table with name, sector, starting cash, and preset badge or delete button
@@ -68,6 +75,7 @@ Frontend types, API client, admin archetype dropdown with auto-fill, creation fo
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Added try/catch around JSON.parse for benchmark_bands**
+
 - **Found during:** Task 2
 - **Issue:** benchmark_bands is a JSON string that could be malformed, causing runtime crash
 - **Fix:** Wrapped JSON.parse in try/catch, return null on error

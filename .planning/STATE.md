@@ -42,19 +42,19 @@ Progress: [░░░░░░░░░░] 0%
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1-6 (v1.0) | 26 | - | - |
-| 7-12 (v2.0) | 0 | - | - |
-| 7 | 2 | - | - |
-| 8 | 4 | - | - |
+| Phase       | Plans | Total | Avg/Plan |
+| ----------- | ----- | ----- | -------- |
+| 1-6 (v1.0)  | 26    | -     | -        |
+| 7-12 (v2.0) | 0     | -     | -        |
+| 7           | 2     | -     | -        |
+| 8           | 4     | -     | -        |
 
 **Recent Trend:**
 
 - Last 5 plans: -
 - Trend: -
 
-*Updated after each plan completion*
+_Updated after each plan completion_
 | Phase 09 P01 | 25min | 3 tasks | 4 files |
 
 ## Accumulated Context
@@ -82,11 +82,11 @@ None yet.
 
 ## Deferred Items
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| Future | M&A mechanics (acquire distressed rivals) | Deferred to v3 | v2.0 planning |
-| Future | Influence Points system (creator economy) | Deferred to v3 | v2.0 planning |
-| Future | Spectator mode for audience viewing | Deferred to v3 | v2.0 planning |
+| Category | Item                                      | Status         | Deferred At   |
+| -------- | ----------------------------------------- | -------------- | ------------- |
+| Future   | M&A mechanics (acquire distressed rivals) | Deferred to v3 | v2.0 planning |
+| Future   | Influence Points system (creator economy) | Deferred to v3 | v2.0 planning |
+| Future   | Spectator mode for audience viewing       | Deferred to v3 | v2.0 planning |
 
 ## Session Continuity
 

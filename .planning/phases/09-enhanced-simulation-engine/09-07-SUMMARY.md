@@ -17,6 +17,7 @@ metrics:
 # Phase 9 Plan 07 — DEFERRED
 
 Originally authored after user requested "extensive endpoint testing + stress testing." Plan contained 5 tasks:
+
 1. Endpoint matrix suite (`server/tests/test_endpoint_matrix.py`) — exhaustive auth/role/validation/business/race for all Phase 9 endpoints
 2. `TestTickThroughput` — 40-team × 60-tick throughput assertions (p50<20ms, p95<50ms, p99<100ms)
 3. `TestSentimentUnderLoad` — 1000-trade concurrent load with sentiment math verification
@@ -29,5 +30,6 @@ Originally authored after user requested "extensive endpoint testing + stress te
 Run `/gsd-execute-phase 9 --wave 6` OR invoke the plan manually. The Plan 07 PLAN.md is still authored and committed — execution just needs to happen.
 
 **Substitutes in current live state:**
+
 - `server/scripts/audit_endpoints.py` (845 LOC, from the earlier Phase 1-8 audit) exists as a lightweight smoke test; could be extended to cover Phase 9 endpoints.
 - `server/tests/conftest.py` fixtures from 09-01 are in place and ready for stress test authoring.

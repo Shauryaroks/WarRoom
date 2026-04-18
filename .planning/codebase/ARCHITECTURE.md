@@ -7,6 +7,7 @@
 **Overall:** FastAPI + PostgreSQL + Redis + Celery with Next.js frontend. Real-time WebSocket bidirectional communication between server processes and clients via Redis pub/sub relay.
 
 **Key Characteristics:**
+
 - Async SQLAlchemy with asyncpg driver (non-blocking webhooks)
 - JWT authentication with dual-role team accounts (strategist/trader)
 - Centralized game state machine in PostgreSQL, cached in Redis
@@ -19,6 +20,7 @@
 **Purpose:** HTTP/REST endpoints organized by domain
 
 **Contents:**
+
 - `auth.py` - Team registration, login (202 ACCEPTED after registration)
 - `admin.py` - Admin-only controls: game state, teams, evaluations, archetypes, crisis injection
 - `teams.py` - Team listing (admin), team info (team)
@@ -35,6 +37,7 @@
 **Purpose:** Business logic, database operations, external API calls
 
 **Contents:**
+
 - `game_service.py` - Game state machine, Redis caching, phase transitions, operating budget
 - `trading_service.py` - Share transaction execution with 30% cap enforcement
 - `simulation_service.py` - Stock price calculation per tick, fundamentals engine
@@ -48,6 +51,7 @@
 **Purpose:** SQLAlchemy ORM definitions for PostgreSQL
 
 **Key Models:**
+
 - `Team` - Team entity with dual credentials, financial state, fundamentals
 - `Admin` - Admin accounts (separate from teams)
 - `GameState` - Singleton game status, timing, round tracking
@@ -69,6 +73,7 @@
 **Purpose:** Real-time bidirectional communication
 
 **Pattern:**
+
 - ConnectionManager tracks connections per team_id
 - Redis pub/sub relay in API process subscribes to Redis channels
 - Incoming Redis messages broadcast to WebSocket clients
@@ -79,6 +84,7 @@
 **Purpose:** Celery background tasks
 
 **Tasks:**
+
 - `game_tick.py` - 60-second stock price tick scheduler
 - `evaluate_solution.py` - Async LLM evaluation task
 - `generate_news.py` - Post-approval news generation
@@ -88,6 +94,7 @@
 **Purpose:** Next.js frontend
 
 **Key Components:**
+
 - `stores/*.ts` - Zustand state management (auth, game, market, trading, decisions, solutions, admin)
 - `hooks/use-websocket.ts` - WebSocket connection hook
 - `lib/api.ts` - API client functions
@@ -153,6 +160,7 @@
 **Purpose:** Single source of truth for competition state
 
 **Implementation:** `GameState` model with `id=1`, accessed via:
+
 - `get_game_state(db)` - with FOR UPDATE lock for writes
 - `get_game_state_readonly(db)` - for reads
 - Cached in Redis via key `game:status`
@@ -164,6 +172,7 @@
 **Purpose:** Separate strategist/trader access per D-01
 
 **Implementation:** Team model fields:
+
 - `strategist_email`, `strategist_password_hash`
 - `trader_email`, `trader_password_hash`
 
@@ -174,6 +183,7 @@
 **Purpose:** Broadcast messages across multiple uvicorn workers
 
 **Implementation:** `start_redis_relay()` runs as background task:
+
 - Subscribes to Redis channels `broadcast`, `team:{team_id}`
 - On message: relay to connected WebSocket client
 - Server-initiated via `publish_broadcast()`, `publish_to_team()`
@@ -193,11 +203,13 @@
 **Location:** `server/app/main.py`
 
 **Triggers:**
+
 - HTTP request to any `/api/v1/*` endpoint
 - WebSocket connection to `/ws`
 - Health check GET `/health`
 
 **Responsibilities:**
+
 - Router registration
 - CORS middleware
 - Lifespan management (Redis relay startup/shutdown)
@@ -207,10 +219,12 @@
 **Location:** `server/app/worker/celery_app.py`
 
 **Triggers:**
+
 - Beat schedule (every 60 seconds for ticks)
 - Task dispatch from API endpoints
 
 **Responsibilities:**
+
 - Background price calculation
 - Async LLM evaluation
 
@@ -219,6 +233,7 @@
 **Strategy:** HTTPException for API errors, try/catch in services
 
 **Patterns:**
+
 - 401 Unauthorized - invalid/missing JWT
 - 403 Forbidden - role-based access denied
 - 404 Not Found - entity not found
@@ -241,4 +256,4 @@
 
 ---
 
-*Architecture analysis: 2026-04-17*
+_Architecture analysis: 2026-04-17_

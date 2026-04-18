@@ -13,6 +13,7 @@ The simulation engine — teams submit solutions, the LLM evaluates them with ad
 **Goal:** Align platform with the "Bharat Bites & Brews" FMCG Stock Wars competition model — decision levers, enhanced simulation, archetype-relative scoring, short selling, admin-controlled dynamic event flow.
 
 **Target features:**
+
 - Decision Levers system (5 categories submitted every 20 min)
 - Enhanced price formula (4 weighted fundamentals + event shock + sentiment + noise)
 - Archetype benchmark system (relative scoring per team archetype)
@@ -90,21 +91,22 @@ The simulation engine — teams submit solutions, the LLM evaluates them with ad
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Two sub-accounts per team (Strategist + Trader) | Enforces role separation, strategist gets view-only market access | — Pending |
-| OpenRouter as LLM gateway | Flexibility to swap models, Claude configured later | — Pending |
-| Simple buy/sell (no order book) | Reduces complexity, price set by simulation not market makers | — Pending |
-| Formula + LLM for stock prices | Random walk base gives organic movement, LLM adjusts for solution quality | — Pending |
-| Human-in-the-loop before LLM actions take effect | Prevents LLM from scoring too high/low without admin review | — Pending |
-| Elimination-based progression | Narrows field each round, creates stakes | — Pending |
-| Admin pre-creates caselines | Ensures balanced, curated competition scenarios | — Pending |
+| Decision                                         | Rationale                                                                 | Outcome   |
+| ------------------------------------------------ | ------------------------------------------------------------------------- | --------- |
+| Two sub-accounts per team (Strategist + Trader)  | Enforces role separation, strategist gets view-only market access         | — Pending |
+| OpenRouter as LLM gateway                        | Flexibility to swap models, Claude configured later                       | — Pending |
+| Simple buy/sell (no order book)                  | Reduces complexity, price set by simulation not market makers             | — Pending |
+| Formula + LLM for stock prices                   | Random walk base gives organic movement, LLM adjusts for solution quality | — Pending |
+| Human-in-the-loop before LLM actions take effect | Prevents LLM from scoring too high/low without admin review               | — Pending |
+| Elimination-based progression                    | Narrows field each round, creates stakes                                  | — Pending |
+| Admin pre-creates caselines                      | Ensures balanced, curated competition scenarios                           | — Pending |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 **After each phase transition** (via `/gsd-transition`):
+
 1. Requirements invalidated? → Move to Out of Scope with reason
 2. Requirements validated? → Move to Validated with phase reference
 3. New requirements emerged? → Add to Active
@@ -112,10 +114,12 @@ This document evolves at phase transitions and milestone boundaries.
 5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone** (via `/gsd-complete-milestone`):
+
 1. Full review of all sections
 2. Core Value check — still the right priority?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after initialization*
+
+_Last updated: 2026-04-16 after initialization_

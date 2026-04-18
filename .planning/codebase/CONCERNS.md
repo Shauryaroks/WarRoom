@@ -3,6 +3,7 @@
 **Analysis Date:** 2026-04-17
 
 ## Severity Legend
+
 - **HIGH**: Immediate production risk, requires urgent fix
 - **MEDIUM**: Will cause issues under load or specific triggers
 - **LOW**: Technical debt, should be addressed in future sprints
@@ -12,6 +13,7 @@
 ## HIGH Severity
 
 ### H-01: No JWT Secret Validation on Startup
+
 **Issue:** The application can start without `JWT_SECRET` configured. `auth_utils.py` raises `ValueError` at runtime when attempting to create/decode tokens.
 
 **Files:** `server/app/auth_utils.py`, `server/app/database.py`
@@ -23,6 +25,7 @@
 ---
 
 ### H-02: Shared Password for Dual Credentials
+
 **Issue:** Registration creates both strategist and trader sub-accounts with the same password hash (`server/app/api/auth.py` lines 117-118). If one sub-account is compromised, the other is immediately compromised too.
 
 **Files:** `server/app/api/auth.py` (lines 117-118)
@@ -34,6 +37,7 @@
 ---
 
 ### H-03: Missing Transaction Race Condition Guard on Sell
+
 **Issue:** `execute_sell()` locks the seller's holding and the target team, but does NOT lock other holdings for the target when calculating external cap. Concurrent sells from multiple teams could briefly exceed the 30% cap (though it would be corrected on next buy attempt).
 
 **Files:** `server/app/services/trading_service.py` (lines 207-229)
@@ -47,6 +51,7 @@
 ## MEDIUM Severity
 
 ### M-01: WebSocket In-Memory State Not Distributed
+
 **Issue:** `server/app/websocket.py` uses module-level `ConnectionManager` singleton. Each API worker process has its own independent in-memory connection list. Redis pub/sub handles broadcasts, but per-team messages (`send_to_team`) may not reach all connected clients if they're connected to different workers.
 
 **Files:** `server/app/websocket.py`, `server/app/redis_pubsub.py`
@@ -58,6 +63,7 @@
 ---
 
 ### M-02: Celery Beat Runs Embedded (Single Point of Failure)
+
 **Issue:** `docker-compose.yml` runs `--beat` in the same worker container. If that container restarts, beat could miss a tick or double-schedule.
 
 **Files:** `docker-compose.yml` (line 43)
@@ -69,6 +75,7 @@
 ---
 
 ### M-03: No Rate Limiting on Trading Endpoints
+
 **Issue:** Trading endpoints (`/api/v1/trading/buy`, `/api/v1/trading/sell`) have no rate limiting. A compromised trader account could spam trades.
 
 **Files:** `server/app/api/trading.py`
@@ -80,6 +87,7 @@
 ---
 
 ### M-04: LLM Service Timeout May Be Too Long
+
 **Issue:** `llm_service.py` uses 90-second timeout (line 149). OpenRouter free tier models can take very long, blocking the evaluation queue.
 
 **Files:** `server/app/services/llm_service.py` (line 149)
@@ -91,6 +99,7 @@
 ---
 
 ### M-05: No Input Sanitization on Caseline Document
+
 **Issue:** Teams submit `caseline_document` as freeform text (stored in `Team.caseline_document`). No XSS/script injection protection in display.
 
 **Files:** `server/app/models.py` (line 248), client components
@@ -104,6 +113,7 @@
 ## LOW Severity
 
 ### L-01: Game State Cache Not Invalidated on API Crash
+
 **Issue:** Redis key `game:status` is set but has no TTL. If API crashes and restarts, stale status could persist indefinitely.
 
 **Files:** `server/app/services/game_service.py` (line 163)
@@ -115,6 +125,7 @@
 ---
 
 ### L-02: Missing Index on Transaction.executed_at
+
 **Issue:** `compute_sentiment()` queries transactions by `executed_at` range (last 60 seconds). No index exists on this column.
 
 **Files:** `server/app/services/simulation_service.py` (lines 130-138), `server/app/models.py`
@@ -126,6 +137,7 @@
 ---
 
 ### L-03: Password Validation Too Simple
+
 **Issue:** Registration only requires 8+ character password. No complexity requirements (numbers, special chars, case).
 
 **Files:** `server/app/api/auth.py` (lines 43-48)
@@ -137,6 +149,7 @@
 ---
 
 ### L-04: No Structured Logging
+
 **Issue:** Uses Python standard logging inconsistently. Some places use `logger.info()`, others print to stdout.
 
 **Files:** Multiple files
@@ -148,6 +161,7 @@
 ---
 
 ### L-05: Error Responses May Leak Information
+
 **Issue:** Some error handlers return raw exception messages to clients (e.g., `detail=str(e)`).
 
 **Files:** `server/app/api/trading.py` (lines 105, 188, 260, 273)
@@ -159,6 +173,7 @@
 ---
 
 ### L-06: Database Connection Pool Too Small for Load
+
 **Issue:** `pool_size=20` in `database.py`. With 80 concurrent WebSocket connections + API calls + background tasks, pool may exhaust under load.
 
 **Files:** `server/app/database.py` (line 33)
@@ -172,6 +187,7 @@
 ## Known Issues (Pre-Existing)
 
 ### K-01: No Test Coverage on Critical Paths
+
 **Issue:** Limited test files found in `server/tests/`. Critical services (trading, simulation) have minimal test coverage.
 
 **Impact:** regressions in core mechanics won't be caught.
@@ -181,6 +197,7 @@
 ---
 
 ### K-02: No Health Check for Redis Connection
+
 **Issue:** API health check (`/health`) doesn't verify Redis connectivity. Redis could be down but API reports healthy.
 
 **Files:** `server/app/main.py`
@@ -192,6 +209,7 @@
 ---
 
 ### K-03: Caddy Config Not Version Controlled
+
 **Issue:** `Caddyfile` exists but not checked in. Docker compose mounts it from filesystem.
 
 **Files:** `Caddyfile` (referenced in docker-compose.yml line 67)
@@ -205,6 +223,7 @@
 ## Security Considerations
 
 ### S-01: JWT Algorithm Not Restricted
+
 **Issue:** Uses `settings.JWT_ALGORITHM` (defaults to HS256). If secret is compromised, attacker could craft tokens with less secure algorithms.
 
 **Files:** `server/app/auth_utils.py` (line 33)
@@ -212,6 +231,7 @@
 **Fix approach:** Hardcode algorithm as HS256, don't allow configuration.
 
 ### S-02: No HTTPS Enforcement in Development
+
 **Issue:** Caddy auto-configures HTTPS but development runs on HTTP. No HSTS headers.
 
 **Files:** `Caddyfile` configuration
@@ -223,6 +243,7 @@
 ## Performance Bottlenecks
 
 ### P-01: Simulation Tick Calculates All Teams Sequentially
+
 **Issue:** `calculate_all_prices()` loops through all ACTIVE teams sequentially. Each iteration has awaited calls for sentiment and shock.
 
 **Files:** `server/app/services/simulation_service.py` (lines 195-264)
@@ -232,6 +253,7 @@
 **Fix approach:** Batch queries, use asyncio.gather for independent operations.
 
 ### P-02: Portfolio Query N+1 Problem
+
 **Issue:** `get_portfolio()` uses joinedload but iterates over holdings individually for calculations.
 
 **Files:** `server/app/services/trading_service.py` (lines 311-352)
@@ -242,4 +264,4 @@
 
 ---
 
-*Concerns audit: 2026-04-17*
+_Concerns audit: 2026-04-17_

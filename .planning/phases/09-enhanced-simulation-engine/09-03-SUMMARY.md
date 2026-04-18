@@ -5,7 +5,15 @@ subsystem: fundamental-eval-service
 tags: [fundamental-service, llm-eval, approval-pipeline, phase-9]
 dependency_graph:
   requires: [09-01, 09-02]
-  provides: [build_fundamental_prompt, save_fundamental_evaluation, apply_fundamental_deltas, reject_fundamental_evaluation, trigger_compute_for_round, FUNDAMENTAL_SCHEMA]
+  provides:
+    [
+      build_fundamental_prompt,
+      save_fundamental_evaluation,
+      apply_fundamental_deltas,
+      reject_fundamental_evaluation,
+      trigger_compute_for_round,
+      FUNDAMENTAL_SCHEMA,
+    ]
   affects: [fundamental_service.py]
 simplifications_vs_plan:
   - Admin-triggered compute via POST endpoint instead of automatic War Room transition hook (Celery group fan-out)

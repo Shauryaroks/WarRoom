@@ -1,12 +1,14 @@
 <!-- generated-by: gsd-doc-writer -->
+
 # Testing
 
 ## Test framework and setup
 
-The backend testing framework is **Pytest**. 
+The backend testing framework is **Pytest**.
 The frontend (`client/`) currently does not have a testing framework configured.
 
 **Backend Setup:**
+
 - The server uses `pytest` alongside `pytest-asyncio` for async test support.
 - Dependencies are defined in `server/pyproject.toml` under `[project.optional-dependencies] dev` (`pytest`, `pytest-asyncio`).
 - Pytest is configured in `server/pyproject.toml` with `asyncio_mode = "auto"`.
@@ -36,7 +38,7 @@ uv run pytest tests/test_trading.py
 
 ## Coverage requirements
 
-No coverage threshold configured. 
+No coverage threshold configured.
 
 ## CI integration
 

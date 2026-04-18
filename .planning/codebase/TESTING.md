@@ -122,15 +122,15 @@ async def test_game_tick():
 ### Store Tests (Zustand)
 
 ```typescript
-describe('game store', () => {
-  it('updates game state', () => {
-    const { result } = renderHook(() => useGameStore())
+describe("game store", () => {
+  it("updates game state", () => {
+    const { result } = renderHook(() => useGameStore());
     act(() => {
-      result.current.setGame(mockGame)
-    })
-    expect(result.current.game).toEqual(mockGame)
-  })
-})
+      result.current.setGame(mockGame);
+    });
+    expect(result.current.game).toEqual(mockGame);
+  });
+});
 ```
 
 ## Run Commands

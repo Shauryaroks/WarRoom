@@ -70,49 +70,51 @@ Requirements for Final Integration milestone. Aligned with Bharat Bites & Brews 
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
-| Automated archetype assignment | Admin assigns manually for balance |
-| Real-world data integration | Closed simulation, no external feeds |
-| Mobile-optimized layout | Desktop two-device play only |
+| Feature                        | Reason                               |
+| ------------------------------ | ------------------------------------ |
+| Automated archetype assignment | Admin assigns manually for balance   |
+| Real-world data integration    | Closed simulation, no external feeds |
+| Mobile-optimized layout        | Desktop two-device play only         |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| ARCH-01 | Phase 7 | Pending |
-| ARCH-02 | Phase 7 | Pending |
-| PORT-01 | Phase 7 | Pending |
-| LEVER-01 | Phase 8 | Pending |
-| LEVER-02 | Phase 8 | Pending |
-| LEVER-03 | Phase 8 | Pending |
-| ROUND-01 | Phase 8 | Pending |
-| ROUND-02 | Phase 8 | Pending |
-| ROUND-03 | Phase 8 | Pending |
-| SIM-05 | Phase 9 | Complete |
-| SIM-06 | Phase 9 | Complete |
-| SIM-07 | Phase 9 | Complete |
-| SIM-08 | Phase 9 | Pending |
-| SIM-09 | Phase 9 | Complete |
-| ARCH-03 | Phase 9 | Complete |
-| TRAD-06 | Phase 10 | Pending |
-| TRAD-07 | Phase 10 | Pending |
-| TRAD-08 | Phase 10 | Pending |
-| TRAD-09 | Phase 10 | Pending |
-| PRESS-01 | Phase 11 | Pending |
-| PRESS-02 | Phase 11 | Pending |
-| DASH-01 | Phase 11 | Pending |
-| DASH-02 | Phase 11 | Pending |
-| DASH-03 | Phase 11 | Pending |
-| SCORE-01 | Phase 12 | Pending |
-| SCORE-02 | Phase 12 | Pending |
-| SCORE-03 | Phase 12 | Pending |
+| Requirement | Phase    | Status   |
+| ----------- | -------- | -------- |
+| ARCH-01     | Phase 7  | Pending  |
+| ARCH-02     | Phase 7  | Pending  |
+| PORT-01     | Phase 7  | Pending  |
+| LEVER-01    | Phase 8  | Pending  |
+| LEVER-02    | Phase 8  | Pending  |
+| LEVER-03    | Phase 8  | Pending  |
+| ROUND-01    | Phase 8  | Pending  |
+| ROUND-02    | Phase 8  | Pending  |
+| ROUND-03    | Phase 8  | Pending  |
+| SIM-05      | Phase 9  | Complete |
+| SIM-06      | Phase 9  | Complete |
+| SIM-07      | Phase 9  | Complete |
+| SIM-08      | Phase 9  | Pending  |
+| SIM-09      | Phase 9  | Complete |
+| ARCH-03     | Phase 9  | Complete |
+| TRAD-06     | Phase 10 | Pending  |
+| TRAD-07     | Phase 10 | Pending  |
+| TRAD-08     | Phase 10 | Pending  |
+| TRAD-09     | Phase 10 | Pending  |
+| PRESS-01    | Phase 11 | Pending  |
+| PRESS-02    | Phase 11 | Pending  |
+| DASH-01     | Phase 11 | Pending  |
+| DASH-02     | Phase 11 | Pending  |
+| DASH-03     | Phase 11 | Pending  |
+| SCORE-01    | Phase 12 | Pending  |
+| SCORE-02    | Phase 12 | Pending  |
+| SCORE-03    | Phase 12 | Pending  |
 
 **Coverage:**
+
 - v2 requirements: 27 total (9 categories)
 - Mapped to phases: 27
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after v2.0 roadmap creation*
+
+_Requirements defined: 2026-04-16_
+_Last updated: 2026-04-16 after v2.0 roadmap creation_
