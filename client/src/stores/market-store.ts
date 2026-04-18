@@ -6,7 +6,9 @@ import type {
   PriceHistoryPoint,
 } from "@/lib/types";
 
-const CANDLE_INTERVAL = 300; // 5 minutes in seconds
+const CANDLE_INTERVAL = 60; // 1 minute bucket. Pairs with the 15s server tick
+// (4 ticks per bucket) so each candle has a real OHLC body instead of rendering
+// as a flat doji bar.
 
 interface PriceTick {
   price: number;

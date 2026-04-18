@@ -23,11 +23,13 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-# Beat schedule -- game tick every 60 seconds (stock ticks in Phase 3)
+# Beat schedule -- game tick every 15 seconds. Paired with the client's 60s
+# candle bucket (market-store CANDLE_INTERVAL), this gives ~4 ticks per bucket
+# so each candle has a real OHLC body instead of rendering as a flat doji bar.
 celery_app.conf.beat_schedule = {
-    "game-tick-every-60s": {
+    "game-tick-every-15s": {
         "task": "game.tick",
-        "schedule": 60.0,  # Every 60 seconds (1-minute stock ticks in Phase 3)
+        "schedule": 15.0,
     },
 }
 
