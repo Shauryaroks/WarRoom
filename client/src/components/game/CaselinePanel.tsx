@@ -176,30 +176,6 @@ export function CaselinePanel() {
           )}
         </div>
       </div>
-
-      {/* SWOT Profile */}
-      <div className="space-y-3">
-        <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
-          SWOT PROFILE
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          {[
-            { label: "STRENGTHS", value: caseline?.swot_strengths },
-            { label: "WEAKNESSES", value: caseline?.swot_weaknesses },
-            { label: "OPPORTUNITIES", value: caseline?.swot_opportunities },
-            { label: "THREATS", value: caseline?.swot_threats },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-[#201f1f] p-2">
-              <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest mb-1">
-                {label}
-              </div>
-              <div className="text-[10px] text-[#e5e2e1] font-mono leading-relaxed">
-                {value || "--"}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
