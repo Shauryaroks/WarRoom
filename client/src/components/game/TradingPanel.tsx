@@ -8,7 +8,6 @@ import { api } from "@/lib/api";
 
 export function TradingPanel() {
   const companies = useMarketStore((s) => s.companies);
-  const currentPrices = useMarketStore((s) => s.currentPrices);
   const teamId = useAuthStore((s) => s.teamId);
 
   const pendingTrade = useTradingStore((s) => s.pendingTrade);
@@ -20,18 +19,8 @@ export function TradingPanel() {
   const [tradeType, setTradeType] = useState<"BUY" | "SELL">("BUY");
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-  // Get live price for a company (fallback to initial stock_price)
-  function getLivePrice(teamId: string, fallbackPrice: string): string {
-    const priceInfo = currentPrices[teamId];
-    return priceInfo?.price || fallbackPrice;
-  }
-
   // Exclude own team from company list
   const tradableCompanies = companies.filter((c) => c.team_id !== teamId);
-
-  // Use live price for selected company in preview
-  const selectedCompany = tradableCompanies.find((c) => c.team_id === selectedTargetId);
-  const livePrice = selectedCompany ? getLivePrice(selectedTargetId, selectedCompany.stock_price) : null;
 
   async function handlePreview() {
     if (!selectedTargetId || !quantity || parseInt(quantity) <= 0) return;
@@ -177,14 +166,11 @@ export function TradingPanel() {
           className="w-full bg-[#201f1f] text-[#e5e2e1] font-mono text-xs px-3 py-2 border border-[#404752]/20 focus:border-l-2 focus:border-l-[#2196f3]"
         >
           <option value="">Select company...</option>
-          {tradableCompanies.map((c) => {
-            const livePriceVal = getLivePrice(c.team_id, c.stock_price);
-            return (
-              <option key={c.team_id} value={c.team_id}>
-                {c.ticker} - {c.name} (${parseFloat(livePriceVal).toFixed(2)})
-              </option>
-            );
-          })}
+          {tradableCompanies.map((c) => (
+            <option key={c.team_id} value={c.team_id}>
+              {c.ticker} - {c.name}
+            </option>
+          ))}
         </select>
       </div>
 

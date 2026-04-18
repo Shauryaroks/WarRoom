@@ -21,13 +21,7 @@ function SourceChip({ sourceType }: { sourceType: string }) {
   );
 }
 
-function NewsHistoryItem({
-  item,
-  onDelete,
-}: {
-  item: NewsItem;
-  onDelete: (id: string) => void;
-}) {
+function NewsHistoryItem({ item }: { item: NewsItem }) {
   const timestamp = new Date(item.created_at).toLocaleString("en-US", {
     month: "short",
     day: "2-digit",
@@ -46,12 +40,6 @@ function NewsHistoryItem({
         <div className="flex items-center gap-4 shrink-0">
           <SourceChip sourceType={item.source_type} />
           <span className="text-sm text-gray-500 font-mono">{timestamp}</span>
-          <button
-            onClick={() => onDelete(item.id)}
-            className="text-red-500 hover:text-red-400 text-sm font-mono uppercase"
-          >
-            Delete
-          </button>
         </div>
       </div>
       {item.content && (
@@ -160,16 +148,6 @@ export default function NewsPage() {
     }
   }
 
-  async function handleDeleteNews(newsId: string) {
-    try {
-      await api.deleteNews(newsId);
-      setNews(news.filter((n) => n.id !== newsId));
-      toast.success("News deleted");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete news");
-    }
-  }
-
   return (
     <div className="space-y-8">
       {/* Top section: News Injection + Broadcast side by side */}
@@ -229,11 +207,7 @@ export default function NewsPage() {
         ) : (
           <div>
             {news.map((item) => (
-              <NewsHistoryItem
-                key={item.id}
-                item={item}
-                onDelete={handleDeleteNews}
-              />
+              <NewsHistoryItem key={item.id} item={item} />
             ))}
           </div>
         )}

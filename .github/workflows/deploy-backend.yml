@@ -35,9 +35,6 @@ jobs:
               git reset --hard origin/master
             fi
 
-            echo "→ Copying environment file"
-            cp -n server/.env.example server/.env || true
-
             echo "→ Building services"
             docker compose build api worker
 
