@@ -207,6 +207,13 @@ class ApiClient {
     );
   }
 
+  async bankruptTeam(teamId: string): Promise<TeamRemoveResponse> {
+    return this.request<TeamRemoveResponse>(
+      `/api/v1/admin/teams/${teamId}/bankrupt`,
+      { method: "POST" },
+    );
+  }
+
   // News
   async injectNews(data: {
     headline: string;
@@ -223,6 +230,12 @@ class ApiClient {
   async getNewsHistory(): Promise<NewsItem[]> {
     // Team-facing news feed; admin overlay can also use this since admins authenticate as both.
     return this.request<NewsItem[]>("/api/v1/market/news");
+  }
+
+  async deleteNews(newsId: string): Promise<{ success: boolean; deleted_id: string }> {
+    return this.request(`/api/v1/admin/news/${newsId}`, {
+      method: "DELETE",
+    });
   }
 
   // Broadcast

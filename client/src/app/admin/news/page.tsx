@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAdminStore } from "@/stores/admin-store";
@@ -21,7 +22,15 @@ function SourceChip({ sourceType }: { sourceType: string }) {
   );
 }
 
-function NewsHistoryItem({ item }: { item: NewsItem }) {
+function NewsHistoryItem({
+  item,
+  onDelete,
+  isDeleting,
+}: {
+  item: NewsItem;
+  onDelete: (id: string) => void;
+  isDeleting: boolean;
+}) {
   const timestamp = new Date(item.created_at).toLocaleString("en-US", {
     month: "short",
     day: "2-digit",
@@ -40,6 +49,14 @@ function NewsHistoryItem({ item }: { item: NewsItem }) {
         <div className="flex items-center gap-4 shrink-0">
           <SourceChip sourceType={item.source_type} />
           <span className="text-sm text-gray-500 font-mono">{timestamp}</span>
+          <button
+            onClick={() => onDelete(item.id)}
+            disabled={isDeleting}
+            title="Delete news item"
+            className="text-gray-400 hover:text-[#FF1744] hover:bg-[#FF1744]/10 p-2 -m-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
       </div>
       {item.content && (
@@ -62,11 +79,26 @@ function NewsHistoryItem({ item }: { item: NewsItem }) {
 }
 
 export default function NewsPage() {
-  const { news, setNews, addNews } = useAdminStore();
+  const { news, setNews, addNews, removeNews } = useAdminStore();
   const [teams, setTeams] = useState<{ id: string; ticker: string }[]>([]);
   const [isSubmittingNews, setIsSubmittingNews] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [isSubmittingBroadcast, setIsSubmittingBroadcast] = useState(false);
+  const [deletingNewsId, setDeletingNewsId] = useState<string | null>(null);
+
+  async function handleDeleteNews(newsId: string) {
+    if (deletingNewsId) return;
+    setDeletingNewsId(newsId);
+    try {
+      await api.deleteNews(newsId);
+      removeNews(newsId);
+      toast.success("News deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete news");
+    } finally {
+      setDeletingNewsId(null);
+    }
+  }
 
   const handleWsMessage = useCallback(
     (data: Record<string, unknown>) => {
@@ -207,7 +239,12 @@ export default function NewsPage() {
         ) : (
           <div>
             {news.map((item) => (
-              <NewsHistoryItem key={item.id} item={item} />
+              <NewsHistoryItem
+                key={item.id}
+                item={item}
+                onDelete={handleDeleteNews}
+                isDeleting={deletingNewsId === item.id}
+              />
             ))}
           </div>
         )}

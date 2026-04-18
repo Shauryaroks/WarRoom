@@ -98,14 +98,22 @@ export default function TeamsPage() {
   async function handleRemove(teamId: string) {
     try {
       const result = await api.removeTeam(teamId);
-      if (result.remove_type === "hard") {
-        removeTeam(teamId);
-      } else {
-        updateTeamStatus(teamId, "BANKRUPT");
-      }
+      removeTeam(teamId);
       toast.success(result.message);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove team");
+    }
+  }
+
+  async function handleBankrupt(teamId: string) {
+    try {
+      const result = await api.bankruptTeam(teamId);
+      updateTeamStatus(teamId, "BANKRUPT");
+      toast.success(result.message);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to mark team bankrupt",
+      );
     }
   }
 
@@ -175,6 +183,7 @@ export default function TeamsPage() {
           onApprove={handleApprove}
           onReject={handleReject}
           onRemove={handleRemove}
+          onBankrupt={handleBankrupt}
           onCaseline={handleCaseline}
         />
       </div>

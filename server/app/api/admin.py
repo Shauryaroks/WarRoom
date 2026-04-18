@@ -398,57 +398,47 @@ async def remove_team(
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove a team. Hard delete in SETUP, soft bankrupt in ACTIVE/PAUSED."""
+    """Permanently delete a team and all associated records.
+
+    Always a hard delete regardless of game state — no restore, no record. Use
+    `/teams/{id}/bankrupt` for the reversible-freeze path; this endpoint wipes.
+    """
     result = await db.execute(select(Team).where(Team.id == team_id))
     team = result.scalar_one_or_none()
 
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    game_state = await get_game_state_readonly(db)
-
-    if game_state.status == GameStatus.FINISHED:
-        raise HTTPException(
-            status_code=409, detail="Cannot remove teams from a finished game"
-        )
-
     team_name = team.name
 
-    if game_state.status == GameStatus.SETUP:
-        # Hard delete: remove related records first to avoid FK violations
-        await db.execute(delete(Directive).where(Directive.team_id == team_id))
-        await db.execute(
-            delete(StockHolding).where(StockHolding.owner_team_id == team_id)
-        )
-        await db.execute(
-            delete(StockHolding).where(StockHolding.target_team_id == team_id)
-        )
-        await db.execute(
-            delete(Transaction).where(Transaction.buyer_team_id == team_id)
-        )
-        await db.execute(
-            delete(Transaction).where(Transaction.seller_team_id == team_id)
-        )
-        await db.execute(
-            delete(Transaction).where(Transaction.target_team_id == team_id)
-        )
-        await db.execute(delete(CashLedger).where(CashLedger.team_id == team_id))
-        await db.execute(delete(PriceHistory).where(PriceHistory.team_id == team_id))
-        await db.delete(team)
-        remove_type = "hard"
-    else:
-        # Soft remove: mark as BANKRUPT
-        team.status = TeamStatus.BANKRUPT
-        team.bankrupt_since = datetime.now(timezone.utc)
-        remove_type = "soft"
+    # Hard delete: remove related records first to avoid FK violations
+    await db.execute(delete(Directive).where(Directive.team_id == team_id))
+    await db.execute(
+        delete(StockHolding).where(StockHolding.owner_team_id == team_id)
+    )
+    await db.execute(
+        delete(StockHolding).where(StockHolding.target_team_id == team_id)
+    )
+    await db.execute(
+        delete(Transaction).where(Transaction.buyer_team_id == team_id)
+    )
+    await db.execute(
+        delete(Transaction).where(Transaction.seller_team_id == team_id)
+    )
+    await db.execute(
+        delete(Transaction).where(Transaction.target_team_id == team_id)
+    )
+    await db.execute(delete(CashLedger).where(CashLedger.team_id == team_id))
+    await db.execute(delete(PriceHistory).where(PriceHistory.team_id == team_id))
+    await db.delete(team)
 
     db.add(
         ActivityEvent(
             event_type="TEAM_REMOVED",
             actor="admin",
-            description=f"Team '{team_name}' removed ({remove_type} delete)",
+            description=f"Team '{team_name}' permanently deleted",
             metadata_json=json.dumps(
-                {"team_id": str(team_id), "remove_type": remove_type}
+                {"team_id": str(team_id), "remove_type": "hard"}
             ),
         )
     )
@@ -457,14 +447,62 @@ async def remove_team(
     await publish_broadcast(
         {
             "type": "team_removed",
-            "payload": {"team_id": str(team_id), "remove_type": remove_type},
+            "payload": {"team_id": str(team_id), "remove_type": "hard"},
         }
     )
 
     return TeamRemoveResponse(
-        message=f"Team '{team_name}' {'permanently removed' if remove_type == 'hard' else 'marked as bankrupt'}",
+        message=f"Team '{team_name}' permanently removed",
         team_id=str(team_id),
-        remove_type=remove_type,
+        remove_type="hard",
+    )
+
+
+@router.post("/teams/{team_id}/bankrupt", response_model=TeamRemoveResponse)
+async def bankrupt_team(
+    team_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a team as BANKRUPT — stock price drops to 0, team is frozen out of
+    trading, but the record is preserved (leaderboard still shows them at $0).
+
+    Distinct from `/teams/{id}/remove`, which hard-deletes.
+    """
+    result = await db.execute(select(Team).where(Team.id == team_id))
+    team = result.scalar_one_or_none()
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.status == TeamStatus.BANKRUPT:
+        raise HTTPException(status_code=409, detail="Team is already bankrupt")
+
+    team.status = TeamStatus.BANKRUPT
+    team.bankrupt_since = datetime.now(timezone.utc)
+    team.stock_price = team.stock_price.__class__("0")
+
+    db.add(
+        ActivityEvent(
+            event_type="TEAM_BANKRUPT",
+            actor="admin",
+            description=f"Team '{team.name}' marked as bankrupt",
+            metadata_json=json.dumps({"team_id": str(team_id)}),
+        )
+    )
+    await db.commit()
+
+    await publish_broadcast(
+        {
+            "type": "team_bankrupt",
+            "payload": {"team_id": str(team_id), "ticker": team.ticker},
+        }
+    )
+
+    return TeamRemoveResponse(
+        message=f"Team '{team.name}' marked as bankrupt",
+        team_id=str(team_id),
+        remove_type="bankrupt",
     )
 
 
@@ -987,6 +1025,24 @@ async def get_news_history(
         )
         for n in news_items
     ]
+
+
+@router.delete("/news/{news_id}")
+async def delete_news(
+    news_id: uuid.UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a news item by ID (admin-only)."""
+    result = await db.execute(select(MarketNews).where(MarketNews.id == news_id))
+    news = result.scalar_one_or_none()
+    if not news:
+        raise HTTPException(status_code=404, detail="News item not found")
+
+    await db.delete(news)
+    await db.commit()
+
+    return {"success": True, "deleted_id": str(news_id)}
 
 
 # --- Evaluation Endpoints (per EVAL-03, EVAL-04, EVAL-05) ---

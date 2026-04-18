@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 
 export function TradingPanel() {
   const companies = useMarketStore((s) => s.companies);
+  const currentPrices = useMarketStore((s) => s.currentPrices);
   const teamId = useAuthStore((s) => s.teamId);
 
   const pendingTrade = useTradingStore((s) => s.pendingTrade);
@@ -18,6 +19,12 @@ export function TradingPanel() {
   const [quantity, setQuantity] = useState("");
   const [tradeType, setTradeType] = useState<"BUY" | "SELL">("BUY");
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  // Use latest WS tick price when available; fall back to initial stock_price until first tick arrives.
+  // Without this the dropdown and preview show stale prices from /market/companies.
+  function getLivePrice(targetTeamId: string, fallback: string): string {
+    return currentPrices[targetTeamId]?.price ?? fallback;
+  }
 
   // Exclude own team from company list
   const tradableCompanies = companies.filter((c) => c.team_id !== teamId);
@@ -166,11 +173,14 @@ export function TradingPanel() {
           className="w-full bg-[#201f1f] text-[#e5e2e1] font-mono text-xs px-3 py-2 border border-[#404752]/20 focus:border-l-2 focus:border-l-[#2196f3]"
         >
           <option value="">Select company...</option>
-          {tradableCompanies.map((c) => (
-            <option key={c.team_id} value={c.team_id}>
-              {c.ticker} - {c.name}
-            </option>
-          ))}
+          {tradableCompanies.map((c) => {
+            const livePrice = getLivePrice(c.team_id, c.stock_price);
+            return (
+              <option key={c.team_id} value={c.team_id}>
+                {c.ticker} - {c.name} (${parseFloat(livePrice).toFixed(2)})
+              </option>
+            );
+          })}
         </select>
       </div>
 

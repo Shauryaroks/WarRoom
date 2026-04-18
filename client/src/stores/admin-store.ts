@@ -11,6 +11,7 @@ interface AdminState {
   removeTeam: (teamId: string) => void;
   setNews: (news: NewsItem[]) => void;
   addNews: (item: NewsItem) => void;
+  removeNews: (newsId: string) => void;
   setActivityLog: (events: ActivityEvent[]) => void;
   addActivity: (event: ActivityEvent) => void;
 }
@@ -32,6 +33,8 @@ export const useAdminStore = create<AdminState>()((set) => ({
     set((s) => ({
       news: s.news.some((n) => n.id === item.id) ? s.news : [item, ...s.news],
     })),
+  removeNews: (newsId) =>
+    set((s) => ({ news: s.news.filter((n) => n.id !== newsId) })),
   setActivityLog: (events) => set({ activityLog: events }),
   addActivity: (event) =>
     set((s) => ({
