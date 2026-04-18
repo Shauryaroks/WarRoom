@@ -204,6 +204,18 @@ class CaselineAssignRequest(BaseModel):
     initial_stock_price: float | None = None
 
 
+class MarketBiasRequest(BaseModel):
+    bias: str | None = Field(
+        None,
+        pattern=r"^(BULLISH|BEARISH)$",
+        description="Set to BULLISH or BEARISH; null / omitted clears the bias (neutral)",
+    )
+
+
+class MarketBiasResponse(BaseModel):
+    bias: str | None
+
+
 class CaselineAssignResponse(BaseModel):
     message: str
     team_id: str
@@ -774,6 +786,50 @@ async def get_game_state_endpoint(
         elapsed_seconds=calculate_elapsed_seconds(state),
         current_round=state.current_round,
     )
+
+
+# --- Market Bias (admin-tunable global bullish/bearish drift) ---
+
+
+@router.get("/game/market-bias", response_model=MarketBiasResponse)
+async def get_market_bias(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Read the current market bias (BULLISH / BEARISH / null=neutral)."""
+    state = await get_game_state_readonly(db)
+    return MarketBiasResponse(bias=state.market_bias)
+
+
+@router.post("/game/market-bias", response_model=MarketBiasResponse)
+async def set_market_bias(
+    request: MarketBiasRequest,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set the market bias. BULLISH adds + drift every tick, BEARISH subtracts,
+    null / omitted clears to neutral. Applied in the next simulation tick.
+    """
+    state = await get_game_state(db)
+    state.market_bias = request.bias
+    db.add(
+        ActivityEvent(
+            event_type="MARKET_BIAS_CHANGED",
+            actor="admin",
+            description=f"Market bias set to {request.bias or 'NEUTRAL'}",
+        )
+    )
+    await db.commit()
+    await db.refresh(state)
+
+    await publish_broadcast(
+        {
+            "type": "market_bias_changed",
+            "payload": {"bias": state.market_bias},
+        }
+    )
+
+    return MarketBiasResponse(bias=state.market_bias)
 
 
 # --- Round Advancement ---

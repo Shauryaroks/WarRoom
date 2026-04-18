@@ -178,6 +178,19 @@ class ApiClient {
     return this.request<GameStateResponse>("/api/v1/admin/game/state");
   }
 
+  async getMarketBias(): Promise<{ bias: "BULLISH" | "BEARISH" | null }> {
+    return this.request("/api/v1/admin/game/market-bias");
+  }
+
+  async setMarketBias(
+    bias: "BULLISH" | "BEARISH" | null,
+  ): Promise<{ bias: "BULLISH" | "BEARISH" | null }> {
+    return this.request("/api/v1/admin/game/market-bias", {
+      method: "POST",
+      body: JSON.stringify({ bias }),
+    });
+  }
+
   // Team management
   async getTeams(status?: string): Promise<AdminTeam[]> {
     const query = status ? `?status=${status}` : "";

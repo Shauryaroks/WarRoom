@@ -33,6 +33,9 @@ export default function AdminPage() {
   const [gamePhase, setGamePhase] = useState<GamePhase>(null);
   const [showMacroBriefModal, setShowMacroBriefModal] = useState(false);
   const [macroBriefText, setMacroBriefText] = useState("");
+  const [marketBias, setMarketBias] = useState<"BULLISH" | "BEARISH" | null>(
+    null,
+  );
 
   // Redirect non-admin users
   useEffect(() => {
@@ -75,8 +78,36 @@ export default function AdminPage() {
         .catch(() => {
           // Phase not available yet
         });
+
+      // Fetch current market bias
+      api
+        .getMarketBias()
+        .then((data) => {
+          setMarketBias(data.bias);
+        })
+        .catch(() => {
+          // ignore — defaults to null
+        });
     }
   }, [isAuthenticated, role, setGameState, setTeams]);
+
+  async function handleSetMarketBias(
+    next: "BULLISH" | "BEARISH" | null,
+  ) {
+    try {
+      const result = await api.setMarketBias(next);
+      setMarketBias(result.bias);
+      toast.success(
+        result.bias
+          ? `Market set to ${result.bias}`
+          : "Market bias cleared (neutral)",
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to set market bias",
+      );
+    }
+  }
 
   // Handle WebSocket messages
   const handleMessage = useCallback(
@@ -313,6 +344,53 @@ export default function AdminPage() {
             <span className="text-xl">&#8635;</span>
             <span className="font-mono text-[13px] font-bold">RESUME</span>
           </button>
+        </div>
+
+        {/* Market Bias — global bullish/bearish toggle */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[11px] text-gray-500 uppercase tracking-tighter">
+              MARKET_BIAS
+            </span>
+            {marketBias === "BULLISH" && (
+              <span className="font-mono text-[11px] font-bold px-2 py-0.5 text-[#40e56c] bg-[#40e56c]/10 border border-[#40e56c]/30">
+                BULLISH
+              </span>
+            )}
+            {marketBias === "BEARISH" && (
+              <span className="font-mono text-[11px] font-bold px-2 py-0.5 text-[#FF1744] bg-[#FF1744]/10 border border-[#FF1744]/30">
+                BEARISH
+              </span>
+            )}
+            {!marketBias && (
+              <span className="font-mono text-[11px] font-bold px-2 py-0.5 text-[#89919d] bg-[#89919d]/10 border border-[#89919d]/30">
+                NEUTRAL
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => handleSetMarketBias("BULLISH")}
+              disabled={marketBias === "BULLISH"}
+              className="border border-[#40e56c]/50 bg-[#40e56c]/5 text-[#40e56c] py-3 font-mono text-[12px] font-bold hover:bg-[#40e56c]/10 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              BULLISH ▲
+            </button>
+            <button
+              onClick={() => handleSetMarketBias(null)}
+              disabled={!marketBias}
+              className="border border-[#89919d]/40 bg-[#89919d]/5 text-[#89919d] py-3 font-mono text-[12px] font-bold hover:bg-[#89919d]/10 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              NEUTRAL
+            </button>
+            <button
+              onClick={() => handleSetMarketBias("BEARISH")}
+              disabled={marketBias === "BEARISH"}
+              className="border border-[#FF1744]/50 bg-[#FF1744]/5 text-[#FF1744] py-3 font-mono text-[12px] font-bold hover:bg-[#FF1744]/10 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              BEARISH ▼
+            </button>
+          </div>
         </div>
 
         {/* War Room / Live Floor controls */}

@@ -883,6 +883,10 @@ class GameState(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # Admin-tunable market bias. "BULLISH" adds + drift to every price tick,
+    # "BEARISH" adds - drift, null = neutral. See simulation_service.MARKET_BIAS_PCT.
+    market_bias: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )

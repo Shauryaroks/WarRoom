@@ -61,6 +61,14 @@ SHOCK_MAGNITUDES = {
     ShockSeverity.CATASTROPHIC: Decimal("0.15"),
 }
 
+# Admin-tunable market bias. Added to pct_change on every tick for every team.
+# At the 15s tick rate, 0.001 accumulates to ~+25% / -25% over a 1-hour game
+# (1.001^240 ≈ 1.27). Noticeable without being dramatic.
+MARKET_BIAS_PCT = {
+    "BULLISH": Decimal("0.001"),
+    "BEARISH": Decimal("-0.001"),
+}
+
 
 def z_score(value: Decimal, band: tuple[float, float] | list) -> Decimal:
     """Z-score relative to archetype band. Mid=0, max=+1, min=-1, clamped ±Z_CLAMP."""
@@ -199,6 +207,14 @@ async def calculate_all_prices(db: AsyncSession) -> list[dict]:
     if not teams:
         return []
 
+    # Pull the current market bias once per tick — applies to every team.
+    from app.models import GameState
+
+    state_result = await db.execute(select(GameState).where(GameState.id == 1))
+    game_state = state_result.scalar_one_or_none()
+    bias_key = (game_state.market_bias or "").upper() if game_state else ""
+    market_bias = MARKET_BIAS_PCT.get(bias_key, Decimal("0"))
+
     price_updates: list[dict] = []
     for team in teams:
         old_price = team.stock_price
@@ -238,7 +254,7 @@ async def calculate_all_prices(db: AsyncSession) -> list[dict]:
         noise = Decimal(str(random.gauss(0, 0.02)))
         noise = max(Decimal("-0.04"), min(Decimal("0.04"), noise))
 
-        pct_change = drift_ramped + sentiment + shock_pct + noise
+        pct_change = drift_ramped + sentiment + shock_pct + noise + market_bias
         new_price = old_price * (Decimal("1") + pct_change)
         new_price = max(Decimal("0.01"), new_price.quantize(Decimal("0.01")))
 
