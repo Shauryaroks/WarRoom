@@ -2182,18 +2182,23 @@ async def seed_archetypes(
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Seed the 4 pre-built archetypes. Idempotent by slug (T-07-05)."""
+    """Replace all archetypes with a fresh seed (4 legacy presets + scripts/output.json).
+
+    Destructive by design — admin explicitly re-seeds when they want the latest
+    dossier set. Teams with an archetype assignment get their FK nulled out so
+    the Archetype rows can be dropped cleanly (team record itself is preserved;
+    admin can re-assign afterwards).
+    """
+    # 0. Detach teams from archetypes so we can wipe the Archetype table.
+    #    Team.archetype_id is nullable — this doesn't delete any team rows.
+    await db.execute(update(Team).values(archetype_id=None))
+    await db.execute(delete(Archetype))
+    await db.flush()
+
     created = []
-    skipped = []
+    skipped: list[str] = []
 
     for preset in _PRESET_ARCHETYPES:
-        existing = await db.execute(
-            select(Archetype).where(Archetype.slug == preset["slug"])
-        )
-        if existing.scalar_one_or_none():
-            skipped.append(preset["slug"])
-            continue
-
         archetype = Archetype(
             name=preset["name"],
             slug=preset["slug"],
@@ -2215,7 +2220,7 @@ async def seed_archetypes(
         created.append(preset["slug"])
 
     # Also seed the bulk FMCG dossier (server/scripts/output.json) if present.
-    # Same idempotency rule: skip by slug. Admin gets every dossier via one click.
+    # Table was wiped above, so we can append without checking existing slugs.
     import pathlib
 
     dossier_path = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "output.json"
@@ -2223,16 +2228,13 @@ async def seed_archetypes(
         try:
             with dossier_path.open("r", encoding="utf-8") as f:
                 dossier = json.load(f)
+            seen_slugs = {p["slug"] for p in _PRESET_ARCHETYPES}
             for arch in dossier.get("archetypes", []):
                 slug = arch.get("slug")
-                if not slug:
+                if not slug or slug in seen_slugs:
+                    # Dedupe against the 4 legacy presets already seeded above.
                     continue
-                exists = await db.execute(
-                    select(Archetype).where(Archetype.slug == slug)
-                )
-                if exists.scalar_one_or_none():
-                    skipped.append(slug)
-                    continue
+                seen_slugs.add(slug)
 
                 from decimal import Decimal
 
