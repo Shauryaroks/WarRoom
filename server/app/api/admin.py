@@ -6,7 +6,7 @@ from typing import Optional
 import bcrypt
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import redis.asyncio as aioredis
@@ -340,14 +340,22 @@ async def approve_team(
     if team.status != TeamStatus.PENDING:
         raise HTTPException(status_code=409, detail="Team is not in pending status")
 
-    team.status = TeamStatus.READY
+    # If the game is already running, late-approve straight to ACTIVE so the
+    # team starts appearing in price ticks immediately; otherwise stage at READY
+    # and start_game will flip them.
+    game_state = await get_game_state_readonly(db)
+    team.status = (
+        TeamStatus.ACTIVE
+        if game_state.status == GameStatus.ACTIVE
+        else TeamStatus.READY
+    )
     team.approved_at = datetime.now(timezone.utc)
 
     db.add(
         ActivityEvent(
             event_type="TEAM_APPROVED",
             actor="admin",
-            description=f"Team '{team.name}' approved",
+            description=f"Team '{team.name}' approved ({team.status.value})",
         )
     )
     await db.commit()
@@ -649,17 +657,29 @@ async def start_game(
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Start the game (SETUP -> ACTIVE). Requires admin."""
+    """Start the game (SETUP -> ACTIVE). Requires admin.
+
+    Also transitions all READY teams to ACTIVE — without this the price-tick
+    simulation's `Team.status == ACTIVE` filter matches zero teams, so no
+    price_update frames ever broadcast and the candlestick chart stays empty.
+    """
     try:
         state = await transition_state(db, GameStatus.ACTIVE)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
+    # Activate every approved team so the simulation engine picks them up
+    activated_result = await db.execute(
+        update(Team)
+        .where(Team.status == TeamStatus.READY)
+        .values(status=TeamStatus.ACTIVE)
+    )
+
     db.add(
         ActivityEvent(
             event_type="GAME_STARTED",
             actor="admin",
-            description="Game started",
+            description=f"Game started; {activated_result.rowcount} teams activated",
         )
     )
     await db.commit()

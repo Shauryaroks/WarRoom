@@ -186,10 +186,14 @@ async def calculate_all_prices(db: AsyncSession) -> list[dict]:
     Caller must commit.
     """
     now = datetime.now(timezone.utc)
+    # Include READY alongside ACTIVE so teams approved before start_game (or
+    # before this activation fix was shipped) still get priced. is_game_active()
+    # in the tick task already gates on the overall game status, so READY teams
+    # only actually tick while the game is running.
     result = await db.execute(
         select(Team)
         .options(selectinload(Team.archetype))
-        .where(Team.status == TeamStatus.ACTIVE)
+        .where(Team.status.in_([TeamStatus.ACTIVE, TeamStatus.READY]))
     )
     teams = result.scalars().all()
     if not teams:
