@@ -12,16 +12,11 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          CORS_ALLOW_ORIGINS: ${{ secrets.CORS_ALLOW_ORIGINS }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           port: ${{ secrets.SSH_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: JWT_SECRET,OPENROUTER_API_KEY,CORS_ALLOW_ORIGINS
           script: |
             set -e
 
@@ -39,24 +34,6 @@ jobs:
               git fetch origin master
               git reset --hard origin/master
             fi
-
-            echo "→ Writing server/.env from GitHub secrets"
-            # Source of truth is GitHub Secrets; .env.example stays safe (no real values).
-            # This overwrites .env every deploy — DB/Redis hostnames are container-internal
-            # and never change; all real credentials live in secrets.
-            if [ -z "$JWT_SECRET" ] || [ -z "$OPENROUTER_API_KEY" ]; then
-              echo "✗ Missing required secrets (JWT_SECRET, OPENROUTER_API_KEY). Aborting."
-              exit 1
-            fi
-            cat > server/.env <<ENV
-            DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/complex
-            REDIS_URL=redis://redis:6379/0
-            JWT_SECRET=${JWT_SECRET}
-            OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-            OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-            CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-*}
-            ENV
-            chmod 600 server/.env
 
             echo "→ Building services"
             docker compose build api worker
