@@ -246,7 +246,7 @@ export default function GamePage() {
   }
 
   return (
-    <div className="bg-[#131313] min-h-screen flex flex-col">
+    <div className="bg-[#131313] h-screen overflow-hidden flex flex-col">
       {/* Crisis overlay (takes priority over pause) */}
       {activeCrisis && <CrisisOverlay crisis={activeCrisis} />}
 

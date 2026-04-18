@@ -130,8 +130,8 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
   const isEmpty = !data || data.length === 0;
 
   return (
-    <div className={cn("relative w-full h-full min-h-[300px]", className)}>
-      <div ref={containerRef} className="w-full h-full" />
+    <div className={cn("relative w-full h-full", className)}>
+      <div ref={containerRef} className="absolute inset-0 w-full h-full" />
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="font-mono text-xs tracking-widest text-[#404752] uppercase">
