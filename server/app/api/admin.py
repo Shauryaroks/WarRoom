@@ -451,21 +451,11 @@ async def remove_team(
     # Evaluation FKs to Solution — wipe Evaluation first, then Solution
     await db.execute(delete(Evaluation).where(Evaluation.team_id == team_id))
     await db.execute(delete(Solution).where(Solution.team_id == team_id))
-    await db.execute(
-        delete(StockHolding).where(StockHolding.owner_team_id == team_id)
-    )
-    await db.execute(
-        delete(StockHolding).where(StockHolding.target_team_id == team_id)
-    )
-    await db.execute(
-        delete(Transaction).where(Transaction.buyer_team_id == team_id)
-    )
-    await db.execute(
-        delete(Transaction).where(Transaction.seller_team_id == team_id)
-    )
-    await db.execute(
-        delete(Transaction).where(Transaction.target_team_id == team_id)
-    )
+    await db.execute(delete(StockHolding).where(StockHolding.owner_team_id == team_id))
+    await db.execute(delete(StockHolding).where(StockHolding.target_team_id == team_id))
+    await db.execute(delete(Transaction).where(Transaction.buyer_team_id == team_id))
+    await db.execute(delete(Transaction).where(Transaction.seller_team_id == team_id))
+    await db.execute(delete(Transaction).where(Transaction.target_team_id == team_id))
     await db.execute(delete(CashLedger).where(CashLedger.team_id == team_id))
     await db.execute(delete(PriceHistory).where(PriceHistory.team_id == team_id))
     # MarketNews source_team_id is nullable — detach rather than delete so the
@@ -482,9 +472,7 @@ async def remove_team(
             event_type="TEAM_REMOVED",
             actor="admin",
             description=f"Team '{team_name}' permanently deleted",
-            metadata_json=json.dumps(
-                {"team_id": str(team_id), "remove_type": "hard"}
-            ),
+            metadata_json=json.dumps({"team_id": str(team_id), "remove_type": "hard"}),
         )
     )
     await db.commit()
