@@ -10,24 +10,6 @@ import type { IChartApi, ISeriesApi, Time } from "lightweight-charts";
 import type { CandleData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// Generate placeholder candles when no real data exists
-function generatePlaceholderData(): CandleData[] {
-  const now = Math.floor(Date.now() / 1000);
-  const candles: CandleData[] = [];
-  let price = 100;
-  for (let i = 59; i >= 0; i--) {
-    const time = now - i * 300; // 5-min candles, 60 candles = 5 hours
-    const volatility = 2 + Math.random() * 3;
-    const open = price;
-    const close = open + (Math.random() - 0.48) * volatility;
-    const high = Math.max(open, close) + Math.random() * volatility * 0.5;
-    const low = Math.min(open, close) - Math.random() * volatility * 0.5;
-    candles.push({ time, open, high, low, close });
-    price = close;
-  }
-  return candles;
-}
-
 interface CandlestickChartProps {
   data: CandleData[]; // From market store candles[selectedCompanyId]
   className?: string;
@@ -101,14 +83,18 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
     };
   }, []);
 
-  // Update data when it changes (use placeholder if empty)
+  // Push real data into the series. Empty input clears the chart — no placeholder/random series.
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return;
 
-    const chartData =
-      data && data.length > 0 ? data : generatePlaceholderData();
+    if (!data || data.length === 0) {
+      seriesRef.current.setData([]);
+      prevDataLengthRef.current = 0;
+      prevFirstTimeRef.current = null;
+      return;
+    }
 
-    const formattedData = chartData.map((c) => ({
+    const formattedData = data.map((c) => ({
       time: c.time as Time,
       open: c.open,
       high: c.high,
@@ -118,9 +104,8 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
 
     const prevLength = prevDataLengthRef.current;
     const prevFirstTime = prevFirstTimeRef.current;
-    const currentFirstTime = data.length > 0 ? data[0].time : null;
+    const currentFirstTime = data[0].time;
 
-    // Detect if this is a company switch (different first candle time) or a full data reload
     const isCompanySwitch =
       prevFirstTime !== null && currentFirstTime !== prevFirstTime;
     const isSingleUpdate =
@@ -140,29 +125,20 @@ export function CandlestickChart({ data, className }: CandlestickChartProps) {
 
     prevDataLengthRef.current = data.length;
     prevFirstTimeRef.current = currentFirstTime;
-  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data]);
 
-  // Render placeholder on mount if no data
-  useEffect(() => {
-    if (!seriesRef.current || !chartRef.current) return;
-    if (!data || data.length === 0) {
-      const placeholder = generatePlaceholderData();
-      const formatted = placeholder.map((c) => ({
-        time: c.time as Time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }));
-      seriesRef.current.setData(formatted);
-      chartRef.current.timeScale().fitContent();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const isEmpty = !data || data.length === 0;
 
   return (
-    <div
-      ref={containerRef}
-      className={cn("w-full h-full min-h-[300px]", className)}
-    />
+    <div className={cn("relative w-full h-full min-h-[300px]", className)}>
+      <div ref={containerRef} className="w-full h-full" />
+      {isEmpty && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="font-mono text-xs tracking-widest text-[#404752] uppercase">
+            WAITING FOR PRICE TICKS...
+          </span>
+        </div>
+      )}
+    </div>
   );
 }

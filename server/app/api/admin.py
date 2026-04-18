@@ -20,12 +20,16 @@ from app.models import (
     Archetype,
     CashLedger,
     CrisisEvent,
+    Decision,
     Directive,
     Evaluation,
     EvaluationStatus,
+    FundamentalEvaluation,
     GameState,
     GameStatus,
     MarketNews,
+    OperatingPlan,
+    PendingShock,
     PriceHistory,
     Solution,
     StockHolding,
@@ -411,8 +415,19 @@ async def remove_team(
 
     team_name = team.name
 
-    # Hard delete: remove related records first to avoid FK violations
+    # Hard delete: wipe every table that FKs to teams before dropping the Team row
+    # itself. Order matters only for FK chains (Evaluation → Solution), otherwise
+    # parallel. No cascade= is set on the ORM side, so we must do this explicitly.
     await db.execute(delete(Directive).where(Directive.team_id == team_id))
+    await db.execute(delete(Decision).where(Decision.team_id == team_id))
+    await db.execute(delete(OperatingPlan).where(OperatingPlan.team_id == team_id))
+    await db.execute(delete(PendingShock).where(PendingShock.team_id == team_id))
+    await db.execute(
+        delete(FundamentalEvaluation).where(FundamentalEvaluation.team_id == team_id)
+    )
+    # Evaluation FKs to Solution — wipe Evaluation first, then Solution
+    await db.execute(delete(Evaluation).where(Evaluation.team_id == team_id))
+    await db.execute(delete(Solution).where(Solution.team_id == team_id))
     await db.execute(
         delete(StockHolding).where(StockHolding.owner_team_id == team_id)
     )
@@ -430,6 +445,13 @@ async def remove_team(
     )
     await db.execute(delete(CashLedger).where(CashLedger.team_id == team_id))
     await db.execute(delete(PriceHistory).where(PriceHistory.team_id == team_id))
+    # MarketNews source_team_id is nullable — detach rather than delete so the
+    # historical news item itself survives.
+    await db.execute(
+        MarketNews.__table__.update()
+        .where(MarketNews.source_team_id == team_id)
+        .values(source_team_id=None)
+    )
     await db.delete(team)
 
     db.add(
