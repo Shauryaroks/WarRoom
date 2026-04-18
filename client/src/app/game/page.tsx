@@ -31,6 +31,7 @@ import { WarRoomPanel } from "@/components/game/WarRoomPanel";
 import { NewsOverlay } from "@/components/game/NewsOverlay";
 import { CrisisOverlay } from "@/components/game/CrisisOverlay";
 import { EliminatedBanner } from "@/components/game/EliminatedBanner";
+import { BankruptOverlay } from "@/components/game/BankruptOverlay";
 import { LeaderboardWidget } from "@/components/game/LeaderboardWidget";
 
 export default function GamePage() {
@@ -103,7 +104,19 @@ export default function GamePage() {
       .catch(() => {
         /* Portfolio unavailable */
       });
-  }, [isAuthenticated]);
+
+    // Hydrate team's own status (BANKRUPT/ELIMINATED freeze the portal)
+    if (role !== "admin") {
+      api
+        .me()
+        .then((m) => {
+          useGameStore.getState().setTeamStatus(m.status);
+        })
+        .catch(() => {
+          /* Status unknown — default to open */
+        });
+    }
+  }, [isAuthenticated, role]);
 
   // Fetch price history when selected company changes
   useEffect(() => {
@@ -177,7 +190,28 @@ export default function GamePage() {
         break;
       }
       case "team_eliminated": {
+        const payload = data.payload as { team_id?: string };
+        const myId = useAuthStore.getState().teamId;
+        if (payload?.team_id && myId && payload.team_id === myId) {
+          useGameStore.getState().setTeamStatus("ELIMINATED");
+        }
         // Refresh companies to get updated status
+        api
+          .getCompanies()
+          .then((companies) =>
+            useMarketStore.getState().setCompanies(companies),
+          )
+          .catch(() => {});
+        break;
+      }
+      case "team_bankrupt": {
+        const payload = data.payload as { team_id?: string };
+        const myId = useAuthStore.getState().teamId;
+        if (payload?.team_id && myId && payload.team_id === myId) {
+          useGameStore.getState().setTeamStatus("BANKRUPT");
+        }
+        // Everyone else refreshes companies so the bankrupt team's $0 price
+        // shows up in their market view.
         api
           .getCompanies()
           .then((companies) =>
@@ -211,6 +245,17 @@ export default function GamePage() {
 
   if (!isAuthenticated || status === "SETUP") {
     return null;
+  }
+
+  const authSnapshot = useAuthStore.getState();
+  const isBankrupt = role !== "admin" && teamStatus === "BANKRUPT";
+  if (isBankrupt) {
+    return (
+      <BankruptOverlay
+        ticker={authSnapshot.ticker}
+        teamName={authSnapshot.teamName}
+      />
+    );
   }
 
   // Computed values (safe after hooks, before render)
