@@ -392,6 +392,25 @@ export default function EvaluationsPage() {
             {/* Expanded detail view (D-08: one-at-a-time review) */}
             {expandedId === evaluation.id && (
               <div className="border-t border-[#2a2a2a] p-6 space-y-6">
+                {/* Team submission (what the strategist actually wrote) */}
+                <div>
+                  <h4 className="font-mono text-xs text-gray-500 tracking-widest mb-4 uppercase">
+                    TEAM_SUBMISSION // {evaluation.solution_type}
+                  </h4>
+                  <div className="bg-[#0e0e0e] border border-[#2a2a2a] max-h-96 overflow-y-auto">
+                    {evaluation.solution_content ? (
+                      <pre className="font-mono text-xs text-[#e5e2e1] p-4 whitespace-pre-wrap break-words leading-relaxed">
+                        {evaluation.solution_content}
+                      </pre>
+                    ) : (
+                      <p className="font-mono text-xs text-gray-600 p-4">
+                        (solution content unavailable — submission may have been
+                        deleted)
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Scoring Metrics */}
                 <div>
                   <h4 className="font-mono text-xs text-gray-500 tracking-widest mb-4 uppercase">

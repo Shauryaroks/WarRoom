@@ -170,6 +170,7 @@ class EvaluationListItem(BaseModel):
     team_name: str
     team_ticker: str
     solution_type: str
+    solution_content: str | None
     status: str
     overall_score: float | None
     scoring_metrics: str | None
@@ -1100,6 +1101,7 @@ def _evaluation_to_list_item(evaluation: Evaluation, team: Team) -> EvaluationLi
         solution_type=evaluation.solution.solution_type.value
         if evaluation.solution
         else "UNKNOWN",
+        solution_content=evaluation.solution.content if evaluation.solution else None,
         status=evaluation.status.value,
         overall_score=evaluation.overall_score,
         scoring_metrics=evaluation.scoring_metrics,

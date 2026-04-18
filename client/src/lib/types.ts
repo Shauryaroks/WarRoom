@@ -243,6 +243,7 @@ export interface EvaluationListItem {
   team_name: string;
   team_ticker: string;
   solution_type: string;
+  solution_content: string | null;
   status: string;
   overall_score: number | null;
   scoring_metrics: string | null;
