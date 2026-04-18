@@ -962,6 +962,14 @@ async def restart_game(
              Directives, MarketNews, ActivityEvents, CashLedger.
     """
     # 1. Clear game data (order matters for FK constraints)
+    # LLM queue tables first — Evaluation FKs to Solution so it goes before Solution.
+    await db.execute(delete(Evaluation))
+    await db.execute(delete(Solution))
+    await db.execute(delete(FundamentalEvaluation))
+    await db.execute(delete(PendingShock))
+    await db.execute(delete(Decision))
+    await db.execute(delete(OperatingPlan))
+    await db.execute(delete(CrisisEvent))
     await db.execute(delete(Transaction))
     await db.execute(delete(StockHolding))
     await db.execute(delete(CashLedger))
