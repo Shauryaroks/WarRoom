@@ -9,6 +9,7 @@ import { useAdminStore } from "@/stores/admin-store";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { api } from "@/lib/api";
 import { TeamTable } from "@/components/admin/team-table";
+import { BCGMatrixCard } from "@/components/admin/bcg-matrix-card";
 import { toast } from "sonner";
 import type { ArchetypeResponse } from "@/lib/types";
 
