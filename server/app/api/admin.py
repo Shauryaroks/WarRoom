@@ -959,7 +959,7 @@ async def restart_game(
 
     Preserves: Team registrations (reset to READY), Admin accounts.
     Deletes: StockPrice/PriceHistory, Transactions, StockHoldings,
-             Directives, MarketNews, ActivityEvents, CashLedger.
+             Directives, MarketNews, ActivityEvents, CashLedger, Archetypes.
     """
     # 1. Clear game data (order matters for FK constraints)
     # LLM queue tables first — Evaluation FKs to Solution so it goes before Solution.
@@ -977,6 +977,11 @@ async def restart_game(
     await db.execute(delete(Directive))
     await db.execute(delete(MarketNews))
     await db.execute(delete(ActivityEvent))
+
+    # 1b. Detach teams from archetypes then wipe archetype table.
+    await db.execute(update(Team).values(archetype_id=None))
+    await db.flush()
+    await db.execute(delete(Archetype))
 
     # 2. Reset teams to READY status (preserve registrations)
     result = await db.execute(
