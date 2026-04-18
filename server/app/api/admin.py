@@ -2206,6 +2206,55 @@ async def seed_archetypes(
         db.add(archetype)
         created.append(preset["slug"])
 
+    # Also seed the bulk FMCG dossier (server/scripts/output.json) if present.
+    # Same idempotency rule: skip by slug. Admin gets every dossier via one click.
+    import pathlib
+
+    dossier_path = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "output.json"
+    if dossier_path.exists():
+        try:
+            with dossier_path.open("r", encoding="utf-8") as f:
+                dossier = json.load(f)
+            for arch in dossier.get("archetypes", []):
+                slug = arch.get("slug")
+                if not slug:
+                    continue
+                exists = await db.execute(
+                    select(Archetype).where(Archetype.slug == slug)
+                )
+                if exists.scalar_one_or_none():
+                    skipped.append(slug)
+                    continue
+
+                from decimal import Decimal
+
+                db.add(
+                    Archetype(
+                        name=arch["name"],
+                        slug=slug,
+                        description=arch.get("description"),
+                        sector=arch.get("sector", "FOODS"),
+                        dossier_content=arch["dossier_content"],
+                        benchmark_bands=arch["benchmark_bands"],
+                        starting_cash=Decimal(str(arch["starting_cash"])),
+                        starting_stock_price=Decimal(
+                            str(arch["starting_stock_price"])
+                        ),
+                        starting_shares=arch["starting_shares"],
+                        swot_strengths=arch.get("swot_strengths"),
+                        swot_weaknesses=arch.get("swot_weaknesses"),
+                        swot_opportunities=arch.get("swot_opportunities"),
+                        swot_threats=arch.get("swot_threats"),
+                        real_world_inspiration=arch.get("real_world_inspiration"),
+                        is_preset=arch.get("is_preset", True),
+                        bcg_classification=arch.get("bcg_classification"),
+                    )
+                )
+                created.append(slug)
+        except Exception as e:  # noqa: BLE001
+            # Non-fatal — log and continue with whatever we already staged.
+            print(f"[seed_archetypes] FMCG dossier seed failed: {e}")
+
     await db.commit()
 
     return {

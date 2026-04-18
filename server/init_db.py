@@ -117,7 +117,9 @@ async def init() -> None:
         # Non-fatal: self-heal pass below still runs. A stale or oddly-stamped
         # DB can fail here but self-heal recovers the common "new column"
         # case without the migration.
-        print(f"[init_db] step 3: alembic upgrade FAILED rc={rc}\n{out}", file=sys.stderr)
+        print(
+            f"[init_db] step 3: alembic upgrade FAILED rc={rc}\n{out}", file=sys.stderr
+        )
     else:
         print("[init_db] step 3: alembic upgrade head OK")
         if out:

@@ -8,7 +8,7 @@ from app.models import Archetype
 
 async def main():
     print("Loading archetypes from ../scripts/output.json...")
-    with open("../scripts/output.json", "r", encoding="utf-8") as f:
+    with open("./scripts/output.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
     archetypes = data.get("archetypes", [])
