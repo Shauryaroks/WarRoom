@@ -1,7 +1,7 @@
 """Solutions API router: submission, cooldown, caseline endpoints.
 
 Per SOLN-01: Strategist submits initial solution within 1-hour window.
-Per SOLN-03: Microtweak submission with 20-minute cooldown.
+Per SOLN-03: Microtweak submission with 12-minute cooldown.
 Per SOLN-04: Cooldown tracked on Team.cooldown_until, auto-expires.
 Per T-05-05: Role check -- only strategists can submit.
 Per T-05-06: Server-side elapsed_seconds check (authoritative timer).
@@ -78,7 +78,7 @@ async def submit_solution(
 
     INITIAL: must be within 1-hour window (SOLN-01, T-05-06).
     MICROTWEAK: must not be in cooldown (SOLN-03, T-05-06).
-    On MICROTWEAK: sets cooldown_until = now + 20min (SOLN-04).
+    On MICROTWEAK: sets cooldown_until = now + 12min (SOLN-04).
     Dispatches Celery task for LLM evaluation (EVAL-01).
     """
     # T-05-05: Only strategists can submit
@@ -135,7 +135,7 @@ async def submit_solution(
 
     # SOLN-04: Set cooldown on MICROTWEAK
     if sol_type == SolutionType.MICROTWEAK:
-        team.cooldown_until = now + timedelta(minutes=20)
+        team.cooldown_until = now + timedelta(minutes=12)
 
     await db.commit()
     await db.refresh(solution)
