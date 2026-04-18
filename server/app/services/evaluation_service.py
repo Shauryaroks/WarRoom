@@ -62,18 +62,33 @@ async def build_prompt(db: AsyncSession, solution_id: uuid.UUID) -> list[dict]:
 
     team = solution.team
 
-    # Load competitor summaries: active teams with their latest approved evaluation
+    # Context-size guards. These caps keep the total prompt well under typical
+    # provider limits (~8k tokens for the user turn) regardless of how many
+    # teams are active, how long the caseline dossier is, or how bloated the
+    # market news table has grown.
+    CASELINE_MAX_CHARS = 2500
+    SOLUTION_MAX_CHARS = 8000
+    COMPETITOR_LIMIT = 10
+    COMPETITOR_HEADLINE_MAX_CHARS = 80
+    NEWS_LIMIT = 6
+    NEWS_HEADLINE_MAX_CHARS = 100
+
+    # Load top N competitors by stock price (the most relevant signal), with
+    # their latest approved evaluation. This replaces iterating over every
+    # active team, which grew unbounded with roster size.
     competitor_result = await db.execute(
-        select(Team).where(
+        select(Team)
+        .where(
             Team.status == TeamStatus.ACTIVE,
             Team.id != team.id,
         )
+        .order_by(desc(Team.stock_price))
+        .limit(COMPETITOR_LIMIT)
     )
     competitors = competitor_result.scalars().all()
 
     competitor_summaries = []
     for comp in competitors:
-        # Get latest approved evaluation for this competitor
         eval_result = await db.execute(
             select(Evaluation)
             .where(
@@ -89,12 +104,13 @@ async def build_prompt(db: AsyncSession, solution_id: uuid.UUID) -> list[dict]:
         if latest_eval:
             summary += f" (score: {latest_eval.overall_score:.2f})"
             if latest_eval.news_headline:
-                summary += f" - Latest: {latest_eval.news_headline}"
+                headline = latest_eval.news_headline[:COMPETITOR_HEADLINE_MAX_CHARS]
+                summary += f" - {headline}"
         competitor_summaries.append(summary)
 
-    # Load recent market news (last 10)
+    # Load recent market news (last N only, not the full history)
     news_result = await db.execute(
-        select(MarketNews).order_by(desc(MarketNews.created_at)).limit(10)
+        select(MarketNews).order_by(desc(MarketNews.created_at)).limit(NEWS_LIMIT)
     )
     recent_news = news_result.scalars().all()
 
@@ -107,13 +123,21 @@ Cash: ${team.cash}
 Market Cap: ${team.stock_price * team.shares_outstanding}
 """
     if team.caseline_document:
-        company_profile += f"\nCaseline:\n{team.caseline_document}\n"
+        caseline = team.caseline_document
+        if len(caseline) > CASELINE_MAX_CHARS:
+            caseline = caseline[:CASELINE_MAX_CHARS] + "\n...[caseline truncated]"
+        company_profile += f"\nCaseline:\n{caseline}\n"
 
-    # Solution section
+    # Solution section (truncate defensively — Pydantic allows up to 50K chars)
+    solution_content = solution.content or ""
+    if len(solution_content) > SOLUTION_MAX_CHARS:
+        solution_content = (
+            solution_content[:SOLUTION_MAX_CHARS] + "\n...[solution truncated]"
+        )
     if solution.solution_type == SolutionType.MICROTWEAK:
-        solution_section = f"[STRATEGY MICROTWEAK]\n{solution.content}"
+        solution_section = f"[STRATEGY MICROTWEAK]\n{solution_content}"
     else:
-        solution_section = f"[STRATEGIC SOLUTION]\n{solution.content}"
+        solution_section = f"[STRATEGIC SOLUTION]\n{solution_content}"
 
     # Competitor section
     if competitor_summaries:
@@ -121,9 +145,11 @@ Market Cap: ${team.stock_price * team.shares_outstanding}
     else:
         competitor_section = "[COMPETITOR ACTIONS]\nNo competitor data available."
 
-    # News section
+    # News section (headlines only, each truncated)
     if recent_news:
-        news_items = [f"- {n.headline}" for n in recent_news]
+        news_items = [
+            f"- {n.headline[:NEWS_HEADLINE_MAX_CHARS]}" for n in recent_news
+        ]
         news_section = "[MARKET NEWS]\n" + "\n".join(news_items)
     else:
         news_section = "[MARKET NEWS]\nNo recent news."
