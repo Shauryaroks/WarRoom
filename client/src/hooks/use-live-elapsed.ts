@@ -34,5 +34,7 @@ export function useLiveElapsed(): number {
   if (status !== "ACTIVE" || elapsedSyncedAtMs == null) {
     return elapsedSeconds;
   }
-  return elapsedSeconds + Math.max(0, Math.floor((now - elapsedSyncedAtMs) / 1000));
+  return (
+    elapsedSeconds + Math.max(0, Math.floor((now - elapsedSyncedAtMs) / 1000))
+  );
 }

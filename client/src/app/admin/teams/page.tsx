@@ -109,6 +109,18 @@ export default function TeamsPage() {
     }
   }
 
+  async function handleBankrupt(teamId: string) {
+    try {
+      const result = await api.bankruptTeam(teamId);
+      updateTeamStatus(teamId, "BANKRUPT");
+      toast.success(result.message);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to mark team bankrupt",
+      );
+    }
+  }
+
   // Caseline assignment state
   const [caselineTeamId, setCaselineTeamId] = useState<string | null>(null);
   const [caselineDoc, setCaselineDoc] = useState("");
@@ -178,7 +190,7 @@ export default function TeamsPage() {
             onReject={handleReject}
             onRemove={handleRemove}
             onCaseline={handleCaseline}
-	    onBankrupt={handleBankrupt}
+            onBankrupt={handleBankrupt}
           />
         </div>
         <div className="xl:col-span-1 h-[400px] xl:h-auto">

@@ -170,9 +170,7 @@ export function NewsOverlay({ isOpen, onClose }: NewsOverlayProps) {
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#404752]/20 shrink-0">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
-                  {selectedNews.source_type ||
-                    selectedNews.news_type ||
-                    "NEWS"}
+                  {selectedNews.source_type || selectedNews.news_type || "NEWS"}
                 </span>
                 <span className="font-mono text-[10px] text-[#89919d] tabular-nums">
                   {formatFullTimestamp(selectedNews.created_at)}

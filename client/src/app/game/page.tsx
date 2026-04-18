@@ -294,7 +294,10 @@ export default function GamePage() {
           {/* Chart with price overlay */}
           <div className="flex-1 relative">
             <PriceOverlay />
-            <CandlestickChart key={selectedCompanyId ?? "none"} data={chartData} />
+            <CandlestickChart
+              key={selectedCompanyId ?? "none"}
+              data={chartData}
+            />
           </div>
 
           {/* Leaderboard widget below chart */}

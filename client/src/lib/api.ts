@@ -245,7 +245,9 @@ class ApiClient {
     return this.request<NewsItem[]>("/api/v1/market/news");
   }
 
-  async deleteNews(newsId: string): Promise<{ success: boolean; deleted_id: string }> {
+  async deleteNews(
+    newsId: string,
+  ): Promise<{ success: boolean; deleted_id: string }> {
     return this.request(`/api/v1/admin/news/${newsId}`, {
       method: "DELETE",
     });

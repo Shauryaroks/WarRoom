@@ -93,9 +93,7 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, role, setGameState, setTeams]);
 
-  async function handleSetMarketBias(
-    next: "BULLISH" | "BEARISH" | null,
-  ) {
+  async function handleSetMarketBias(next: "BULLISH" | "BEARISH" | null) {
     try {
       const result = await api.setMarketBias(next);
       setMarketBias(result.bias);
