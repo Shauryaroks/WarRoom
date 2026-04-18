@@ -1543,6 +1543,16 @@ async def inject_crisis(
     except ValueError:
         pass  # Already paused is fine
 
+    # Mirror the crisis into the news feed so admins don't re-type it manually.
+    headline = request.scenario[:120] or "CRISIS EVENT"
+    news = MarketNews(
+        headline=headline,
+        content=request.scenario,
+        source_type="CRISIS_INJECTED",
+        affected_tickers=None,
+    )
+    db.add(news)
+
     db.add(
         ActivityEvent(
             event_type="CRISIS_INJECTED",
@@ -1558,6 +1568,7 @@ async def inject_crisis(
     )
     await db.commit()
     await db.refresh(crisis)
+    await db.refresh(news)
 
     await publish_broadcast(
         {
@@ -1571,8 +1582,23 @@ async def inject_crisis(
         }
     )
 
+    await publish_broadcast(
+        {
+            "type": "news_injected",
+            "payload": {
+                "id": str(news.id),
+                "headline": news.headline,
+                "content": news.content,
+                "source_type": "CRISIS_INJECTED",
+                "news_type": "GLOBAL",
+                "affected_tickers": [],
+                "created_at": news.created_at.isoformat(),
+            },
+        }
+    )
+
     return CrisisInjectResponse(
-        message="Crisis injected and game paused",
+        message="Crisis injected, game paused, news feed updated",
         crisis_id=str(crisis.id),
     )
 
