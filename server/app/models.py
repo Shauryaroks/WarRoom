@@ -119,6 +119,7 @@ class Archetype(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    bcg_classification: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     sector: Mapped[str] = mapped_column(String(20), nullable=False, default="FOODS")
     dossier_content: Mapped[str] = mapped_column(Text, nullable=False)
     benchmark_bands: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
@@ -169,6 +170,7 @@ class Team(Base):
         Enum(TeamStatus), default=TeamStatus.PENDING
     )
     portfolio_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    bcg_classification: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # Admin approval tracking
     approved_at: Mapped[Optional[datetime]] = mapped_column(

@@ -25,7 +25,7 @@ def upgrade() -> None:
         "NEW_PRODUCT",
         name="levercategory",
     )
-    lever_enum.create(op.get_bind(), checkfirst=True)
+    # lever_enum.create(op.get_bind(), checkfirst=True)
 
     # Create decisions table (per D-13)
     op.create_table(

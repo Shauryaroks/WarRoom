@@ -18,18 +18,22 @@ export interface AdminLoginResponse {
   role: "admin";
 }
 
+export type BCGClassification = "STAR" | "CASH_COW" | "QUESTION_MARK" | "DOG";
+
 export interface MeResponse {
   team_id: string;
   team_name: string;
   ticker: string;
   role: UserRole;
   status: string;
+  bcg_classification?: BCGClassification | null;
 }
 
 export interface ApprovedTeam {
   id: string;
   name: string;
   ticker: string;
+  bcg_classification?: BCGClassification | null;
 }
 
 export interface ApiError {
@@ -60,6 +64,7 @@ export interface AdminTeam {
   created_at: string;
   archetype_id: string | null;
   archetype_name: string | null;
+  bcg_classification?: BCGClassification | null;
 }
 
 export interface NewsItem {
@@ -314,6 +319,7 @@ export interface ArchetypeResponse {
   swot_threats: string | null;
   real_world_inspiration: string | null;
   is_preset: boolean;
+  bcg_classification?: BCGClassification | null;
   created_at: string;
 }
 

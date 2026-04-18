@@ -15,6 +15,7 @@ class ApprovedTeamItem(BaseModel):
     id: str
     name: str
     ticker: str
+    bcg_classification: str | None = None
 
 
 @router.get("/approved", response_model=list[ApprovedTeamItem])
@@ -35,6 +36,7 @@ async def list_approved_teams(
             id=str(t.id),
             name=t.name,
             ticker=t.ticker,
+            bcg_classification=t.bcg_classification,
         )
         for t in teams
     ]

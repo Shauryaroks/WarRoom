@@ -98,22 +98,14 @@ export default function TeamsPage() {
   async function handleRemove(teamId: string) {
     try {
       const result = await api.removeTeam(teamId);
-      removeTeam(teamId);
+      if (result.remove_type === "hard") {
+        removeTeam(teamId);
+      } else {
+        updateTeamStatus(teamId, "BANKRUPT");
+      }
       toast.success(result.message);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove team");
-    }
-  }
-
-  async function handleBankrupt(teamId: string) {
-    try {
-      const result = await api.bankruptTeam(teamId);
-      updateTeamStatus(teamId, "BANKRUPT");
-      toast.success(result.message);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to mark team bankrupt",
-      );
     }
   }
 
@@ -175,17 +167,23 @@ export default function TeamsPage() {
       <h2 className="text-base font-black font-mono tracking-widest text-[#9ecaff] uppercase mb-6">
         TEAM_MANAGEMENT_CONSOLE
       </h2>
-      <div className="bg-[#1c1b1b] p-6">
-        <TeamTable
-          teams={teams}
-          gameStatus={status}
-          compact={false}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          onRemove={handleRemove}
-          onBankrupt={handleBankrupt}
-          onCaseline={handleCaseline}
-        />
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+        <div className="xl:col-span-3 bg-[#1c1b1b] p-6">
+          <TeamTable
+            teams={teams}
+            gameStatus={status}
+            compact={false}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onRemove={handleRemove}
+            onCaseline={handleCaseline}
+	    onBankrupt={handleBankrupt}
+          />
+        </div>
+        <div className="xl:col-span-1 h-[400px] xl:h-auto">
+          <BCGMatrixCard teams={teams} />
+        </div>
       </div>
 
       {/* Caseline Assignment Panel */}

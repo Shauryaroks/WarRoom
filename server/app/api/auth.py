@@ -73,6 +73,7 @@ class MeResponse(BaseModel):
     ticker: str
     role: str
     status: str
+    bcg_classification: str | None = None
 
 
 # --- Utility ---
@@ -209,4 +210,5 @@ async def me(current_user: dict = Depends(get_current_user)):
         ticker=entity.ticker,
         role=current_user["role"],
         status=entity.status.value,
+        bcg_classification=entity.bcg_classification,
     )

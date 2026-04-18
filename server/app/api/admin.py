@@ -88,6 +88,7 @@ class TeamListItem(BaseModel):
     trader_email: str
     archetype_id: str | None = None
     archetype_name: str | None = None
+    bcg_classification: str | None = None
     created_at: str
 
 
@@ -331,6 +332,7 @@ async def list_teams(
             trader_email=t.trader_email,
             archetype_id=str(t.archetype_id) if t.archetype_id else None,
             archetype_name=t.archetype.name if t.archetype else None,
+            bcg_classification=t.bcg_classification,
             created_at=t.created_at.isoformat(),
         )
         for t in teams
@@ -1588,6 +1590,7 @@ class ArchetypeCreateRequest(BaseModel):
     swot_opportunities: str | None = None
     swot_threats: str | None = None
     real_world_inspiration: str | None = Field(None, max_length=200)
+    bcg_classification: str | None = None
 
 
 class ArchetypeUpdateRequest(BaseModel):
@@ -1604,6 +1607,7 @@ class ArchetypeUpdateRequest(BaseModel):
     swot_opportunities: str | None = None
     swot_threats: str | None = None
     real_world_inspiration: str | None = Field(None, max_length=200)
+    bcg_classification: str | None = None
 
 
 class ArchetypeResponse(BaseModel):
@@ -1622,6 +1626,7 @@ class ArchetypeResponse(BaseModel):
     swot_opportunities: str | None
     swot_threats: str | None
     real_world_inspiration: str | None
+    bcg_classification: str | None
     is_preset: bool
     created_at: str
 
@@ -1653,6 +1658,7 @@ def _archetype_to_response(a: Archetype) -> ArchetypeResponse:
         swot_opportunities=a.swot_opportunities,
         swot_threats=a.swot_threats,
         real_world_inspiration=a.real_world_inspiration,
+        bcg_classification=a.bcg_classification,
         is_preset=a.is_preset,
         created_at=a.created_at.isoformat(),
     )
@@ -1735,6 +1741,7 @@ async def create_archetype(
         swot_opportunities=request.swot_opportunities,
         swot_threats=request.swot_threats,
         real_world_inspiration=request.real_world_inspiration,
+        bcg_classification=request.bcg_classification,
         is_preset=False,
     )
     db.add(archetype)
@@ -1801,6 +1808,8 @@ async def update_archetype(
         archetype.swot_threats = request.swot_threats
     if request.real_world_inspiration is not None:
         archetype.real_world_inspiration = request.real_world_inspiration
+    if request.bcg_classification is not None:
+        archetype.bcg_classification = request.bcg_classification
 
     await db.commit()
     await db.refresh(archetype)
@@ -1878,6 +1887,7 @@ async def assign_archetype(
     team.swot_weaknesses = archetype.swot_weaknesses
     team.swot_opportunities = archetype.swot_opportunities
     team.swot_threats = archetype.swot_threats
+    team.bcg_classification = archetype.bcg_classification
 
     # Phase 9 D-03/D-04: Populate fundamentals at archetype benchmark band midpoints.
     _bands = json.loads(archetype.benchmark_bands)

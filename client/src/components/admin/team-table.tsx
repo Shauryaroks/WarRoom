@@ -1,6 +1,6 @@
 "use client";
 
-import type { AdminTeam } from "@/lib/types";
+import type { AdminTeam, BCGClassification } from "@/lib/types";
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: "text-[#9ecaff] bg-[#9ecaff]/10",
@@ -9,6 +9,13 @@ const STATUS_STYLES: Record<string, string> = {
   BANKRUPT: "text-[#FF1744] bg-[#FF1744]/10",
   ELIMINATED: "text-[#FF1744] bg-[#FF1744]/10",
   REJECTED: "text-gray-500 bg-gray-500/10",
+};
+
+const BCG_STYLES: Record<NonNullable<BCGClassification>, string> = {
+  STAR: "text-[#ffeb3b] bg-[#ffeb3b]/10",
+  CASH_COW: "text-[#4caf50] bg-[#4caf50]/10",
+  QUESTION_MARK: "text-[#ff9800] bg-[#ff9800]/10",
+  DOG: "text-[#f44336] bg-[#f44336]/10",
 };
 
 interface TeamTableProps {
@@ -73,10 +80,17 @@ export function TeamTable({
           {teams.map((team) => (
             <tr key={team.id} className="hover:bg-[#2a2a2a] transition-colors">
               <td className="py-5 pr-4 font-mono font-bold text-[#e5e2e1] text-sm">
-                <span>{team.name}</span>
+                <span className="mr-2">{team.name}</span>
                 {team.archetype_name && (
-                  <span className="ml-2 text-[10px] font-normal text-[#2196f3]/70 uppercase">
+                  <span className="inline-block px-1.5 py-0.5 rounded bg-[#2196f3]/10 text-[10px] font-bold text-[#2196f3] uppercase tracking-wider">
                     {team.archetype_name}
+                  </span>
+                )}
+                {team.bcg_classification && (
+                  <span
+                    className={`ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider ${BCG_STYLES[team.bcg_classification]}`}
+                  >
+                    {team.bcg_classification.replace("_", " ")}
                   </span>
                 )}
               </td>
