@@ -2187,7 +2187,7 @@ async def seed_archetypes(
     _admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Replace all archetypes with a fresh seed (4 legacy presets + scripts/output.json).
+    """Replace all archetypes with a fresh seed from scripts/output.json.
 
     Destructive by design — admin explicitly re-seeds when they want the latest
     dossier set. Teams with an archetype assignment get their FK nulled out so
@@ -2200,75 +2200,51 @@ async def seed_archetypes(
     await db.execute(delete(Archetype))
     await db.flush()
 
-    created = []
+    created: list[str] = []
     skipped: list[str] = []
 
-    for preset in _PRESET_ARCHETYPES:
-        archetype = Archetype(
-            name=preset["name"],
-            slug=preset["slug"],
-            description=preset["description"],
-            sector=preset["sector"],
-            dossier_content=preset["dossier_content"],
-            benchmark_bands=preset["benchmark_bands"],
-            starting_cash=preset["starting_cash"],
-            starting_stock_price=preset["starting_stock_price"],
-            starting_shares=preset["starting_shares"],
-            swot_strengths=preset["swot_strengths"],
-            swot_weaknesses=preset["swot_weaknesses"],
-            swot_opportunities=preset["swot_opportunities"],
-            swot_threats=preset["swot_threats"],
-            real_world_inspiration=preset["real_world_inspiration"],
-            is_preset=True,
-        )
-        db.add(archetype)
-        created.append(preset["slug"])
-
-    # Also seed the bulk FMCG dossier (server/scripts/output.json) if present.
-    # Table was wiped above, so we can append without checking existing slugs.
     import pathlib
+    from decimal import Decimal
 
     dossier_path = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "output.json"
-    if dossier_path.exists():
-        try:
-            with dossier_path.open("r", encoding="utf-8") as f:
-                dossier = json.load(f)
-            seen_slugs = {p["slug"] for p in _PRESET_ARCHETYPES}
-            for arch in dossier.get("archetypes", []):
-                slug = arch.get("slug")
-                if not slug or slug in seen_slugs:
-                    # Dedupe against the 4 legacy presets already seeded above.
-                    continue
-                seen_slugs.add(slug)
+    if not dossier_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Dossier file missing at {dossier_path}",
+        )
 
-                from decimal import Decimal
+    with dossier_path.open("r", encoding="utf-8") as f:
+        dossier = json.load(f)
 
-                db.add(
-                    Archetype(
-                        name=arch["name"],
-                        slug=slug,
-                        description=arch.get("description"),
-                        sector=arch.get("sector", "FOODS"),
-                        dossier_content=arch["dossier_content"],
-                        benchmark_bands=arch["benchmark_bands"],
-                        starting_cash=Decimal(str(arch["starting_cash"])),
-                        starting_stock_price=Decimal(
-                            str(arch["starting_stock_price"])
-                        ),
-                        starting_shares=arch["starting_shares"],
-                        swot_strengths=arch.get("swot_strengths"),
-                        swot_weaknesses=arch.get("swot_weaknesses"),
-                        swot_opportunities=arch.get("swot_opportunities"),
-                        swot_threats=arch.get("swot_threats"),
-                        real_world_inspiration=arch.get("real_world_inspiration"),
-                        is_preset=arch.get("is_preset", True),
-                        bcg_classification=arch.get("bcg_classification"),
-                    )
-                )
-                created.append(slug)
-        except Exception as e:  # noqa: BLE001
-            # Non-fatal — log and continue with whatever we already staged.
-            print(f"[seed_archetypes] FMCG dossier seed failed: {e}")
+    seen_slugs: set[str] = set()
+    for arch in dossier.get("archetypes", []):
+        slug = arch.get("slug")
+        if not slug or slug in seen_slugs:
+            skipped.append(slug or "<missing-slug>")
+            continue
+        seen_slugs.add(slug)
+
+        db.add(
+            Archetype(
+                name=arch["name"],
+                slug=slug,
+                description=arch.get("description"),
+                sector=arch.get("sector", "FOODS"),
+                dossier_content=arch["dossier_content"],
+                benchmark_bands=arch["benchmark_bands"],
+                starting_cash=Decimal(str(arch["starting_cash"])),
+                starting_stock_price=Decimal(str(arch["starting_stock_price"])),
+                starting_shares=arch["starting_shares"],
+                swot_strengths=arch.get("swot_strengths"),
+                swot_weaknesses=arch.get("swot_weaknesses"),
+                swot_opportunities=arch.get("swot_opportunities"),
+                swot_threats=arch.get("swot_threats"),
+                real_world_inspiration=arch.get("real_world_inspiration"),
+                is_preset=arch.get("is_preset", True),
+                bcg_classification=arch.get("bcg_classification"),
+            )
+        )
+        created.append(slug)
 
     await db.commit()
 
