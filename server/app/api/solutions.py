@@ -29,7 +29,7 @@ from app.models import (
     Team,
     TeamStatus,
 )
-from app.services.game_service import calculate_elapsed_seconds, get_game_state_readonly
+from app.services.game_service import get_game_state_readonly
 
 router = APIRouter(prefix="/api/v1/solutions", tags=["solutions"])
 
@@ -100,7 +100,6 @@ async def submit_solution(
             raise HTTPException(status_code=409, detail="Game is not active")
 
     now = datetime.now(timezone.utc)
-    elapsed_seconds = calculate_elapsed_seconds(game_state)
 
     # Reload team from DB to get current state
     team_result = await db.execute(
@@ -114,14 +113,9 @@ async def submit_solution(
             status_code=403, detail="Eliminated teams cannot submit solutions"
         )
 
-    # T-05-06: Server-side time window validation
-    if sol_type == SolutionType.INITIAL:
-        if elapsed_seconds >= 3600:
-            raise HTTPException(
-                status_code=409,
-                detail="Initial submission window (1 hour) has closed",
-            )
-    elif sol_type == SolutionType.MICROTWEAK:
+    # Initial submissions no longer time-boxed — admins may accept them at any
+    # point during the game. Cooldowns on MICROTWEAK remain enforced below.
+    if sol_type == SolutionType.MICROTWEAK:
         # SOLN-03: Check cooldown
         if team.cooldown_until is not None and team.cooldown_until > now:
             remaining = int((team.cooldown_until - now).total_seconds())
