@@ -11,6 +11,7 @@ import {
   Settings,
   Activity,
   Gauge,
+  BookOpen,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   },
   { href: "/admin/fundamentals", icon: Gauge, label: "FUND", exact: false },
   { href: "/admin/markets", icon: TrendingUp, label: "MARKETS", exact: false },
+  { href: "/admin/ledger", icon: BookOpen, label: "LEDGER", exact: false },
   { href: "/admin/news", icon: Newspaper, label: "NEWS", exact: false },
   { href: "/admin/settings", icon: Settings, label: "SETTINGS", exact: false },
   { href: "/admin/activity", icon: Activity, label: "ACTIVITY", exact: false },

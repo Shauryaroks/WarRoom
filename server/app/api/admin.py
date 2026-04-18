@@ -151,6 +151,24 @@ class ActivityEventItem(BaseModel):
     created_at: str
 
 
+class TradeLedgerItem(BaseModel):
+    id: str
+    transaction_type: str
+    buyer_team_id: str | None
+    buyer_name: str | None
+    buyer_ticker: str | None
+    seller_team_id: str | None
+    seller_name: str | None
+    seller_ticker: str | None
+    target_team_id: str
+    target_name: str
+    target_ticker: str
+    shares: int
+    price_per_share: str
+    total_value: str
+    executed_at: str
+
+
 class RoundAdvanceResponse(BaseModel):
     message: str
     current_round: int
@@ -1097,6 +1115,73 @@ async def get_activity_log(
             created_at=e.created_at.isoformat(),
         )
         for e in events
+    ]
+
+
+# --- Trade Ledger ---
+
+
+@router.get("/transactions", response_model=list[TradeLedgerItem])
+async def get_trade_ledger(
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    team_id: str | None = Query(None, description="Filter by team (any role)"),
+    limit: int = Query(500, ge=1, le=2000),
+):
+    """Full trading history across all teams. Most recent first.
+
+    Each row shows buyer, seller, target company, shares, price, and total.
+    Optional team_id filter scopes to transactions where that team is
+    buyer, seller, or target.
+    """
+    from sqlalchemy.orm import aliased
+
+    Buyer = aliased(Team)
+    Seller = aliased(Team)
+    TargetT = aliased(Team)
+
+    stmt = (
+        select(Transaction, Buyer, Seller, TargetT)
+        .outerjoin(Buyer, Transaction.buyer_team_id == Buyer.id)
+        .outerjoin(Seller, Transaction.seller_team_id == Seller.id)
+        .join(TargetT, Transaction.target_team_id == TargetT.id)
+        .order_by(Transaction.executed_at.desc())
+        .limit(limit)
+    )
+
+    if team_id:
+        try:
+            team_uuid = uuid.UUID(team_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid team_id")
+        stmt = stmt.where(
+            (Transaction.buyer_team_id == team_uuid)
+            | (Transaction.seller_team_id == team_uuid)
+            | (Transaction.target_team_id == team_uuid)
+        )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        TradeLedgerItem(
+            id=str(tx.id),
+            transaction_type=tx.transaction_type.value,
+            buyer_team_id=str(tx.buyer_team_id) if tx.buyer_team_id else None,
+            buyer_name=buyer.name if buyer else None,
+            buyer_ticker=buyer.ticker if buyer else None,
+            seller_team_id=str(tx.seller_team_id) if tx.seller_team_id else None,
+            seller_name=seller.name if seller else None,
+            seller_ticker=seller.ticker if seller else None,
+            target_team_id=str(tx.target_team_id),
+            target_name=target.name,
+            target_ticker=target.ticker,
+            shares=tx.shares,
+            price_per_share=str(tx.price_per_share),
+            total_value=str(tx.total_value),
+            executed_at=tx.executed_at.isoformat(),
+        )
+        for tx, buyer, seller, target in rows
     ]
 
 

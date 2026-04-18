@@ -36,6 +36,7 @@ import type {
   BudgetResponse,
   FundamentalEvalListItem,
   FundamentalApproveResponse,
+  TradeLedgerItem,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -264,6 +265,12 @@ class ApiClient {
   // Activity
   async getActivityLog(): Promise<ActivityEvent[]> {
     return this.request<ActivityEvent[]>("/api/v1/admin/activity");
+  }
+
+  // Trade ledger
+  async getTradeLedger(teamId?: string): Promise<TradeLedgerItem[]> {
+    const qs = teamId ? `?team_id=${encodeURIComponent(teamId)}` : "";
+    return this.request<TradeLedgerItem[]>(`/api/v1/admin/transactions${qs}`);
   }
 
   // Game restart

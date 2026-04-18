@@ -86,6 +86,24 @@ export interface ActivityEvent {
   created_at: string;
 }
 
+export interface TradeLedgerItem {
+  id: string;
+  transaction_type: string;
+  buyer_team_id: string | null;
+  buyer_name: string | null;
+  buyer_ticker: string | null;
+  seller_team_id: string | null;
+  seller_name: string | null;
+  seller_ticker: string | null;
+  target_team_id: string;
+  target_name: string;
+  target_ticker: string;
+  shares: number;
+  price_per_share: string;
+  total_value: string;
+  executed_at: string;
+}
+
 export interface TeamRemoveResponse {
   message: string;
   team_id: string;
