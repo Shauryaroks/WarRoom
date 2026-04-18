@@ -135,15 +135,15 @@ export function SolutionsPanel() {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="flex flex-col h-full p-4 gap-4">
       {/* Header */}
-      <div className="text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
+      <div className="shrink-0 text-[10px] text-[#89919d] uppercase font-bold tracking-widest">
         SOLUTIONS
       </div>
 
       {/* Error display */}
       {error && (
-        <div className="bg-[#1c1b1b] border-l-2 border-[#FF1744] p-2">
+        <div className="shrink-0 bg-[#1c1b1b] border-l-2 border-[#FF1744] p-2">
           <div className="text-[10px] text-[#FF1744] font-mono">{error}</div>
           <button
             onClick={clearError}
@@ -156,7 +156,7 @@ export function SolutionsPanel() {
 
       {/* Cooldown display */}
       {isCooldownActive && (
-        <div className="bg-[#1c1b1b] border-l-2 border-[#f5a623] p-3">
+        <div className="shrink-0 bg-[#1c1b1b] border-l-2 border-[#f5a623] p-3">
           <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest mb-1">
             COOLDOWN_ACTIVE
           </div>
@@ -169,9 +169,9 @@ export function SolutionsPanel() {
         </div>
       )}
 
-      {/* Editor */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
+      {/* Editor — grows to fill remaining vertical space */}
+      <div className="flex flex-col flex-1 min-h-0 gap-2">
+        <div className="shrink-0 flex items-center justify-between">
           <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
             {currentSolutionType === "INITIAL"
               ? "STRATEGIC_ROADMAP"
@@ -190,12 +190,12 @@ export function SolutionsPanel() {
               ? "Enter your strategic roadmap...\n\nDescribe your company's strategy, growth plans, competitive advantages, and key initiatives."
               : "Enter your microtweak...\n\nDescribe adjustments to your strategy based on market conditions."
           }
-          className="w-full h-48 bg-[#0e0e0e] text-xs text-[#e5e2e1] font-mono p-3 border border-[#2a2a2a] focus:border-[#2196f3] resize-none placeholder:text-[#404752] disabled:opacity-50"
+          className="flex-1 min-h-[12rem] w-full bg-[#0e0e0e] text-xs text-[#e5e2e1] font-mono p-3 border border-[#2a2a2a] focus:border-[#2196f3] resize-none placeholder:text-[#404752] disabled:opacity-50"
         />
         <button
           onClick={handleSubmit}
           disabled={!content.trim() || isSubmitting || isCooldownActive}
-          className="w-full py-2 text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-[#2196f3] text-white hover:bg-[#1976d2]"
+          className="shrink-0 w-full py-2 text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-[#2196f3] text-white hover:bg-[#1976d2]"
         >
           {isSubmitting
             ? "SUBMITTING..."
@@ -205,10 +205,10 @@ export function SolutionsPanel() {
         </button>
       </div>
 
-      {/* Submission history */}
+      {/* Submission history — fixed max height, scrolls independently */}
       {solutions.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
+        <div className="shrink-0 flex flex-col gap-2 max-h-52">
+          <div className="shrink-0 text-[9px] text-[#89919d] uppercase font-bold tracking-widest">
             SUBMISSION_HISTORY
           </div>
           {isLoading ? (
@@ -216,7 +216,7 @@ export function SolutionsPanel() {
               LOADING...
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
               {solutions.map((solution) => {
                 const statusInfo = STATUS_STYLES[
                   solution.evaluation_status || ""

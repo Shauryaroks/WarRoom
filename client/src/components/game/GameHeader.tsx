@@ -3,6 +3,7 @@
 import { useAuthStore } from "@/stores/auth-store";
 import { useGameStore } from "@/stores/game-store";
 import { useTradingStore } from "@/stores/trading-store";
+import { useLiveElapsed } from "@/hooks/use-live-elapsed";
 
 export function formatElapsed(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -19,7 +20,8 @@ function formatCash(value: string): string {
 
 export function GameHeader() {
   const { teamName, ticker } = useAuthStore();
-  const { status, elapsedSeconds, currentRound } = useGameStore();
+  const { status, currentRound } = useGameStore();
+  const elapsedSeconds = useLiveElapsed();
   const cash = useTradingStore((s) => s.cash);
 
   const statusLabel = status === "ACTIVE" ? "LIVE" : status;

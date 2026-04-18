@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useGameStore } from "@/stores/game-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { useLiveElapsed } from "@/hooks/use-live-elapsed";
 import { api } from "@/lib/api";
 import { TeamTable } from "@/components/admin/team-table";
 import { toast } from "sonner";
@@ -26,7 +27,8 @@ function formatElapsed(totalSeconds: number): string {
 export default function AdminPage() {
   const router = useRouter();
   const { isAuthenticated, role } = useAuthStore();
-  const { status, elapsedSeconds, currentRound, setGameState } = useGameStore();
+  const { status, currentRound, setGameState } = useGameStore();
+  const elapsedSeconds = useLiveElapsed();
   const { teams, setTeams, updateTeamStatus, removeTeam } = useAdminStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

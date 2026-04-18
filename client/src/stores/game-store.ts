@@ -9,6 +9,10 @@ import type {
 interface GameState {
   status: GameStatus;
   elapsedSeconds: number;
+  // Wall-clock ms at the moment elapsedSeconds was last synced from the server.
+  // Client-side `useLiveElapsed()` uses this to advance the displayed timer
+  // every second instead of only when the server pushes a new game_state_changed.
+  elapsedSyncedAtMs: number | null;
   currentRound: number;
   activeCrisis: CrisisPayload | null;
   teamStatus: string | null;
@@ -26,6 +30,7 @@ interface GameState {
 export const useGameStore = create<GameState>()((set) => ({
   status: "SETUP",
   elapsedSeconds: 0,
+  elapsedSyncedAtMs: null,
   currentRound: 0,
   activeCrisis: null,
   teamStatus: null,
@@ -36,6 +41,7 @@ export const useGameStore = create<GameState>()((set) => ({
     set({
       status: payload.status,
       elapsedSeconds: payload.elapsed_seconds,
+      elapsedSyncedAtMs: Date.now(),
       currentRound: payload.current_round,
     }),
   setCrisis: (crisis) => set({ activeCrisis: crisis }),
@@ -47,6 +53,7 @@ export const useGameStore = create<GameState>()((set) => ({
     set({
       status: "SETUP",
       elapsedSeconds: 0,
+      elapsedSyncedAtMs: null,
       currentRound: 0,
       activeCrisis: null,
       teamStatus: null,
