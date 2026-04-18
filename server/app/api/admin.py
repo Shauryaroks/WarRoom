@@ -989,6 +989,24 @@ async def get_news_history(
     ]
 
 
+@router.delete("/news/{news_id}")
+async def delete_news(
+    news_id: UUID,
+    _admin: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a news item by ID."""
+    result = await db.execute(select(MarketNews).where(MarketNews.id == news_id))
+    news = result.scalar_one_or_none()
+    if not news:
+        raise HTTPException(status_code=404, detail="News item not found")
+
+    await db.delete(news)
+    await db.commit()
+
+    return {"success": True, "deleted_id": str(news_id)}
+
+
 # --- Evaluation Endpoints (per EVAL-03, EVAL-04, EVAL-05) ---
 
 
